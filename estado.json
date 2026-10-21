@@ -1,5 +1,5 @@
 {
-  "actualizado": "2026-10-21T19:37:47.011Z",
+  "actualizado": "2026-10-21T20:38:00.838Z",
   "estadoGlobal": "VERDE",
   "estadoGlobalNumero": 0,
   "totalSectores": 4,
@@ -15,7 +15,7 @@
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": null,
+      "inicio": "2026-10-21 15:38:00",
       "fin": null
     },
     {
@@ -23,7 +23,7 @@
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": null,
+      "inicio": "2026-10-21 15:38:00",
       "fin": null
     },
     {
@@ -31,7 +31,7 @@
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": null,
+      "inicio": "2026-10-21 15:38:00",
       "fin": null
     },
     {
@@ -39,7 +39,7 @@
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": null,
+      "inicio": "2026-10-21 15:38:00",
       "fin": null
     }
   ],
