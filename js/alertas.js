@@ -1,22 +1,24 @@
 // js/alertas.js
-//
 // ============================================================
-// Sistema de Alerta Meteorológica — v4.1
+// Sistema de Alerta Meteorológica — v4.2
 // ------------------------------------------------------------
-// v4.1 (2026-10): FIX DEFINITIVO del cacheo de Chrome.
-//   El background de .al-panel, #al-barra-superior y #al-tarjeta
-//   se aplica DIRECTAMENTE por JS (el.style.background = "...").
-//   Ya no se usa var(--al-color-dark) dentro del linear-gradient,
-//   porque Chrome cacheaba el valor al cambiar de amarillo.
+// v4.2: BLINDAJE ESTRICTO.
+//   - Si la página es modo "manual" (index.html), ignora todo
+//     lo que venga del scraper.
+//   - Si la página es modo "scraper" (keraunos.html), ignora
+//     TODO lo que venga de modo manual.
 // ============================================================
 
 import { reproducirSonidoAlerta, detenerSonidoAlerta } from "./notifications.js";
 
 const VERDE_BASE = "#22c55e";
-
 const ZONAS_OCULTAS_MANUAL = ["Zona 4 - Tajo"];
 
+// Leer configuración de la página actual
+const APP_CONFIG = window.__APP_CONFIG__ || { origenFiltro: "manual" };
+
 function esZonaOcultaManual(nombreZona) {
+    if (APP_CONFIG.origenFiltro !== "manual") return false;
     if (!nombreZona) return false;
     const n = String(nombreZona).toLowerCase();
     return ZONAS_OCULTAS_MANUAL.some(oc =>
@@ -26,9 +28,6 @@ function esZonaOcultaManual(nombreZona) {
     );
 }
 
-// ----------------------------------------------------------
-// Niveles
-// ----------------------------------------------------------
 export const NIVELES_ALERTA = {
     vigilancia: {
         nombre: "Vigilancia", color: VERDE_BASE, colorDark: "#15803d",
@@ -60,9 +59,6 @@ export const NIVELES_ALERTA = {
     }
 };
 
-// ----------------------------------------------------------
-// Medidas de seguridad
-// ----------------------------------------------------------
 const MEDIDAS_SEGURIDAD = {
     vigilancia: [
         { icono: "📡", texto: "<strong>Monitoree</strong> los partes meteorológicos locales." },
@@ -104,9 +100,6 @@ const SVG_RAYO = `
   <polygon points="58,5 30,52 48,52 38,95 72,42 52,42 62,5" fill="url(#alRayoGrad)" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>
 </svg>`;
 
-// ----------------------------------------------------------
-// ESTADO
-// ----------------------------------------------------------
 const estado = {
     zonasActivas: new Map(),
     colaBanners: [],
@@ -117,57 +110,9 @@ const estado = {
 
 const capasRayos = new Map();
 let libreYaCerradoPorUsuario = false;
-
 const DURACION_TIMER_MINUTOS = 15;
 const MINUTOS_DEGRADACION = 1;
 
-// ----------------------------------------------------------
-// APLICAR COLORES — v4.1
-// ----------------------------------------------------------
-// El background se aplica DIRECTAMENTE al elemento con el string
-// completo del gradiente. NO se usa var(--al-color-dark) dentro
-// del background porque Chrome lo cachea.
-// ----------------------------------------------------------
-function pintarBackground(elemento, nivel, esLibre = false) {
-    if (!elemento) return;
-    if (esLibre) return; // el modo libre tiene su propio CSS
-
-    // Panel del overlay: gradiente entre color claro y color oscuro
-    if (elemento.classList.contains("al-panel")) {
-        elemento.style.background = `linear-gradient(160deg, ${nivel.color}, ${nivel.colorDark})`;
-        elemento.style.borderColor = nivel.color;
-        return;
-    }
-
-    // Barra superior y tarjeta flotante: gradiente oscuro → colorDark
-    elemento.style.background = `linear-gradient(160deg, rgba(20, 20, 25, 0.96), ${nivel.colorDark})`;
-    elemento.style.borderColor = nivel.color;
-    // Border left para la tarjeta
-    if (elemento.id === "al-tarjeta") {
-        elemento.style.borderLeft = `4px solid ${nivel.color}`;
-    }
-}
-
-// Resetear el inline style para volver al CSS normal (por ejemplo, al
-// volver a "libre" que tiene su propio fondo verde).
-function resetBackground(elemento) {
-    if (!elemento) return;
-    elemento.style.background = "";
-    elemento.style.borderColor = "";
-    if (elemento.id === "al-tarjeta") {
-        elemento.style.borderLeft = "";
-    }
-}
-
-// Aplicar variables CSS (para badges, botones, etc. que SÍ funcionan con var)
-function aplicarVarsCSS(el, vars) {
-    if (!el) return;
-    vars.forEach(([k, v]) => el.style.setProperty(k, v));
-}
-
-// ----------------------------------------------------------
-// BARRERA DE ARRANQUE
-// ----------------------------------------------------------
 const arranque = {
     esperando: true,
     listos: new Set(),
@@ -199,9 +144,6 @@ arranque.timeoutId = setTimeout(() => {
     if (arranque.esperando) liberarArranque();
 }, arranque.TIMEOUT_MS);
 
-// ----------------------------------------------------------
-// NIVEL EFECTIVO
-// ----------------------------------------------------------
 export function calcularNivelEfectivo(nivelOriginal, timestampInicio, duracionMin, origen = null) {
     const elapsedMin = (Date.now() - timestampInicio) / 60000;
     const D = duracionMin || DURACION_TIMER_MINUTOS;
@@ -228,9 +170,6 @@ export function calcularNivelEfectivo(nivelOriginal, timestampInicio, duracionMi
     return { nivel: "libre", restanteSeg: 0 };
 }
 
-// ----------------------------------------------------------
-// Inyección DOM
-// ----------------------------------------------------------
 function asegurarEstructuraDOM() {
     if (document.getElementById("al-overlay")) return;
 
@@ -331,9 +270,6 @@ async function obtenerModuloMapa() {
     catch (e) { console.warn("alertas.js: no se pudo importar map.js", e); return null; }
 }
 
-// ----------------------------------------------------------
-// INTERVAL MAESTRO
-// ----------------------------------------------------------
 function iniciarIntervalMaestro() {
     if (estado.intervalMaestro !== null) return;
     estado.intervalMaestro = setInterval(tickMaestro, 1000);
@@ -348,27 +284,16 @@ function detenerIntervalMaestro() {
 
 async function tickMaestro() {
     const aQuitar = [];
-
     for (const [distrito, zona] of estado.zonasActivas.entries()) {
         const ef = calcularNivelEfectivo(zona.nivelKey, zona.timestampInicio, zona.duracionMin, zona.origen);
-
-        if (ef.nivel === "libre") {
-            aQuitar.push(distrito);
-            continue;
-        }
-
+        if (ef.nivel === "libre") { aQuitar.push(distrito); continue; }
         if (ef.nivel !== zona.nivelActual) {
             zona.nivelActual = ef.nivel;
-
             const mod = await obtenerModuloMapa();
             if (mod && typeof mod.pintarPoligonoZona === "function") {
                 const nivel = NIVELES_ALERTA[ef.nivel];
-                if (nivel) {
-                    try { await mod.pintarPoligonoZona(distrito, nivel.color, ef.nivel); }
-                    catch (e) {}
-                }
+                if (nivel) { try { await mod.pintarPoligonoZona(distrito, nivel.color, ef.nivel); } catch (e) {} }
             }
-
             if (estado.bannerActual === distrito) {
                 const overlay = document.getElementById("al-overlay");
                 const estabaVisible = overlay?.classList.contains("al-visible");
@@ -376,16 +301,8 @@ async function tickMaestro() {
             }
         }
     }
-
-    for (const distrito of aQuitar) {
-        try { await quitarAlerta(distrito); } catch (e) { console.error(e); }
-    }
-
-    if (estado.zonasActivas.size === 0) {
-        detenerIntervalMaestro();
-        return;
-    }
-
+    for (const distrito of aQuitar) { try { await quitarAlerta(distrito); } catch (e) { console.error(e); } }
+    if (estado.zonasActivas.size === 0) { detenerIntervalMaestro(); return; }
     if (estado.bannerActual) {
         const zona = estado.zonasActivas.get(estado.bannerActual);
         if (zona) {
@@ -398,7 +315,6 @@ async function tickMaestro() {
             }
         }
     }
-
     actualizarBarraYTarjetaAgregadas();
 }
 
@@ -420,20 +336,31 @@ export async function pintarZonasBaseSiProcede() {
         if (mod && typeof mod.pintarZonasBaseVerde === "function") {
             await mod.pintarZonasBaseVerde();
         }
-    } catch (e) {
-        console.warn("alertas.js: no se pudo pintar zonas base:", e);
-    }
+    } catch (e) { console.warn("alertas.js: no se pudo pintar zonas base:", e); }
 }
 
-// ----------------------------------------------------------
-// MOSTRAR ALERTA COMPLETA
-// ----------------------------------------------------------
+// ======================================================
+// BLINDAJE ESTRICTO DE ALERTAS
+// ======================================================
 export async function mostrarAlertaCompleta(datos = {}) {
     try {
         const origen = datos.origen || null;
-        const distrito = datos.distrito || "";
+        const filtro = APP_CONFIG.origenFiltro;
 
-        if (origen === "manual" && esZonaOcultaManual(distrito)) {
+        // 1. Si estamos en index.html (filtro manual) y llega algo del scraper, IGNORAR.
+        if (filtro === "manual" && origen !== "manual") {
+            console.warn(`[alertas] Ignorando alerta del scraper en modo MANUAL.`);
+            return;
+        }
+        // 2. Si estamos en keraunos.html (filtro scraper) y llega algo manual, IGNORAR.
+        if (filtro === "scraper" && origen === "manual") {
+            console.warn(`[alertas] Ignorando alerta MANUAL en modo SCRAPER.`);
+            return;
+        }
+
+        const distrito = datos.distrito || "";
+        
+        if (esZonaOcultaManual(distrito)) {
             console.log(`[alertas] Zona oculta en modo manual — se descarta: ${distrito}`);
             return;
         }
@@ -445,7 +372,6 @@ export async function mostrarAlertaCompleta(datos = {}) {
         const distritoFinal = distrito || `Zona ${estado.zonasActivas.size + 1}`;
         const duracionMin = (datos.duracionMin && datos.duracionMin > 0) ? datos.duracionMin : DURACION_TIMER_MINUTOS;
         const tsInicio = (typeof datos.timestampInicio === "number" && datos.timestampInicio > 0) ? datos.timestampInicio : Date.now();
-
         const yaExistia = estado.zonasActivas.has(distritoFinal);
 
         estado.zonasActivas.set(distritoFinal, {
@@ -471,8 +397,7 @@ export async function mostrarAlertaCompleta(datos = {}) {
             const mod = await obtenerModuloMapa();
             if (mod && typeof mod.pintarPoligonoZona === "function") {
                 const nivel = NIVELES_ALERTA[nivelKey];
-                try { await mod.pintarPoligonoZona(distritoFinal, nivel.color, nivelKey); }
-                catch (e) {}
+                try { await mod.pintarPoligonoZona(distritoFinal, nivel.color, nivelKey); } catch (e) {}
             }
         }
 
@@ -513,19 +438,14 @@ export async function mostrarAlertaCompleta(datos = {}) {
         if (!yaExistia && nivelKey !== "vigilancia") {
             try { reproducirSonidoAlerta(30); } catch (e) {}
         }
-
     } catch (e) {
         console.error("alertas.js: error al mostrar alerta", e);
     }
 }
 
-// ----------------------------------------------------------
-// QUITAR ALERTA
-// ----------------------------------------------------------
 export async function quitarAlerta(distrito) {
     try {
         if (!distrito) return false;
-
         let distritoReal = null;
         for (const key of estado.zonasActivas.keys()) {
             if (key === distrito || key.includes(distrito) || distrito.includes(key)) {
@@ -536,13 +456,12 @@ export async function quitarAlerta(distrito) {
         if (!distritoReal) return false;
 
         const origen = estado.zonasActivas.get(distritoReal)?.origen || null;
-        const esOculta = origen === "manual" && esZonaOcultaManual(distritoReal);
+        const esOculta = APP_CONFIG.origenFiltro === "manual" && esZonaOcultaManual(distritoReal);
 
         if (!esOculta) {
             const mod = await obtenerModuloMapa();
             if (mod && typeof mod.pintarPoligonoZona === "function") {
-                try { await mod.pintarPoligonoZona(distritoReal, VERDE_BASE, "vigilancia"); }
-                catch (e) {}
+                try { await mod.pintarPoligonoZona(distritoReal, VERDE_BASE, "vigilancia"); } catch (e) {}
             }
         } else {
             const mod = await obtenerModuloMapa();
@@ -562,9 +481,7 @@ export async function quitarAlerta(distrito) {
         if (estado.bannerActual === distritoReal) {
             estado.bannerActual = null;
             cerrarBanner();
-            if (estado.colaBanners.length > 0) {
-                mostrarSiguienteBanner();
-            }
+            if (estado.colaBanners.length > 0) { mostrarSiguienteBanner(); }
         } else {
             actualizarIndicadorCola();
         }
@@ -576,7 +493,6 @@ export async function quitarAlerta(distrito) {
         } else {
             actualizarBarraYTarjetaAgregadas();
         }
-
         return true;
     } catch (e) {
         console.error("alertas.js: error al quitar alerta", e);
@@ -584,9 +500,6 @@ export async function quitarAlerta(distrito) {
     }
 }
 
-// ----------------------------------------------------------
-// COLA BANNERS
-// ----------------------------------------------------------
 function mostrarSiguienteBanner() {
     if (estado.colaBanners.length === 0) {
         estado.bannerActual = null;
@@ -597,7 +510,6 @@ function mostrarSiguienteBanner() {
     const distrito = estado.colaBanners.shift();
     const zona = estado.zonasActivas.get(distrito);
     if (!zona) { mostrarSiguienteBanner(); return; }
-
     estado.bannerActual = distrito;
     pintarBannerDeZona(zona);
     actualizarIndicadorCola();
@@ -612,9 +524,6 @@ function actualizarIndicadorCola() {
     el.textContent = `+ ${p} zona${p > 1 ? "s" : ""} en alerta`;
 }
 
-// ----------------------------------------------------------
-// PINTAR BANNER — CON BACKGROUND DIRECTO
-// ----------------------------------------------------------
 function pintarBannerDeZona(zona, opts = {}) {
     const nivelKeyActual = zona.nivelActual || zona.nivelKey;
     const nivel = NIVELES_ALERTA[nivelKeyActual];
@@ -624,24 +533,22 @@ function pintarBannerDeZona(zona, opts = {}) {
     const panelEl = document.getElementById("al-panel");
     const modalEl = document.getElementById("al-modal-seguridad");
 
-    // Quitar al-libre PRIMERO para que el panel no use el fondo verde
     overlayEl.classList.remove("al-libre");
 
-    // Aplicar BACKGROUND directamente por JS (bypass del cacheo de Chrome)
-    pintarBackground(panelEl, nivel, false);
-    if (modalEl) {
-        modalEl.style.setProperty("--al-color", nivel.color);
+    if (panelEl) {
+        panelEl.style.background = `linear-gradient(160deg, ${nivel.color}, ${nivel.colorDark})`;
+        panelEl.style.borderColor = nivel.color;
     }
 
-    // Aplicar variables CSS para el resto de usos (badges, iconos, botones)
     const vars = [
         ["--al-color", nivel.color],
         ["--al-color-dark", nivel.colorDark],
         ["--al-glow", nivel.glow]
     ];
-    aplicarVarsCSS(overlayEl, vars);
-    aplicarVarsCSS(panelEl, vars);
-    aplicarVarsCSS(modalEl, vars);
+    const aplicarVars = (el) => { if (!el) return; vars.forEach(([k, v]) => el.style.setProperty(k, v)); };
+    aplicarVars(overlayEl);
+    aplicarVars(panelEl);
+    aplicarVars(modalEl);
 
     document.getElementById("al-icono-big").textContent = nivel.iconoBig;
     document.getElementById("al-nivel-badge").textContent = nivel.nombre;
@@ -669,7 +576,6 @@ function pintarBannerDeZona(zona, opts = {}) {
 function cerrarBannerActual() {
     cerrarBanner();
     estado.bannerActual = null;
-
     if (estado.colaBanners.length > 0) {
         setTimeout(() => mostrarSiguienteBanner(), 400);
     } else if (estado.zonasActivas.size > 0) {
@@ -686,9 +592,6 @@ function cerrarBanner() {
     o?.classList.remove("al-libre");
 }
 
-// ----------------------------------------------------------
-// OVERLAY LIBRE
-// ----------------------------------------------------------
 function abrirOverlayLibre() {
     try {
         asegurarEstructuraDOM();
@@ -697,17 +600,20 @@ function abrirOverlayLibre() {
         const panelEl = document.getElementById("al-panel");
         const modalEl = document.getElementById("al-modal-seguridad");
 
-        // Resetear background inline para que el CSS de .al-libre tome el control
-        resetBackground(panelEl);
+        if (panelEl) {
+            panelEl.style.background = "";
+            panelEl.style.borderColor = "";
+        }
 
         const vars = [
             ["--al-color", nivel.color],
             ["--al-color-dark", nivel.colorDark],
             ["--al-glow", nivel.glow]
         ];
-        aplicarVarsCSS(overlayEl, vars);
-        aplicarVarsCSS(panelEl, vars);
-        aplicarVarsCSS(modalEl, vars);
+        const aplicarVars = (el) => { if (!el) return; vars.forEach(([k, v]) => el.style.setProperty(k, v)); };
+        aplicarVars(overlayEl);
+        aplicarVars(panelEl);
+        aplicarVars(modalEl);
 
         document.getElementById("al-icono-big").textContent = "✅";
         document.getElementById("al-nivel-badge").textContent = "VIGILANCIA";
@@ -731,9 +637,6 @@ function abrirOverlayLibre() {
     } catch (e) { console.error("alertas.js: error al abrir overlay libre", e); }
 }
 
-// ----------------------------------------------------------
-// BARRA + TARJETA AGREGADAS — CON BACKGROUND DIRECTO
-// ----------------------------------------------------------
 function actualizarBarraYTarjetaAgregadas() {
     const barra = document.getElementById("al-barra-superior");
     const tarjeta = document.getElementById("al-tarjeta");
@@ -744,26 +647,27 @@ function actualizarBarraYTarjetaAgregadas() {
 
     let nivelMax = NIVELES_ALERTA.vigilancia;
     for (const z of zonas) {
-        const nivelKeyActual = z.nivelActual || z.nivelKey;
-        const n = NIVELES_ALERTA[nivelKeyActual];
+        const n = NIVELES_ALERTA[z.nivelActual || z.nivelKey];
         if (n.orden > nivelMax.orden) nivelMax = n;
     }
 
     barra.classList.remove("al-modo-libre");
     tarjeta.classList.remove("al-modo-libre");
 
-    // Aplicar BACKGROUND directamente por JS
-    pintarBackground(barra, nivelMax, false);
-    pintarBackground(tarjeta, nivelMax, false);
+    if (barra) barra.style.background = `linear-gradient(160deg, rgba(20, 20, 25, 0.96), ${nivelMax.colorDark})`;
+    if (tarjeta) {
+        tarjeta.style.background = `linear-gradient(160deg, rgba(20, 20, 25, 0.96), ${nivelMax.colorDark})`;
+        tarjeta.style.borderLeft = `4px solid ${nivelMax.color}`;
+    }
 
-    // Aplicar variables CSS
     const vars = [
         ["--al-color", nivelMax.color],
         ["--al-color-dark", nivelMax.colorDark],
         ["--al-glow", nivelMax.glow]
     ];
-    aplicarVarsCSS(barra, vars);
-    aplicarVarsCSS(tarjeta, vars);
+    const aplicarVars = (el) => { if (!el) return; vars.forEach(([k, v]) => el.style.setProperty(k, v)); };
+    aplicarVars(barra);
+    aplicarVars(tarjeta);
 
     document.getElementById("al-barra-icono").textContent = nivelMax.iconoBig;
 
@@ -812,9 +716,6 @@ function actualizarBarraYTarjetaAgregadas() {
     tarjeta.classList.add("al-visible");
 }
 
-// ----------------------------------------------------------
-// TIMESTAMP BARRA
-// ----------------------------------------------------------
 function actualizarTimestampBarra(timestampInicio) {
     const el = document.getElementById("al-barra-tiempo");
     if (!el) return;
@@ -832,9 +733,6 @@ function actualizarTimestampBarra(timestampInicio) {
     estado.intervalTimestamp = setInterval(actualizar, 15000);
 }
 
-// ----------------------------------------------------------
-// BARRA + TARJETA LIBRE
-// ----------------------------------------------------------
 export function mostrarBarraTarjetaLibre() {
     try {
         asegurarEstructuraDOM();
@@ -844,16 +742,16 @@ export function mostrarBarraTarjetaLibre() {
             ["--al-color-dark", nivel.colorDark],
             ["--al-glow", nivel.glow]
         ];
+        const aplicarVars = (el) => { if (!el) return; vars.forEach(([k, v]) => el.style.setProperty(k, v)); };
 
         const barra = document.getElementById("al-barra-superior");
         const tarjeta = document.getElementById("al-tarjeta");
 
-        // Resetear background inline → el CSS de .al-modo-libre toma el control
-        resetBackground(barra);
-        resetBackground(tarjeta);
+        if (barra) { barra.style.background = ""; barra.style.borderColor = ""; }
+        if (tarjeta) { tarjeta.style.background = ""; tarjeta.style.borderLeft = ""; }
 
-        aplicarVarsCSS(barra, vars);
-        aplicarVarsCSS(tarjeta, vars);
+        aplicarVars(barra);
+        aplicarVars(tarjeta);
 
         barra?.classList.add("al-modo-libre");
         tarjeta?.classList.add("al-modo-libre");
@@ -874,28 +772,21 @@ export function mostrarBarraTarjetaLibre() {
     } catch (e) { console.error("alertas.js: error al mostrar barra/tarjeta libre", e); }
 }
 
-// ----------------------------------------------------------
-// MOSTRAR LIBRE
-// ----------------------------------------------------------
 export function mostrarAlertaLibre(forzar = false) {
     try {
         if (!forzar && arranque.esperando) return;
-
         if (libreYaCerradoPorUsuario) {
             asegurarEstructuraDOM();
             mostrarBarraTarjetaLibre();
             return;
         }
-
         if (estado.zonasActivas.size > 0) return;
 
         asegurarEstructuraDOM();
         detenerIntervalMaestro();
         detenerSonidoAlerta();
 
-        for (const [, capa] of capasRayos.entries()) {
-            try { capa.detener(); } catch (e) {}
-        }
+        for (const [, capa] of capasRayos.entries()) { try { capa.detener(); } catch (e) {} }
         capasRayos.clear();
 
         obtenerModuloMapa().then(mod => {
@@ -916,9 +807,6 @@ export function mostrarAlertaLibre(forzar = false) {
     } catch (e) { console.error("alertas.js: error al mostrar alerta libre", e); }
 }
 
-// ----------------------------------------------------------
-// BOTONES
-// ----------------------------------------------------------
 function verMapaAlerta() {
     try {
         const o = document.getElementById("al-overlay");
