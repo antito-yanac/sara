@@ -2,14 +2,13 @@
 // ============================================================
 // Botón de pánico + modal + envío a colección privada + WhatsApp
 // ============================================================
-// v3 — Cambios:
-//   - GPS con caché (localStorage, 5 min) + pre-captura silenciosa
-//     al cargar la página. Envío casi instantáneo si ya hay fix.
+// v4 — Cambios:
+//   - CORREGIDO: Condición de CallMeBot (ya no bloquea el envío).
+//   - CORREGIDO: Envío de WhatsApp vía <img> (evita CORS).
+//   - GPS con caché (localStorage, 5 min) + pre-captura silenciosa.
 //   - Campos: DNI (8 dígitos) + Teléfono (9 dígitos) + Descripción.
-//   - Escribe en colección privada `panico_solicitudes`
-//     (no aparece en index.html de otros usuarios).
-//   - Confirmación local "Ayuda enviada" persistente 60 s, con
-//     botón de cierre manual.
+//   - Escribe en colección privada `panico_solicitudes`.
+//   - Confirmación local "Ayuda enviada" persistente 60 s.
 // ============================================================
 
 import { mostrarToast } from "./notifications.js";
@@ -26,7 +25,7 @@ const COLECCION_PANICO = "panico_solicitudes";
 
 // WhatsApp (CallMeBot)
 const CALLMEBOT_PHONE  = "+51964125058";
-const CALLMEBOT_APIKEY = "9034887";   // ← pega tu API key aquí
+const CALLMEBOT_APIKEY = "9034887";   // ← Tu API key real
 
 // GPS cache
 const GPS_CACHE_KEY        = "keraunos_gps_cache";
@@ -498,10 +497,11 @@ function mostrarConfirmacionEnviada() {
 }
 
 // ------------------------------------------------------------
-// WhatsApp (CallMeBot)
+// WhatsApp (CallMeBot) - CORREGIDO
 // ------------------------------------------------------------
 function enviarWhatsApp(dni, telefono, descripcion, lat, lng) {
-    if (!CALLMEBOT_APIKEY || CALLMEBOT_APIKEY === "9034887") {
+    // CORRECCIÓN 1: La condición verifica un placeholder, no tu clave real
+    if (!CALLMEBOT_APIKEY || CALLMEBOT_APIKEY === "TU_API_KEY_AQUI") {
         console.warn("panico: CallMeBot no configurado. Se omite WhatsApp.");
         return;
     }
@@ -524,9 +524,11 @@ function enviarWhatsApp(dni, telefono, descripcion, lat, lng) {
     const tel = CALLMEBOT_PHONE.replace("+", "");
     const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(tel)}&text=${encodeURIComponent(texto)}&apikey=${encodeURIComponent(CALLMEBOT_APIKEY)}`;
 
-    fetch(url, { mode: "no-cors" })
-        .then(() => console.log("panico: WhatsApp enviado (background)"))
-        .catch((e) => console.warn("panico: WhatsApp falló", e));
+    // CORRECCIÓN 2: Usar una etiqueta <img> para evitar bloqueos de CORS.
+    const img = new Image();
+    img.src = url;
+    img.onload = () => console.log("panico: WhatsApp enviado (confirmado)");
+    img.onerror = () => console.log("panico: WhatsApp enviado (sin confirmación visual)");
 }
 
 // ------------------------------------------------------------
