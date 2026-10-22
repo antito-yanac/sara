@@ -1,13 +1,13 @@
 {
-  "actualizado": "2026-10-22T21:04:18.403Z",
+  "actualizado": "2026-10-22T21:14:34.411Z",
   "estadoGlobal": "NARANJA",
   "estadoGlobalNumero": 2,
   "totalSectores": 4,
   "resumen": {
     "roja": 0,
     "naranja": 2,
-    "amarilla": 2,
-    "verde": 0
+    "amarilla": 1,
+    "verde": 1
   },
   "sectores": [
     {
@@ -36,11 +36,11 @@
     },
     {
       "nombre": "Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
-      "nivel": "AMARILLA",
-      "nivelNumero": 1,
-      "color": "#FFD400",
-      "inicio": "2026-10-22 15:06:08",
-      "fin": "2026-10-22 16:14:22"
+      "nivel": "VERDE",
+      "nivelNumero": 0,
+      "color": "#2ECC71",
+      "inicio": "2026-10-22 16:14:35",
+      "fin": null
     }
   ],
   "alertas": [
@@ -91,22 +91,6 @@
       "emoji": "🟡",
       "titulo": "⚡ ALERTA AMARILLA — Tucush  - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa)",
       "mensaje": "Actividad eléctrica detectada en Tucush  - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa) (Zona 3 - Tucush). Nivel AMARILLA. Inicio: 2026-10-22 15:41:45. Fin previsto: 2026-10-22 16:18:10."
-    },
-    {
-      "sectorOriginal": "Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
-      "nivelScraper": "AMARILLA",
-      "nivel": "amarilla",
-      "distrito": "Zona 4 - Tajo",
-      "lat": -9.5416465,
-      "lng": -77.0707659,
-      "duracionMin": 68,
-      "timestampInicio": 1792699568000,
-      "inicio": "2026-10-22 15:06:08",
-      "fin": "2026-10-22 16:14:22",
-      "color": "#FFD400",
-      "emoji": "🟡",
-      "titulo": "⚡ ALERTA AMARILLA — Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
-      "mensaje": "Actividad eléctrica detectada en Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria) (Zona 4 - Tajo). Nivel AMARILLA. Inicio: 2026-10-22 15:06:08. Fin previsto: 2026-10-22 16:14:22."
     }
   ]
 }
