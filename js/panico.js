@@ -24,7 +24,7 @@ import { obtenerApp } from "./firebase-app.js";
 const COLECCION_PANICO = "panico_solicitudes";
 
 // WhatsApp (CallMeBot)
-const CALLMEBOT_PHONE  = "+51964125058";
+const CALLMEBOT_PHONE  = "+51954125058";
 const CALLMEBOT_APIKEY = "9034887";   // ← Tu API key real
 
 // GPS cache
