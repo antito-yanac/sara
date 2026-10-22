@@ -1,5 +1,5 @@
 {
-  "actualizado": "2026-10-22T20:50:43.470Z",
+  "actualizado": "2026-10-22T20:52:49.865Z",
   "estadoGlobal": "AMARILLA",
   "estadoGlobalNumero": 1,
   "totalSectores": 4,
@@ -32,7 +32,7 @@
       "nivelNumero": 1,
       "color": "#FFD400",
       "inicio": "2026-10-22 15:41:45",
-      "fin": "2026-10-22 15:56:45"
+      "fin": "2026-10-22 16:05:55"
     },
     {
       "nombre": "Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
@@ -83,14 +83,14 @@
       "distrito": "Zona 3 - Tucush",
       "lat": -9.5263487,
       "lng": -77.0485794,
-      "duracionMin": 15,
+      "duracionMin": 24,
       "timestampInicio": 1792701705000,
       "inicio": "2026-10-22 15:41:45",
-      "fin": "2026-10-22 15:56:45",
+      "fin": "2026-10-22 16:05:55",
       "color": "#FFD400",
       "emoji": "🟡",
       "titulo": "⚡ ALERTA AMARILLA — Tucush  - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa)",
-      "mensaje": "Actividad eléctrica detectada en Tucush  - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa) (Zona 3 - Tucush). Nivel AMARILLA. Inicio: 2026-10-22 15:41:45. Fin previsto: 2026-10-22 15:56:45."
+      "mensaje": "Actividad eléctrica detectada en Tucush  - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa) (Zona 3 - Tucush). Nivel AMARILLA. Inicio: 2026-10-22 15:41:45. Fin previsto: 2026-10-22 16:05:55."
     },
     {
       "sectorOriginal": "Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
