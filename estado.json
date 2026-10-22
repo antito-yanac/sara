@@ -1,5 +1,5 @@
 {
-  "actualizado": "2026-10-22T22:38:06.877Z",
+  "actualizado": "2026-10-22T22:41:13.704Z",
   "estadoGlobal": "NARANJA",
   "estadoGlobalNumero": 2,
   "totalSectores": 4,
@@ -24,7 +24,7 @@
       "nivelNumero": 2,
       "color": "#FF8C00",
       "inicio": "2026-10-22 17:32:39",
-      "fin": "2026-10-22 17:47:39"
+      "fin": "2026-10-22 17:53:25"
     },
     {
       "nombre": "Tucush  - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa)",
@@ -67,14 +67,14 @@
       "distrito": "Zona 2 - Botadero Este",
       "lat": -9.5718388,
       "lng": -77.0447182,
-      "duracionMin": 15,
+      "duracionMin": 21,
       "timestampInicio": 1792708359000,
       "inicio": "2026-10-22 17:32:39",
-      "fin": "2026-10-22 17:47:39",
+      "fin": "2026-10-22 17:53:25",
       "color": "#FF8C00",
       "emoji": "🟠",
       "titulo": "⚡ ALERTA NARANJA — Oficinas Mina - (Grifo 4448, Punto E, Ingreso Laguna Seca, Nasa, Oficinas Mina, Concentradora, Plataforma Pre PM, Presa Relaves, Plataforma de Armado)",
-      "mensaje": "Actividad eléctrica detectada en Oficinas Mina - (Grifo 4448, Punto E, Ingreso Laguna Seca, Nasa, Oficinas Mina, Concentradora, Plataforma Pre PM, Presa Relaves, Plataforma de Armado) (Zona 2 - Botadero Este). Nivel NARANJA. Inicio: 2026-10-22 17:32:39. Fin previsto: 2026-10-22 17:47:39."
+      "mensaje": "Actividad eléctrica detectada en Oficinas Mina - (Grifo 4448, Punto E, Ingreso Laguna Seca, Nasa, Oficinas Mina, Concentradora, Plataforma Pre PM, Presa Relaves, Plataforma de Armado) (Zona 2 - Botadero Este). Nivel NARANJA. Inicio: 2026-10-22 17:32:39. Fin previsto: 2026-10-22 17:53:25."
     },
     {
       "sectorOriginal": "Tucush  - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa)",
