@@ -1,5 +1,5 @@
 {
-  "actualizado": "2026-10-22T21:49:03.613Z",
+  "actualizado": "2026-10-22T21:51:10.164Z",
   "estadoGlobal": "NARANJA",
   "estadoGlobalNumero": 2,
   "totalSectores": 4,
@@ -16,7 +16,7 @@
       "nivelNumero": 2,
       "color": "#FF8C00",
       "inicio": "2026-10-22 16:03:10",
-      "fin": "2026-10-22 16:58:36"
+      "fin": "2026-10-22 17:03:53"
     },
     {
       "nombre": "Oficinas Mina - (Grifo 4448, Punto E, Ingreso Laguna Seca, Nasa, Oficinas Mina, Concentradora, Plataforma Pre PM, Presa Relaves, Plataforma de Armado)",
@@ -51,14 +51,14 @@
       "distrito": "Zona 1 - Campamentos",
       "lat": -9.5822364,
       "lng": -77.02231,
-      "duracionMin": 55,
+      "duracionMin": 61,
       "timestampInicio": 1792702990000,
       "inicio": "2026-10-22 16:03:10",
-      "fin": "2026-10-22 16:58:36",
+      "fin": "2026-10-22 17:03:53",
       "color": "#FF8C00",
       "emoji": "🟠",
       "titulo": "⚡ ALERTA NARANJA — Campamento Yanacancha - (Nuevo Campamento, Descarga Norte Presa Relaves, Polishing Pond, Garita Laguna Huallacocha, Garita plataforma km 114, Tailing Dam Norte - Punto Y, Garita Portón Principal, Grifo Yanacancha)",
-      "mensaje": "Actividad eléctrica detectada en Campamento Yanacancha - (Nuevo Campamento, Descarga Norte Presa Relaves, Polishing Pond, Garita Laguna Huallacocha, Garita plataforma km 114, Tailing Dam Norte - Punto Y, Garita Portón Principal, Grifo Yanacancha) (Zona 1 - Campamentos). Nivel NARANJA. Inicio: 2026-10-22 16:03:10. Fin previsto: 2026-10-22 16:58:36."
+      "mensaje": "Actividad eléctrica detectada en Campamento Yanacancha - (Nuevo Campamento, Descarga Norte Presa Relaves, Polishing Pond, Garita Laguna Huallacocha, Garita plataforma km 114, Tailing Dam Norte - Punto Y, Garita Portón Principal, Grifo Yanacancha) (Zona 1 - Campamentos). Nivel NARANJA. Inicio: 2026-10-22 16:03:10. Fin previsto: 2026-10-22 17:03:53."
     },
     {
       "sectorOriginal": "Oficinas Mina - (Grifo 4448, Punto E, Ingreso Laguna Seca, Nasa, Oficinas Mina, Concentradora, Plataforma Pre PM, Presa Relaves, Plataforma de Armado)",
