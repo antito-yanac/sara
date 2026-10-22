@@ -1,19 +1,18 @@
 // js/estado-cliente.js
 // ============================================================
-// Puente estado.json ↔ sistema de alertas (v8)
+// Puente estado.json ↔ sistema de alertas (v9)
 // ------------------------------------------------------------
-// v8:
-//   - Solo arranca si APP_CONFIG.usarEstadoJSON === true
-//     (keraunos.html sí, index.html no).
-//   - Filtra alertas por origen: solo procesa las del scraper
-//     (origen !== "manual").
-//   - Modo "admin" ya NO se usa (admin no reenvía scraper).
+// v9:
+//   - Polling de 10s en keraunos.html (para reducir latencia).
+//   - Mantiene 30s en index.html (modo manual).
+//   - Solo procesa alertas con origen scraper.
 // ============================================================
 
 import { mostrarAlertaCompleta, mostrarAlertaLibre, quitarAlerta, marcarArranqueListo } from "./alertas.js";
 
 const ESTADO_URL    = "./estado.json";
-const INTERVALO_MS  = 30_000;
+const APP_CONFIG    = window.__APP_CONFIG__ || { modo: "index" };
+const INTERVALO_MS  = APP_CONFIG.modo === "keraunos" ? 10_000 : 30_000;
 const STORAGE_KEY   = "keraunos_estado_cliente_v2";
 const MAX_HISTORIAL = 200;
 
@@ -26,13 +25,6 @@ const cliente = {
 };
 
 let primeraCarga = true;
-
-function obtenerConfig() {
-    return window.__APP_CONFIG__ || {
-        usarEstadoJSON: true,
-        origenFiltro: "scraper"
-    };
-}
 
 function cargarHistorial() {
     try {
@@ -73,26 +65,6 @@ async function leerEstado() {
     return res.json();
 }
 
-async function enviarAlertaFirestore(alerta) {
-    const { enviarMensajePush } = await import("./mensajes.js");
-    await enviarMensajePush(
-        alerta.titulo || `⚡ ALERTA ${alerta.nivel.toUpperCase()} — ${alerta.distrito}`,
-        alerta.mensaje || `Actividad eléctrica detectada en ${alerta.distrito}.`,
-        {
-            tipo: "alerta",
-            nivel: alerta.nivel,
-            distrito: alerta.distrito,
-            lat: alerta.lat,
-            lng: alerta.lng,
-            duracionMin: alerta.duracionMin,
-            timestampInicio: alerta.timestampInicio,
-            sectorOriginal: alerta.sectorOriginal,
-            inicio: alerta.inicio,
-            fin: alerta.fin
-        }
-    );
-}
-
 async function ciclo() {
     let data;
     try {
@@ -116,8 +88,6 @@ async function ciclo() {
         if (a.nivel !== "amarilla" && a.nivel !== "naranja" && a.nivel !== "roja") continue;
         if (!a.distrito) continue;
 
-        // Filtro: en estado.json solo vienen del scraper.
-        // Si por error trae origen === "manual", se ignora.
         const origenAlerta = a.origen || "keraunos";
         if (origenAlerta === "manual") continue;
 
@@ -139,7 +109,6 @@ async function ciclo() {
             };
             zonasVistas.add(a.distrito);
 
-            // En keraunos.html solo mostramos directo (no Firestore)
             try {
                 await mostrarAlertaCompleta({
                     tipo:            "alerta",
@@ -174,7 +143,7 @@ async function ciclo() {
         catch (e) { console.error("estado-cliente: error quitando:", e); }
     }
 
-    // FASE 3 — Si no hay zonas activas, mostrar libre
+    // FASE 3 — Si no hay zonas activas, mostrar libre (solo la primera vez)
     if (distritosActuales.size === 0 && zonasVistas.size === 0 && !cliente.cargado) {
         try { await mostrarAlertaLibre(); } catch {}
         cliente.cargado = true;
@@ -191,12 +160,11 @@ async function ciclo() {
 export function iniciarEstadoCliente(opciones = {}) {
     if (cliente.intervaloId !== null) return;
 
-    const cfg = obtenerConfig();
+    const cfg = window.__APP_CONFIG__ || { usarEstadoJSON: true };
 
-    // Solo arrancar si la página lo pide (keraunos.html)
     if (!cfg.usarEstadoJSON) {
         console.log("[estado-cliente] desactivado en esta página (usarEstadoJSON=false)");
-        marcarArranqueListo("estado-cliente");  // liberar barrera
+        marcarArranqueListo("estado-cliente");
         return;
     }
 

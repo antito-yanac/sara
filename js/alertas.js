@@ -1,20 +1,17 @@
 // js/alertas.js
 // ============================================================
-// Sistema de Alerta Meteorológica — v4.2
+// Sistema de Alerta Meteorológica — v4.3
 // ------------------------------------------------------------
-// v4.2: BLINDAJE ESTRICTO.
-//   - Si la página es modo "manual" (index.html), ignora todo
-//     lo que venga del scraper.
-//   - Si la página es modo "scraper" (keraunos.html), ignora
-//     TODO lo que venga de modo manual.
+// v4.3:
+//   - Notificaciones al cambiar de nivel (solo modo scraper).
+//   - Forzar overlay verde al liberar zona (solo modo scraper).
+//   - El modo manual (index.html) mantiene su lógica intacta.
 // ============================================================
 
 import { reproducirSonidoAlerta, detenerSonidoAlerta } from "./notifications.js";
 
 const VERDE_BASE = "#22c55e";
 const ZONAS_OCULTAS_MANUAL = ["Zona 4 - Tajo"];
-
-// Leer configuración de la página actual
 const APP_CONFIG = window.__APP_CONFIG__ || { origenFiltro: "manual" };
 
 function esZonaOcultaManual(nombreZona) {
@@ -150,7 +147,10 @@ export function calcularNivelEfectivo(nivelOriginal, timestampInicio, duracionMi
 
     if (origen !== "manual") {
         if (elapsedMin < D) {
-            return { nivel: nivelOriginal, restanteSeg: Math.max(0, Math.ceil((D - elapsedMin) * 60)) };
+            return {
+                nivel: nivelOriginal,
+                restanteSeg: Math.max(0, Math.ceil((D - elapsedMin) * 60))
+            };
         }
         return { nivel: "libre", restanteSeg: 0 };
     }
@@ -339,27 +339,22 @@ export async function pintarZonasBaseSiProcede() {
     } catch (e) { console.warn("alertas.js: no se pudo pintar zonas base:", e); }
 }
 
-// ======================================================
-// BLINDAJE ESTRICTO DE ALERTAS
-// ======================================================
 export async function mostrarAlertaCompleta(datos = {}) {
     try {
         const origen = datos.origen || null;
         const filtro = APP_CONFIG.origenFiltro;
 
-        // 1. Si estamos en index.html (filtro manual) y llega algo del scraper, IGNORAR.
         if (filtro === "manual" && origen !== "manual") {
             console.warn(`[alertas] Ignorando alerta del scraper en modo MANUAL.`);
             return;
         }
-        // 2. Si estamos en keraunos.html (filtro scraper) y llega algo manual, IGNORAR.
         if (filtro === "scraper" && origen === "manual") {
             console.warn(`[alertas] Ignorando alerta MANUAL en modo SCRAPER.`);
             return;
         }
 
         const distrito = datos.distrito || "";
-        
+
         if (esZonaOcultaManual(distrito)) {
             console.log(`[alertas] Zona oculta en modo manual — se descarta: ${distrito}`);
             return;
@@ -373,6 +368,9 @@ export async function mostrarAlertaCompleta(datos = {}) {
         const duracionMin = (datos.duracionMin && datos.duracionMin > 0) ? datos.duracionMin : DURACION_TIMER_MINUTOS;
         const tsInicio = (typeof datos.timestampInicio === "number" && datos.timestampInicio > 0) ? datos.timestampInicio : Date.now();
         const yaExistia = estado.zonasActivas.has(distritoFinal);
+        const zonaAnterior = yaExistia ? estado.zonasActivas.get(distritoFinal) : null;
+        const cambioNivel = !!(zonaAnterior && zonaAnterior.nivelKey !== nivelKey);
+        const esScraperMode = filtro === "scraper";
 
         estado.zonasActivas.set(distritoFinal, {
             nivel: nivelKey,
@@ -428,14 +426,18 @@ export async function mostrarAlertaCompleta(datos = {}) {
         } else if (estado.bannerActual === distritoFinal) {
             const overlay = document.getElementById("al-overlay");
             const estabaVisible = overlay?.classList.contains("al-visible");
-            pintarBannerDeZona(estado.zonasActivas.get(distritoFinal), { noReabrir: !estabaVisible });
+            const forzarReabrir = esScraperMode && cambioNivel;
+            pintarBannerDeZona(estado.zonasActivas.get(distritoFinal), {
+                noReabrir: !estabaVisible && !forzarReabrir
+            });
         } else {
             actualizarIndicadorCola();
         }
 
         actualizarBarraYTarjetaAgregadas();
 
-        if (!yaExistia && nivelKey !== "vigilancia") {
+        const debeSonar = nivelKey !== "vigilancia" && (!yaExistia || (esScraperMode && cambioNivel));
+        if (debeSonar) {
             try { reproducirSonidoAlerta(30); } catch (e) {}
         }
     } catch (e) {
@@ -489,7 +491,8 @@ export async function quitarAlerta(distrito) {
         if (estado.zonasActivas.size === 0) {
             detenerIntervalMaestro();
             detenerSonidoAlerta();
-            mostrarAlertaLibre();
+            const esScraperMode = APP_CONFIG.origenFiltro === "scraper";
+            mostrarAlertaLibre(esScraperMode);
         } else {
             actualizarBarraYTarjetaAgregadas();
         }
@@ -775,11 +778,13 @@ export function mostrarBarraTarjetaLibre() {
 export function mostrarAlertaLibre(forzar = false) {
     try {
         if (!forzar && arranque.esperando) return;
-        if (libreYaCerradoPorUsuario) {
+        if (!forzar && libreYaCerradoPorUsuario) {
             asegurarEstructuraDOM();
             mostrarBarraTarjetaLibre();
             return;
         }
+        if (forzar) libreYaCerradoPorUsuario = false;
+
         if (estado.zonasActivas.size > 0) return;
 
         asegurarEstructuraDOM();
