@@ -1,13 +1,13 @@
 {
-  "actualizado": "2026-10-24T21:57:48.194Z",
-  "estadoGlobal": "VERDE",
-  "estadoGlobalNumero": 0,
+  "actualizado": "2026-10-24T22:07:01.942Z",
+  "estadoGlobal": "AMARILLA",
+  "estadoGlobalNumero": 1,
   "totalSectores": 4,
   "resumen": {
     "roja": 0,
     "naranja": 0,
-    "amarilla": 0,
-    "verde": 4
+    "amarilla": 1,
+    "verde": 3
   },
   "sectores": [
     {
@@ -15,7 +15,7 @@
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": "2026-10-24 16:57:48",
+      "inicio": "2026-10-24 17:07:02",
       "fin": null
     },
     {
@@ -23,7 +23,7 @@
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": "2026-10-24 16:57:48",
+      "inicio": "2026-10-24 17:07:02",
       "fin": null
     },
     {
@@ -31,17 +31,34 @@
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": "2026-10-24 16:57:48",
+      "inicio": "2026-10-24 17:07:02",
       "fin": null
     },
     {
       "nombre": "Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
-      "nivel": "VERDE",
-      "nivelNumero": 0,
-      "color": "#2ECC71",
-      "inicio": "2026-10-24 16:57:48",
-      "fin": null
+      "nivel": "AMARILLA",
+      "nivelNumero": 1,
+      "color": "#FFD400",
+      "inicio": "2026-10-24 17:00:02",
+      "fin": "2026-10-24 17:15:02"
     }
   ],
-  "alertas": []
+  "alertas": [
+    {
+      "sectorOriginal": "Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
+      "nivelScraper": "AMARILLA",
+      "nivel": "amarilla",
+      "distrito": "Zona 4 - Tajo",
+      "lat": -9.5416465,
+      "lng": -77.0707659,
+      "duracionMin": 15,
+      "timestampInicio": 1792879202000,
+      "inicio": "2026-10-24 17:00:02",
+      "fin": "2026-10-24 17:15:02",
+      "color": "#FFD400",
+      "emoji": "🟡",
+      "titulo": "⚡ ALERTA AMARILLA — Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
+      "mensaje": "Actividad eléctrica detectada en Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria) (Zona 4 - Tajo). Nivel AMARILLA. Inicio: 2026-10-24 17:00:02. Fin previsto: 2026-10-24 17:15:02."
+    }
+  ]
 }
