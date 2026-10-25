@@ -211,8 +211,8 @@
     },
     {
       "id": "zona2",
-      "nombre": "Zona 2 - Botadero Este",
-      "nombreCorto": "Botadero Este",
+      "nombre": "Zona 2 - Oficinas mina",
+      "nombreCorto": "Oficinas Mina",
       "lat": -9.570436,
       "lng": -77.048039,
       "poligono": [
