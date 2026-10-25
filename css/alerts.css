@@ -928,3 +928,17 @@
 .leaflet-tooltip.label-punto-mapa::before {
     display: none;
 }
+/* ============================================================
+   MODO KERAUNOS: Emoji central sin rayo
+   ============================================================ */
+.modo-keraunos .al-icono {
+    font-size: 90px; /* Aumentar el tamaño para el emoji circular */
+    animation: al-icono-tilt 3s ease-in-out infinite; /* Mantener un pulso sutil */
+    /* Opcional: quitar la inclinación si prefieres que esté estático */
+    /* animation: none; */
+}
+
+/* Asegurar que el SVG del rayo no se muestre en modo Keraunos */
+.modo-keraunos .al-rayo-svg {
+    display: none !important;
+}
