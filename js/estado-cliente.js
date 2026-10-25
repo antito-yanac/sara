@@ -1,11 +1,6 @@
 // js/estado-cliente.js
 // ============================================================
-// Puente estado.json ↔ sistema de alertas (v9)
-// ------------------------------------------------------------
-// v9:
-//   - Polling de 10s en keraunos.html (para reducir latencia).
-//   - Mantiene 30s en index.html (modo manual).
-//   - Solo procesa alertas con origen scraper.
+// Puente estado.json ↔ sistema de alertas (v10)
 // ============================================================
 
 import { mostrarAlertaCompleta, mostrarAlertaLibre, quitarAlerta, marcarArranqueListo } from "./alertas.js";
@@ -54,13 +49,58 @@ function guardarHistorial(historial, zonas) {
     } catch {}
 }
 
+// MIGRACIÓN: Reemplaza "Botadero Este" por "Oficinas Mina" en el historial viejo
+function migrarHistorial() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        if (!raw.includes("Botadero Este")) return;
+
+        const parsed = JSON.parse(raw);
+        let cambio = false;
+
+        // Migrar llaves y valores del historial
+        const nuevoHistorial = {};
+        for (const [clave, valor] of Object.entries(parsed.historial || {})) {
+            const nuevaClave = clave.replace(/Botadero Este/g, "Oficinas Mina");
+            const nuevoValor = { ...valor };
+            if (nuevoValor.distrito && nuevoValor.distrito.includes("Botadero Este")) {
+                nuevoValor.distrito = nuevoValor.distrito.replace(/Botadero Este/g, "Oficinas Mina");
+                cambio = true;
+            }
+            nuevoHistorial[nuevaClave] = nuevoValor;
+        }
+
+        // Migrar zonas vistas
+        const nuevasZonas = (parsed.zonas || []).map(z => z.replace(/Botadero Este/g, "Oficinas Mina"));
+
+        if (cambio) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                historial: nuevoHistorial,
+                zonas: nuevasZonas
+            }));
+            console.log("[estado-cliente] Migración de Botadero Este → Oficinas Mina completada.");
+        }
+    } catch (e) {
+        console.warn("Error migrando historial:", e);
+    }
+}
+
 function claveAlerta(a) {
     return `${a.distrito}::${a.timestampInicio}`;
 }
 
 async function leerEstado() {
+    // Forzar limpieza de caché (headers + cache: no-store)
     const url = `${ESTADO_URL}?t=${Date.now()}`;
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(url, {
+        cache: "no-store",
+        headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    });
     if (!res.ok) throw new Error("HTTP " + res.status);
     return res.json();
 }
@@ -171,9 +211,24 @@ export function iniciarEstadoCliente(opciones = {}) {
     cliente.modo = opciones.modo || "index";
     console.log(`estado-cliente: iniciado en modo "${cliente.modo}" (${INTERVALO_MS / 1000}s)`);
 
+    migrarHistorial(); // <-- Ejecuta la migración de "Botadero Este" a "Oficinas Mina"
+
     primeraCarga = true;
     ciclo();
     cliente.intervaloId = setInterval(ciclo, INTERVALO_MS);
+
+    // FORZAR ACTUALIZACIÓN AL VOLVER A LA PESTAÑA
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            console.log("[estado-cliente] Pestaña visible: forzando sincronización inmediata.");
+            ciclo();
+            
+            // Forzar redibujado del mapa si es necesario
+            import("./map.js").then(mod => {
+                if (mod && typeof mod.invalidateSize === "function") mod.invalidateSize();
+            }).catch(() => {});
+        }
+    });
 }
 
 export function detenerEstadoCliente() {

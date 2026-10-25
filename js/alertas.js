@@ -1,18 +1,28 @@
 // js/alertas.js
 // ============================================================
-// Sistema de Alerta Meteorológica — v4.3
+// Sistema de Alerta Meteorológica — v4.5
 // ------------------------------------------------------------
-// v4.3:
-//   - Notificaciones al cambiar de nivel (solo modo scraper).
-//   - Forzar overlay verde al liberar zona (solo modo scraper).
-//   - El modo manual (index.html) mantiene su lógica intacta.
+// v4.5:
+//   - En modo keraunos, se oculta el icono SVG del rayo central.
+//   - En su lugar, se muestra solo el emoji circular del nivel.
+//   - En modo manual (index.html) no cambia nada.
 // ============================================================
 
 import { reproducirSonidoAlerta, detenerSonidoAlerta } from "./notifications.js";
 
 const VERDE_BASE = "#22c55e";
 const ZONAS_OCULTAS_MANUAL = ["Zona 4 - Tajo"];
-const APP_CONFIG = window.__APP_CONFIG__ || { origenFiltro: "manual" };
+const APP_CONFIG = window.__APP_CONFIG__ || { origenFiltro: "manual", modo: "manual" };
+const isKeraunos = APP_CONFIG.modo === "keraunos" || APP_CONFIG.origenFiltro === "scraper";
+
+// Añadir clase al body si estamos en keraunos
+if (isKeraunos && typeof document !== "undefined") {
+    if (document.body) {
+        document.body.classList.add("modo-keraunos");
+    } else {
+        document.addEventListener("DOMContentLoaded", () => document.body.classList.add("modo-keraunos"));
+    }
+}
 
 function esZonaOcultaManual(nombreZona) {
     if (APP_CONFIG.origenFiltro !== "manual") return false;
@@ -117,6 +127,39 @@ const arranque = {
     TIMEOUT_MS: 1500
 };
 
+// ------------------------------------------------------------
+// BOTÓN DE ACTIVAR SONIDO (Autoplay fix)
+// ------------------------------------------------------------
+function inyectarBotonSonido() {
+    if (document.getElementById("btn-unlock-sonido")) return;
+    const btn = document.createElement("button");
+    btn.id = "btn-unlock-sonido";
+    btn.innerHTML = "🔊";
+    btn.title = "Activar sonido de alertas";
+    btn.style.cssText = `
+        position: fixed; bottom: 20px; left: 20px; z-index: 30000;
+        background: rgba(0,0,0,0.6); color: white; border: 2px solid white;
+        border-radius: 50%; width: 44px; height: 44px; font-size: 20px;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    `;
+    btn.addEventListener("click", () => {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            gain.gain.value = 0;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+            if (audioCtx.state === "suspended") audioCtx.resume();
+        } catch(e) {}
+        btn.remove();
+    });
+    document.body.appendChild(btn);
+}
+
 export function marcarArranqueListo(fuente) {
     if (!arranque.esperando) return;
     arranque.listos.add(fuente);
@@ -147,10 +190,7 @@ export function calcularNivelEfectivo(nivelOriginal, timestampInicio, duracionMi
 
     if (origen !== "manual") {
         if (elapsedMin < D) {
-            return {
-                nivel: nivelOriginal,
-                restanteSeg: Math.max(0, Math.ceil((D - elapsedMin) * 60))
-            };
+            return { nivel: nivelOriginal, restanteSeg: Math.max(0, Math.ceil((D - elapsedMin) * 60)) };
         }
         return { nivel: "libre", restanteSeg: 0 };
     }
@@ -181,7 +221,7 @@ function asegurarEstructuraDOM() {
                 <span class="al-radar r2"></span>
                 <span class="al-radar r3"></span>
                 <span class="al-icono" id="al-icono-big">⚡</span>
-                ${SVG_RAYO}
+                ${isKeraunos ? "" : SVG_RAYO}
             </div>
             <div style="text-align:center;">
                 <span class="al-nivel-badge" id="al-nivel-badge">EMERGENCIA</span>
@@ -344,29 +384,21 @@ export async function mostrarAlertaCompleta(datos = {}) {
         const origen = datos.origen || null;
         const filtro = APP_CONFIG.origenFiltro;
 
-        if (filtro === "manual" && origen !== "manual") {
-            console.warn(`[alertas] Ignorando alerta del scraper en modo MANUAL.`);
-            return;
-        }
-        if (filtro === "scraper" && origen === "manual") {
-            console.warn(`[alertas] Ignorando alerta MANUAL en modo SCRAPER.`);
-            return;
-        }
+        if (filtro === "manual" && origen !== "manual") return;
+        if (filtro === "scraper" && origen === "manual") return;
 
         const distrito = datos.distrito || "";
-
-        if (esZonaOcultaManual(distrito)) {
-            console.log(`[alertas] Zona oculta en modo manual — se descarta: ${distrito}`);
-            return;
-        }
+        if (esZonaOcultaManual(distrito)) return;
 
         libreYaCerradoPorUsuario = false;
         asegurarEstructuraDOM();
+        inyectarBotonSonido();
 
         const nivelKey = NIVELES_ALERTA[datos.nivel] ? datos.nivel : "roja";
         const distritoFinal = distrito || `Zona ${estado.zonasActivas.size + 1}`;
         const duracionMin = (datos.duracionMin && datos.duracionMin > 0) ? datos.duracionMin : DURACION_TIMER_MINUTOS;
         const tsInicio = (typeof datos.timestampInicio === "number" && datos.timestampInicio > 0) ? datos.timestampInicio : Date.now();
+        
         const yaExistia = estado.zonasActivas.has(distritoFinal);
         const zonaAnterior = yaExistia ? estado.zonasActivas.get(distritoFinal) : null;
         const cambioNivel = !!(zonaAnterior && zonaAnterior.nivelKey !== nivelKey);
@@ -421,15 +453,23 @@ export async function mostrarAlertaCompleta(datos = {}) {
             });
         }
 
-        if (estado.bannerActual === null) {
+        const forzarReabrir = esScraperMode && cambioNivel;
+
+        if (estado.bannerActual === null || forzarReabrir) {
+            if (forzarReabrir) {
+                estado.bannerActual = null;
+                estado.colaBanners.unshift(distritoFinal);
+            }
             mostrarSiguienteBanner();
         } else if (estado.bannerActual === distritoFinal) {
             const overlay = document.getElementById("al-overlay");
             const estabaVisible = overlay?.classList.contains("al-visible");
-            const forzarReabrir = esScraperMode && cambioNivel;
             pintarBannerDeZona(estado.zonasActivas.get(distritoFinal), {
-                noReabrir: !estabaVisible && !forzarReabrir
+                noReabrir: !estabaVisible
             });
+            if (forzarReabrir) {
+                overlay.classList.add("al-visible");
+            }
         } else {
             actualizarIndicadorCola();
         }
@@ -553,7 +593,10 @@ function pintarBannerDeZona(zona, opts = {}) {
     aplicarVars(panelEl);
     aplicarVars(modalEl);
 
-    document.getElementById("al-icono-big").textContent = nivel.iconoBig;
+    // AQUI SE DECIDE SI USAR EL RAYO (iconoBig) O EL CIRCULO (icono)
+    const iconoAMostrar = isKeraunos ? nivel.icono : nivel.iconoBig;
+    
+    document.getElementById("al-icono-big").textContent = iconoAMostrar;
     document.getElementById("al-nivel-badge").textContent = nivel.nombre;
     document.getElementById("al-titulo-texto").textContent = zona.titulo;
     document.getElementById("al-mensaje-texto").textContent = zona.mensaje;
@@ -565,7 +608,7 @@ function pintarBannerDeZona(zona, opts = {}) {
     if (!opts.noReabrir) overlayEl.classList.add("al-visible");
     panelEl.classList.add("al-sirena-activa");
 
-    if (!opts.noReabrir) activarFlashFondo();
+    if (!opts.noReabrir) activarFlashFondo(); // MANTENEMOS EL FLASH DE FONDO
 
     const wrap = document.getElementById("al-contador-wrap");
     const el = document.getElementById("al-contador");
