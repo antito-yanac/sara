@@ -26,7 +26,7 @@ import { obtenerApp } from "./firebase-app.js";
 // ======================================================
 const ZONAS = [
     { distrito: "Zona 1 - Campamentos",   sectorOriginal: "Campamento Yanacancha", lat: -9.5822364, lng: -77.0223100, short: "1", oculta: false },
-    { distrito: "Zona 2 - Botadero Este", sectorOriginal: "Oficinas Mina",         lat: -9.5718388, lng: -77.0447182, short: "2", oculta: false },
+    { distrito: "Zona 2 - Oficinas mina", sectorOriginal: "Oficinas Mina",         lat: -9.5718388, lng: -77.0447182, short: "2", oculta: false },
     { distrito: "Zona 3 - Tucush",        sectorOriginal: "Tucush",                lat: -9.5263487, lng: -77.0485794, short: "3", oculta: false },
     // ⚠️ Zona 4 oculta del panel manual. Para reactivarla:
     //     cambiar `oculta: true` → `oculta: false`.
