@@ -212,7 +212,7 @@
     {
       "id": "zona2",
       "nombre": "Zona 2 - Oficinas mina",
-      "nombreCorto": "Oficinas Mina",
+      "nombreCorto": "Oficinas mina",
       "lat": -9.570436,
       "lng": -77.048039,
       "poligono": [
