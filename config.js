@@ -42,7 +42,7 @@ module.exports = {
     // dentro del nombre completo de cada tarjeta (ver buscarZona()).
     MAPA_ZONAS: {
         "Campamento Yanacancha": "Zona 1 - Campamentos",
-        "Oficinas Mina":         "Zona 2 - Botadero Este",
+        "Oficinas Mina":         "Zona 2 - Oficinas mina",
         "Tucush":                "Zona 3 - Tucush",
         "Tajo":                  "Zona 4 - Tajo"
     },
