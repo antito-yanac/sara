@@ -49,7 +49,7 @@ module.exports = {
 
     COORDENADAS_ZONAS: {
         "Zona 1 - Campamentos":   { lat: -9.5822364, lng: -77.0223100 },
-        "Zona 2 - Botadero Este": { lat: -9.5718388, lng: -77.0447182 },
+        "Zona 2 - Oficinas mina": { lat: -9.5718388, lng: -77.0447182 },
         "Zona 3 - Tucush":        { lat: -9.5263487, lng: -77.0485794 },
         "Zona 4 - Tajo":          { lat: -9.5416465, lng: -77.0707659 }
     },
