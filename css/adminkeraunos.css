@@ -1,0 +1,99 @@
+/* ============================================================
+   adminkeraunos.css — estilos específicos del panel manual
+   (los pa-* base ya vienen de admin.html, los extiendo aquí)
+   ============================================================ */
+
+#panel-container.admin-panel-wide {
+    max-width: 720px;
+    width: 95vw;
+}
+
+/* Badge MODO MANUAL */
+.pa-modo-badge {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: rgba(241, 196, 15, 0.15);
+    border: 1.5px solid #f1c40f;
+    color: #f1c40f;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+/* Estado Firebase */
+.pa-fb-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+}
+.pa-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #888;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 0 rgba(0,0,0,0);
+    transition: all 0.3s;
+}
+.pa-dot.pa-ok  { background: #2ecc71; box-shadow: 0 0 8px rgba(46,204,113,0.6); }
+.pa-dot.pa-err { background: #e74c3c; box-shadow: 0 0 8px rgba(231,76,60,0.6); }
+
+/* Botón reset */
+.pa-btn-reset {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.85);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 20px;
+}
+.pa-btn-reset:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.3);
+    color: #fff;
+}
+
+/* Pill "Sin alerta" (verde) */
+.pa-pill.pa-sel-verde {
+    background: #2ecc71;
+    color: #0a3d1f;
+    border-color: #2ecc71;
+}
+
+/* Checkmark activo */
+.pa-na-check.pa-on {
+    background: #fff;
+    color: #1a1a1a;
+    border-color: #fff;
+}
+
+/* Modal visible */
+.modal-overlay.modal-visible {
+    display: flex !important;
+    opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 560px) {
+    .pa-na-row2 { flex-direction: column; align-items: stretch; }
+    .pa-pill-group { width: 100%; }
+    .pa-pill { min-width: 0; padding: 9px 4px; font-size: 11px; }
+    .pa-duracion-wrap { justify-content: center; }
+    .pa-aa-item { flex-direction: column; align-items: flex-start; }
+    .pa-aa-btn-liberar { width: 100%; }
+}
