@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔔 Panel Manual — Keraunos</title>
+<link rel="stylesheet" href="css/admin.css">
+<link rel="stylesheet" href="css/panico.css">
+<link rel="stylesheet" href="css/alerts.css">
+<link rel="stylesheet" href="css/adminkeraunos.css">
+</head>
+<body>
+
+<div class="admin-container admin-panel-wide" id="panel-container">
+
+    <div class="admin-header">
+        <h1><span class="icon">🔔</span> Panel Manual Keraunos</h1>
+        <p>Envía alertas manualmente cuando el monitor está detenido</p>
+        <div class="pa-modo-badge" id="pa-modo-badge">⚙️ MODO MANUAL</div>
+    </div>
+
+    <!-- ============================================================
+         Conexión Firebase
+         ============================================================ -->
+    <div class="pa-fb-status" id="pa-fb-status">
+        <span class="pa-dot" id="pa-fb-dot"></span>
+        <span id="pa-fb-text">Conectando a Firebase…</span>
+    </div>
+
+    <!-- ============================================================
+         Sección: Alertas activas
+         ============================================================ -->
+    <section class="pa-aa-section" id="pa-aa-section" style="display:none;">
+        <div class="pa-aa-titulo">🚨 ALERTAS ACTIVAS <span id="pa-aa-count">(0)</span></div>
+        <div class="pa-aa-lista" id="pa-aa-lista"></div>
+        <button type="button" class="pa-aa-btn-liberar-todas" id="pa-btn-liberar-todas">
+            🛑 LIBERAR TODAS LAS ALERTAS
+        </button>
+    </section>
+
+    <!-- ============================================================
+         Sección: Nueva alerta por sector
+         ============================================================ -->
+    <section>
+        <div class="pa-na-titulo">⚡ CONFIGURAR ALERTA POR SECTOR</div>
+        <div class="pa-na-lista" id="pa-na-lista"></div>
+    </section>
+
+    <!-- ============================================================
+         Resumen en vivo
+         ============================================================ -->
+    <div class="pa-resumen" id="pa-resumen"></div>
+
+    <!-- ============================================================
+         Botones globales
+         ============================================================ -->
+    <button type="button" class="pa-btn-enviar" id="pa-btn-enviar" disabled>
+        📤 ENVIAR ALERTAS
+    </button>
+    <button type="button" class="pa-btn-reset" id="pa-btn-reset">
+        🔄 RESETEAR TODO A VERDE
+    </button>
+
+    <!-- ============================================================
+         Estado del sistema
+         ============================================================ -->
+    <div class="status-bar" id="status-bar"></div>
+</div>
+
+<!-- ============================================================
+     Modal genérico de confirmación
+     ============================================================ -->
+<div class="modal-overlay" id="modal-confirm">
+    <div class="modal-box" id="modal-box">
+        <div class="modal-icon" id="modal-icon">❓</div>
+        <h3 id="modal-titulo">¿Confirmar?</h3>
+        <div id="modal-mensaje" class="pa-modal-msg-lista"></div>
+        <div class="modal-buttons">
+            <button type="button" class="btn btn-cancelar" id="modal-btn-cancelar">✖ Cancelar</button>
+            <button type="button" class="btn btn-enviar" id="modal-btn-aceptar">✅ Aceptar</button>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="js/adminkeraunos.js"></script>
+</body>
+</html>
