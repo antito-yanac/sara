@@ -1,48 +1,86 @@
 // ============================================================
-//  adminkeraunos.js — Lógica del panel manual
-//  Replica la estructura de estado.json que genera monitor.js
-//  pero alimentado manualmente por el usuario.
+//  adminkeraunos.js — Editor manual de estado.json
+//  Cada zona tiene 3 niveles (amarilla/naranja/roja) con su
+//  propia duración. Solo un nivel activo por zona a la vez.
 // ============================================================
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-    getDatabase, ref, set, get, update, remove, onValue
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+// ------------------------------------------------------------
+//  Constantes
+// ------------------------------------------------------------
+const ESTADO_URL    = "./estado.json";
+const TZ_OFFSET_MIN = -300;  // Perú UTC-5
+const DURACION_DEF  = 15;
 
-import {
-    FIREBASE_CONFIG, PATHS,
-    SECTORES_ESPERADOS, MAPA_ZONAS, COORDENADAS_ZONAS,
-    NIVELES, TZ_OFFSET_MIN, DURACION_DEFAULT_MIN
-} from "./config2.js";
+const NIVELES = {
+    ROJA:     { numero: 3, color: "#FA5858", clase: "roja",     emoji: "🔴", label: "Roja" },
+    NARANJA:  { numero: 2, color: "#FF8C00", clase: "naranja",  emoji: "🟠", label: "Naranja" },
+    AMARILLA: { numero: 1, color: "#FFD400", clase: "amarilla", emoji: "🟡", label: "Amarilla" },
+    VERDE:    { numero: 0, color: "#2ECC71", clase: "verde",    emoji: "🟢", label: "Verde" }
+};
+
+// Los 3 niveles que se pueden activar (el VERDE es el "apagado")
+const NIVELES_ACTIVABLES = ["AMARILLA", "NARANJA", "ROJA"];
+
+// Zonas fijas con sus nombres EXACTOS
+const ZONAS = [
+    {
+        id: "campamento",
+        nombreCorto: "Campamento Yanacancha",
+        nombre: "Campamento Yanacancha - (Nuevo Campamento, Descarga Norte Presa Relaves, Polishing Pond, Garita Laguna Huallacocha, Garita plataforma km 114, Tailing Dam Norte - Punto Y, Garita Portón Principal, Grifo Yanacancha)",
+        zona: "Zona 1 - Campamentos",
+        lat: -9.5822364, lng: -77.0223100
+    },
+    {
+        id: "oficinas",
+        nombreCorto: "Oficinas Mina",
+        nombre: "Oficinas Mina - (Grifo 4448, Punto E, Ingreso Laguna Seca, Nasa, Oficinas Mina, Concentradora, Plataforma Pre PM, Presa Relaves, Plataforma de Armado)",
+        zona: "Zona 2 - Oficinas Mina",
+        lat: -9.5718388, lng: -77.0447182
+    },
+    {
+        id: "tucush",
+        nombreCorto: "Tucush",
+        nombre: "Tucush - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa)",
+        zona: "Zona 3 - Tucush",
+        lat: -9.5263487, lng: -77.0485794
+    },
+    {
+        id: "tajo",
+        nombreCorto: "Tajo",
+        nombre: "Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
+        zona: "Zona 4 - Tajo",
+        lat: -9.5416465, lng: -77.0707659
+    }
+];
 
 // ------------------------------------------------------------
-//  Init Firebase
+//  Borrador editable:
+//  { zonaId: { AMARILLA: {activo, min}, NARANJA: {activo, min}, ROJA: {activo, min} } }
 // ------------------------------------------------------------
-const app = initializeApp(FIREBASE_CONFIG);
-const db  = getDatabase(app);
-const refComando  = ref(db, PATHS.COMANDO);
-const refSnapshot = ref(db, PATHS.SNAPSHOT);
+const borrador = {};
+
+function initBorrador() {
+    ZONAS.forEach(z => {
+        borrador[z.id] = {};
+        NIVELES_ACTIVABLES.forEach(n => {
+            borrador[z.id][n] = { activo: false, min: DURACION_DEF };
+        });
+    });
+}
+initBorrador();
 
 // ------------------------------------------------------------
-//  Estado local
-// ------------------------------------------------------------
-const borrador = {};   // { zonaClave: { nivel, duracionMin } }
-let snapshotActual = null;
-
-// ------------------------------------------------------------
-//  Utilidades de fecha (idénticas a monitor.js)
+//  Utilidades de fecha (formato Perú YYYY-MM-DD HH:MM:SS)
 // ------------------------------------------------------------
 const pad = (n) => String(n).padStart(2, "0");
 
-/** Devuelve "YYYY-MM-DD HH:MM:SS" en hora Perú (UTC-5) */
 function fechaPeru(date = new Date()) {
     const ms = date.getTime() + TZ_OFFSET_MIN * 60000;
-    const d  = new Date(ms);
+    const d = new Date(ms);
     return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
            `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
 }
 
-/** Suma N minutos a una fecha "YYYY-MM-DD HH:MM:SS" (hora Perú) */
 function sumarMinutos(fechaStr, minutos) {
     const [f, h] = fechaStr.split(" ");
     const [Y, M, D] = f.split("-").map(Number);
@@ -52,394 +90,368 @@ function sumarMinutos(fechaStr, minutos) {
     return fechaPeru(fin);
 }
 
-/** Formatea "HH:MM:SS" restante hasta `finStr` (o "—") */
-function restanteHasta(finStr) {
-    if (!finStr) return "—";
-    const [f, h] = finStr.split(" ");
-    const [Y, M, D] = f.split("-").map(Number);
-    const [H, Mi, S] = h.split(":").map(Number);
-    const finMs  = Date.UTC(Y, M - 1, D, H, Mi, S) - TZ_OFFSET_MIN * 60000;
-    const ahoraMs = Date.now() + TZ_OFFSET_MIN * 60000;
-    const diff = finMs - (Date.now());
-    if (diff <= 0) return "00:00";
-    const seg = Math.floor(diff / 1000);
-    return `${pad(Math.floor(seg / 3600))}:${pad(Math.floor((seg % 3600) / 60))}:${pad(seg % 60)}`;
-}
-
-// ------------------------------------------------------------
-//  Estructura de estado (idéntica a guardarJSON de monitor.js)
-// ------------------------------------------------------------
-function construirEstado(sectores) {
-    // 1) Estado global = nivel máximo
-    let estadoGlobal = "VERDE", max = 0;
-    for (const s of sectores) {
-        if (s.nivelNumero > max) { max = s.nivelNumero; estadoGlobal = s.nivel; }
-    }
-
-    // 2) Alertas derivadas (sectores con nivel != VERDE)
-    const alertas = [];
-    for (const s of sectores) {
-        if (s.nivel === "VERDE") continue;
-        const zona = buscarZonaPorNombre(s.nombre);
-        if (!zona) continue;
-        const coords = COORDENADAS_ZONAS[zona] || {};
-
-        // duracionMin = fin - inicio (en minutos)
-        let duracionMin = DURACION_DEFAULT_MIN;
-        let timestampInicio = Date.now();
-        if (s.inicio && s.fin) {
-            duracionMin = Math.max(1, Math.round(
-                (parseFechaPeru(s.fin) - parseFechaPeru(s.inicio)) / 60000
-            ));
-            timestampInicio = parseFechaPeru(s.inicio);
-        }
-
-        alertas.push({
-            sectorOriginal: s.nombre,
-            nivelScraper:   s.nivel,
-            nivel:          s.nivel.toLowerCase(),
-            distrito:       zona,
-            lat:            coords.lat ?? null,
-            lng:            coords.lng ?? null,
-            duracionMin,
-            timestampInicio,
-            inicio:         s.inicio || null,
-            fin:            s.fin    || null,
-            color:          s.color,
-            emoji:          s.emoji,
-            titulo:  `⚡ ALERTA ${s.nivel} — ${s.nombre}`,
-            mensaje: `Actividad eléctrica detectada en ${s.nombre} (${zona}). ` +
-                     `Nivel ${s.nivel}.` +
-                     (s.inicio ? ` Inicio: ${s.inicio}.` : "") +
-                     (s.fin    ? ` Fin previsto: ${s.fin}.` : "")
-        });
-    }
-
-    return {
-        actualizado:        new Date().toISOString(),
-        estadoGlobal,
-        estadoGlobalNumero: NIVELES[estadoGlobal].numero,
-        totalSectores:      sectores.length,
-        resumen: {
-            roja:     sectores.filter(s => s.nivel === "ROJA").length,
-            naranja:  sectores.filter(s => s.nivel === "NARANJA").length,
-            amarilla: sectores.filter(s => s.nivel === "AMARILLA").length,
-            verde:    sectores.filter(s => s.nivel === "VERDE").length
-        },
-        sectores: sectores.map(s => ({
-            nombre: s.nombre, nivel: s.nivel, nivelNumero: s.nivelNumero,
-            color: s.color, inicio: s.inicio, fin: s.fin
-        })),
-        alertas
-    };
-}
-
-function buscarZonaPorNombre(nombre) {
-    for (const clave of Object.keys(MAPA_ZONAS)) {
-        if (nombre.includes(clave)) return MAPA_ZONAS[clave];
-    }
-    return null;
-}
-
 function parseFechaPeru(str) {
+    if (!str) return NaN;
     const [f, h] = str.split(" ");
     const [Y, M, D] = f.split("-").map(Number);
     const [H, Mi, S] = h.split(":").map(Number);
     return Date.UTC(Y, M - 1, D, H, Mi, S) - TZ_OFFSET_MIN * 60000;
 }
 
+/** Devuelve el nivel activo de una zona o "VERDE" */
+function nivelActivoDeZona(zonaId) {
+    for (const n of NIVELES_ACTIVABLES) {
+        if (borrador[zonaId][n].activo) return n;
+    }
+    return "VERDE";
+}
+
+/** Devuelve la duración del nivel activo de una zona (o 0) */
+function duracionDeZona(zonaId) {
+    for (const n of NIVELES_ACTIVABLES) {
+        if (borrador[zonaId][n].activo) return borrador[zonaId][n].min;
+    }
+    return 0;
+}
+
 // ------------------------------------------------------------
-//  Render de tarjetas
+//  Construcción del estado.json (idéntica a guardarJSON de monitor.js)
 // ------------------------------------------------------------
-function renderTarjetas() {
-    const cont = document.getElementById("pa-na-lista");
+function construirEstado() {
+    const ahora = fechaPeru();
+
+    const sectores = ZONAS.map(z => {
+        const nivel = nivelActivoDeZona(z.id);
+        const info = NIVELES[nivel];
+
+        let inicio = ahora;
+        let fin = null;
+
+        if (nivel !== "VERDE") {
+            const min = duracionDeZona(z.id);
+            fin = sumarMinutos(inicio, min);
+        }
+
+        return {
+            nombre: z.nombre,
+            nivel,
+            nivelNumero: info.numero,
+            color: info.color,
+            inicio,
+            fin
+        };
+    });
+
+    // Estado global (nivel máximo)
+    let estadoGlobal = "VERDE", max = 0;
+    for (const s of sectores) {
+        if (s.nivelNumero > max) { max = s.nivelNumero; estadoGlobal = s.nivel; }
+    }
+
+    // Alertas derivadas
+    const alertas = [];
+    for (const s of sectores) {
+        if (s.nivel === "VERDE") continue;
+        const z = ZONAS.find(x => x.nombre === s.nombre);
+        if (!z) continue;
+
+        const info = NIVELES[s.nivel];
+        const timestampInicio = parseFechaPeru(s.inicio);
+        const duracionMin = Math.max(1, Math.round((parseFechaPeru(s.fin) - timestampInicio) / 60000));
+
+        alertas.push({
+            sectorOriginal: s.nombre,
+            nivelScraper:   s.nivel,
+            nivel:          s.nivel.toLowerCase(),
+            distrito:       z.zona,
+            lat:            z.lat,
+            lng:            z.lng,
+            duracionMin,
+            timestampInicio,
+            inicio:         s.inicio,
+            fin:            s.fin,
+            color:          s.color,
+            emoji:          info.emoji,
+            titulo:  `⚡ ALERTA ${s.nivel} — ${z.zona}`,
+            mensaje: `Actividad eléctrica detectada en ${z.zona}. Nivel ${s.nivel}. ` +
+                     `Inicio: ${s.inicio}. Fin previsto: ${s.fin}.`
+        });
+    }
+
+    // Resumen
+    const resumen = {
+        roja:     sectores.filter(s => s.nivel === "ROJA").length,
+        naranja:  sectores.filter(s => s.nivel === "NARANJA").length,
+        amarilla: sectores.filter(s => s.nivel === "AMARILLA").length,
+        verde:    sectores.filter(s => s.nivel === "VERDE").length
+    };
+
+    return {
+        actualizado: new Date().toISOString(),
+        estadoGlobal,
+        estadoGlobalNumero: NIVELES[estadoGlobal].numero,
+        totalSectores: sectores.length,
+        resumen,
+        sectores,
+        alertas
+    };
+}
+
+// ------------------------------------------------------------
+//  Render de zonas (cada zona con sus 3 niveles)
+// ------------------------------------------------------------
+function renderZonas() {
+    const cont = document.getElementById("pa-zonas-lista");
     cont.innerHTML = "";
 
-    SECTORES_ESPERADOS.forEach((nombre) => {
-        const b = borrador[nombre] || { nivel: "VERDE", duracionMin: DURACION_DEFAULT_MIN };
-        const nivelInfo = NIVELES[b.nivel];
+    ZONAS.forEach(z => {
+        const nivelActivo = nivelActivoDeZona(z.id);
+        const infoActivo = NIVELES[nivelActivo];
 
         const card = document.createElement("div");
-        card.className = "pa-na-card";
-        if (b.nivel !== "VERDE") card.classList.add("pa-activa-" + nivelInfo.clase);
-        card.dataset.zona = nombre;
+        card.className = "pa-zona-card";
+        if (nivelActivo !== "VERDE") card.classList.add("pa-zona-" + infoActivo.clase);
 
         card.innerHTML = `
-            <div class="pa-na-row1">
-                <div class="pa-na-check ${b.nivel !== "VERDE" ? "pa-on" : ""}">
-                    ${b.nivel !== "VERDE" ? "✓" : ""}
+            <div class="pa-zona-header">
+                <div class="pa-zona-titulo">${escapeHtml(z.nombreCorto)}</div>
+                <div class="pa-zona-estado ${nivelActivo !== "VERDE" ? "pa-estado-" + infoActivo.clase : ""}">
+                    ${infoActivo.emoji} ${infoActivo.label}
                 </div>
-                <div class="pa-na-nombre" title="${nombre}">${nombre}</div>
             </div>
-            <div class="pa-na-row2">
-                <div class="pa-pill-group">
-                    ${["AMARILLA","NARANJA","ROJA"].map(k => {
-                        const n = NIVELES[k];
-                        const sel = b.nivel === k ? `pa-sel-${n.clase}` : "";
-                        return `<button type="button" class="pa-pill ${sel}" data-nivel="${k}">
-                            ${n.emoji} ${n.label}
-                        </button>`;
-                    }).join("")}
-                    <button type="button" class="pa-pill ${b.nivel === "VERDE" ? "pa-sel-verde" : ""}"
-                            data-nivel="VERDE">⚪ Sin</button>
-                </div>
-                <div class="pa-duracion-wrap ${b.nivel === "VERDE" ? "pa-disabled" : ""}">
-                    <input type="number" min="1" max="1440" value="${b.duracionMin}"
-                           data-rol="duracion" ${b.nivel === "VERDE" ? "disabled" : ""}>
-                    <span>min</span>
-                </div>
+            <div class="pa-zona-niveles">
+                ${NIVELES_ACTIVABLES.map(n => {
+                    const info = NIVELES[n];
+                    const cfg = borrador[z.id][n];
+                    return `
+                        <div class="pa-nivel-row ${cfg.activo ? "pa-nivel-activo pa-nivel-" + info.clase : ""}"
+                             data-zona="${z.id}" data-nivel="${n}">
+                            <button type="button" class="pa-nivel-check ${cfg.activo ? "pa-on" : ""}"
+                                    data-zona="${z.id}" data-nivel="${n}">
+                                ${cfg.activo ? "✓" : ""}
+                            </button>
+                            <div class="pa-nivel-label">
+                                ${info.emoji} ${info.label}
+                            </div>
+                            <div class="pa-nivel-min ${cfg.activo ? "" : "pa-disabled"}">
+                                <input type="number" min="1" max="1440" value="${cfg.min}"
+                                       data-zona="${z.id}" data-nivel="${n}" data-rol="min"
+                                       ${cfg.activo ? "" : "disabled"}>
+                                <span>min</span>
+                            </div>
+                        </div>
+                    `;
+                }).join("")}
             </div>
         `;
 
-        // Eventos
-        card.querySelectorAll(".pa-pill").forEach(btn => {
+        // Evento: click en checkbox de nivel
+        card.querySelectorAll(".pa-nivel-check").forEach(btn => {
             btn.addEventListener("click", () => {
+                const zid = btn.dataset.zona;
                 const nivel = btn.dataset.nivel;
-                borrador[nombre] = {
-                    nivel,
-                    duracionMin: (borrador[nombre]?.duracionMin) || DURACION_DEFAULT_MIN
-                };
-                renderTarjetas();
+                const cfg = borrador[zid][nivel];
+
+                if (cfg.activo) {
+                    // Desactivar
+                    cfg.activo = false;
+                } else {
+                    // Activar: desactivar los otros niveles de la misma zona
+                    NIVELES_ACTIVABLES.forEach(n => {
+                        borrador[zid][n].activo = (n === nivel);
+                    });
+                }
+
+                renderZonas();
                 actualizarResumen();
             });
         });
 
-        const inputDur = card.querySelector('input[data-rol="duracion"]');
-        if (inputDur) {
-            inputDur.addEventListener("input", (e) => {
-                const v = Math.max(1, Math.min(1440, parseInt(e.target.value, 10) || DURACION_DEFAULT_MIN));
-                borrador[nombre] = { ...borrador[nombre], duracionMin: v };
+        // Evento: input de minutos
+        card.querySelectorAll('input[data-rol="min"]').forEach(inp => {
+            inp.addEventListener("input", (e) => {
+                const zid = inp.dataset.zona;
+                const nivel = inp.dataset.nivel;
+                const v = Math.max(1, Math.min(1440, parseInt(e.target.value, 10) || DURACION_DEF));
+                borrador[zid][nivel].min = v;
                 actualizarResumen();
             });
-        }
+        });
 
         cont.appendChild(card);
     });
 }
 
 // ------------------------------------------------------------
-//  Resumen en vivo (antes de enviar)
+//  Resumen en vivo
 // ------------------------------------------------------------
 function actualizarResumen() {
-    const elegidos = SECTORES_ESPERADOS
-        .map(n => ({ nombre: n, ...(borrador[n] || { nivel: "VERDE", duracionMin: DURACION_DEFAULT_MIN }) }))
-        .filter(x => x.nivel !== "VERDE");
+    const activas = [];
+    ZONAS.forEach(z => {
+        const nivel = nivelActivoDeZona(z.id);
+        if (nivel !== "VERDE") {
+            activas.push({
+                zona: z.nombreCorto,
+                nivel,
+                min: duracionDeZona(z.id)
+            });
+        }
+    });
 
-    const resumenEl = document.getElementById("pa-resumen");
-    const btnEnviar  = document.getElementById("pa-btn-enviar");
+    const el = document.getElementById("pa-resumen");
 
-    if (!elegidos.length) {
-        resumenEl.classList.remove("pa-visible");
-        btnEnviar.disabled = true;
+    if (!activas.length) {
+        el.classList.remove("pa-visible");
+        el.innerHTML = "";
         return;
     }
-    resumenEl.classList.add("pa-visible");
-    btnEnviar.disabled = false;
 
-    const cnt = { roja: 0, naranja: 0, amarilla: 0 };
-    elegidos.forEach(e => { cnt[NIVELES[e.nivel].clase]++; });
+    el.classList.add("pa-visible");
+
+    const cnt = { roja: 0, naranja: 0, amarilla: 0, verde: 0 };
+    ZONAS.forEach(z => {
+        cnt[NIVELES[nivelActivoDeZona(z.id)].clase]++;
+    });
 
     let globalNivel = "VERDE", globalNum = 0;
-    elegidos.forEach(e => {
-        if (NIVELES[e.nivel].numero > globalNum) {
-            globalNum = NIVELES[e.nivel].numero;
-            globalNivel = e.nivel;
+    ZONAS.forEach(z => {
+        const n = nivelActivoDeZona(z.id);
+        if (NIVELES[n].numero > globalNum) {
+            globalNum = NIVELES[n].numero;
+            globalNivel = n;
         }
     });
 
     const g = NIVELES[globalNivel];
-    resumenEl.innerHTML = `
-        <strong>📊 Resumen (${elegidos.length} sector${elegidos.length > 1 ? "es" : ""})</strong><br>
-        Global: ${g.emoji} <strong>${g.label}</strong> ·
-        🔴 ${cnt.roja} · 🟠 ${cnt.naranja} · 🟡 ${cnt.amarilla}
+
+    const items = activas.map(a => {
+        const info = NIVELES[a.nivel];
+        return `<div>${info.emoji} <strong>${escapeHtml(a.zona)}</strong> · ${info.label} · ${a.min} min</div>`;
+    }).join("");
+
+    el.innerHTML = `
+        <strong>📊 Resumen (${activas.length} zona${activas.length > 1 ? "s" : ""} activa${activas.length > 1 ? "s" : ""})</strong>
+        <div style="margin-top:6px;">${items}</div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);">
+            Global: ${g.emoji} <strong>${g.label}</strong> ·
+            🔴 ${cnt.roja} · 🟠 ${cnt.naranja} · 🟡 ${cnt.amarilla} · 🟢 ${cnt.verde}
+        </div>
     `;
-}
-
-// ------------------------------------------------------------
-//  Sección "Alertas activas" (lee /comando)
-// ------------------------------------------------------------
-function renderAlertasActivas(comando) {
-    const activas = Object.entries(comando || {})
-        .filter(([, v]) => v && v.activo && v.nivel && v.nivel !== "VERDE");
-
-    const sec = document.getElementById("pa-aa-section");
-    const lista = document.getElementById("pa-aa-lista");
-    const count = document.getElementById("pa-aa-count");
-
-    if (!activas.length) {
-        sec.style.display = "none";
-        return;
-    }
-    sec.style.display = "block";
-    count.textContent = `(${activas.length})`;
-    lista.innerHTML = "";
-
-    activas.forEach(([zona, v]) => {
-        const info = NIVELES[v.nivel];
-        const finStr = v.timestampLanzado
-            ? sumarMinutos(fechaPeru(new Date(v.timestampLanzado)), v.duracionMin)
-            : null;
-
-        const item = document.createElement("div");
-        item.className = "pa-aa-item pa-nivel-" + info.clase;
-        item.innerHTML = `
-            <div class="pa-aa-icono">${info.emoji}</div>
-            <div class="pa-aa-info">
-                <div class="pa-aa-nombre">${zona}</div>
-                <div class="pa-aa-meta">
-                    <span>${info.label}</span>
-                    <span>· vence ${finStr || "—"}</span>
-                    <span class="pa-aa-restante">${restanteHasta(finStr)}</span>
-                </div>
-            </div>
-            <button type="button" class="pa-aa-btn-liberar" data-zona="${zona}">
-                Liberar
-            </button>
-        `;
-        item.querySelector(".pa-aa-btn-liberar").addEventListener("click", () => liberarZona(zona));
-        lista.appendChild(item);
-    });
 }
 
 // ------------------------------------------------------------
 //  Acciones
 // ------------------------------------------------------------
-async function liberarZona(zona) {
-    confirmar(
-        "Liberar alerta",
-        `¿Liberar la alerta de <strong>${zona}</strong>?`,
-        async () => {
-            await set(ref(db, `${PATHS.COMANDO}/${zona}`), { activo: false });
-            await escribirStatus(`✅ Alerta liberada: ${zona}`);
-        }
-    );
-}
-
-async function liberarTodas() {
-    confirmar(
-        "Liberar todas",
-        `¿Liberar <strong>todas</strong> las alertas activas?`,
-        async () => {
-            const updates = {};
-            SECTORES_ESPERADOS.forEach(z => { updates[z] = { activo: false }; });
-            await update(refComando, updates);
-            await escribirStatus("✅ Todas las alertas liberadas");
-        }
-    );
-}
-
-async function enviarAlertas() {
-    const elegidos = SECTORES_ESPERADOS.filter(n => borrador[n] && borrador[n].nivel !== "VERDE");
-    if (!elegidos.length) return;
-
-    confirmar(
-        "Enviar alertas",
-        `¿Enviar <strong>${elegidos.length}</strong> alerta(s)?<br><br>` +
-        elegidos.map(n => {
-            const b = borrador[n];
-            return `• ${NIVELES[b.nivel].emoji} <strong>${n}</strong> — ${b.duracionMin} min`;
-        }).join("<br>"),
-        async () => {
-            const ahora = Date.now();
-            const updates = {};
-            SECTORES_ESPERADOS.forEach(z => {
-                const b = borrador[z];
-                if (b && b.nivel !== "VERDE") {
-                    updates[z] = {
-                        nivel: b.nivel,
-                        duracionMin: b.duracionMin,
-                        timestampLanzado: ahora,
-                        activo: true
-                    };
-                } else {
-                    updates[z] = { activo: false };
-                }
-            });
-            await update(refComando, updates);
-            await escribirStatus("✅ Alertas enviadas a Firebase");
-        }
-    );
-}
-
-async function resetearTodo() {
+function resetearTodo() {
     confirmar(
         "Resetear a VERDE",
-        `¿Poner <strong>todos</strong> los sectores en VERDE y liberar alertas?`,
-        async () => {
-            const updates = {};
-            SECTORES_ESPERADOS.forEach(z => { updates[z] = { activo: false, nivel: "VERDE" }; });
-            await update(refComando, updates);
-            borrador.length = 0;
-            SECTORES_ESPERADOS.forEach(z => delete borrador[z]);
-            renderTarjetas();
+        `¿Desactivar TODOS los niveles y dejar las 4 zonas en VERDE?`,
+        () => {
+            ZONAS.forEach(z => {
+                NIVELES_ACTIVABLES.forEach(n => {
+                    borrador[z.id][n].activo = false;
+                });
+            });
+            renderZonas();
             actualizarResumen();
-            await escribirStatus("✅ Todo reseteado a VERDE");
+            escribirStatus("✅ Todo reseteado a VERDE");
         }
     );
 }
 
-// ------------------------------------------------------------
-//  Construye snapshot y lo publica en /estadoSnapshot
-//  (se ejecuta cada vez que cambia /comando)
-// ------------------------------------------------------------
-async function publicarSnapshot(comando) {
-    const ahora = Date.now();
-    const sectores = SECTORES_ESPERADOS.map(nombre => {
-        const cmd = comando?.[nombre];
-        let nivel = "VERDE", inicio = null, fin = null;
+function descargarJSON() {
+    const estado = construirEstado();
+    const json = JSON.stringify(estado, null, 2);
 
-        if (cmd && cmd.activo && cmd.nivel && cmd.nivel !== "VERDE") {
-            nivel = cmd.nivel;
-            inicio = fechaPeru(new Date(cmd.timestampLanzado || ahora));
-            fin = sumarMinutos(inicio, cmd.duracionMin || DURACION_DEFAULT_MIN);
-        }
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "estado.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 
-        const info = NIVELES[nivel];
-        return {
-            nombre,
-            nivel,
-            nivelNumero: info.numero,
-            color:       info.color,
-            inicio,
-            fin
-        };
-    });
+    escribirStatus("✅ estado.json descargado. Súbelo a GitHub Pages.");
+}
 
-    const estado = construirEstado(sectores);
-    await set(refSnapshot, estado);
-    snapshotActual = estado;
-    renderAlertasActivas(comando);
-    return estado;
+async function copiarJSON() {
+    const estado = construirEstado();
+    const json = JSON.stringify(estado, null, 2);
+    try {
+        await navigator.clipboard.writeText(json);
+        escribirStatus("✅ JSON copiado al portapapeles");
+    } catch (e) {
+        escribirStatus("❌ No se pudo copiar. Usa 'Descargar'.", "err");
+    }
 }
 
 // ------------------------------------------------------------
-//  Suscripción en tiempo real a /comando
+//  Vista previa del JSON
 // ------------------------------------------------------------
-onValue(refComando, async (snap) => {
-    const comando = snap.val() || {};
-    try {
-        await publicarSnapshot(comando);
-        await escribirStatus("✅ Sincronizado con Firebase", "ok");
-        setEstadoConexion(true);
-    } catch (e) {
-        await escribirStatus("⚠️ Error publicando snapshot: " + e.message, "err");
-        setEstadoConexion(false);
+function togglePreview() {
+    const campos = document.getElementById("pa-mi-campos");
+    const toggle = document.getElementById("pa-mi-toggle");
+    const visible = campos.style.display !== "none";
+
+    if (visible) {
+        campos.style.display = "none";
+        toggle.textContent = "▸ 👁️ Vista previa del JSON (opcional)";
+    } else {
+        campos.style.display = "block";
+        toggle.textContent = "▾ 👁️ Vista previa del JSON (opcional)";
+        const estado = construirEstado();
+        document.getElementById("pa-json-preview").textContent = JSON.stringify(estado, null, 2);
     }
-}, (error) => {
-    setEstadoConexion(false);
-    escribirStatus("❌ Error Firebase: " + error.message, "err");
-});
+}
+
+// ------------------------------------------------------------
+//  Cargar estado.json inicial (si existe)
+// ------------------------------------------------------------
+async function cargarEstado() {
+    const dot = document.getElementById("pa-dot");
+    const txt = document.getElementById("pa-carga-texto");
+
+    try {
+        const res = await fetch(`${ESTADO_URL}?t=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+
+        // Inicializar borrador desde el JSON existente
+        ZONAS.forEach(z => {
+            const sec = (data.sectores || []).find(s => s.nombre === z.nombre);
+            if (sec && sec.nivel !== "VERDE") {
+                const nivel = sec.nivel;
+                if (NIVELES_ACTIVABLES.includes(nivel)) {
+                    borrador[z.id][nivel].activo = true;
+                    if (sec.inicio && sec.fin) {
+                        const min = Math.max(1, Math.round(
+                            (parseFechaPeru(sec.fin) - parseFechaPeru(sec.inicio)) / 60000
+                        ));
+                        borrador[z.id][nivel].min = min;
+                    }
+                }
+            }
+        });
+
+        dot.className = "pa-dot pa-ok";
+        txt.textContent = `estado.json cargado (${data.actualizado || "sin fecha"})`;
+        escribirStatus("✅ estado.json cargado");
+    } catch (e) {
+        console.warn("No se pudo cargar estado.json:", e);
+        dot.className = "pa-dot pa-err";
+        txt.textContent = "estado.json no encontrado — se iniciará desde VERDE";
+        escribirStatus("⚠️ No se cargó estado.json (se creará uno nuevo)", "warn");
+    }
+
+    renderZonas();
+    actualizarResumen();
+}
 
 // ------------------------------------------------------------
 //  UI helpers
 // ------------------------------------------------------------
-function setEstadoConexion(ok) {
-    const dot = document.getElementById("pa-fb-dot");
-    const txt = document.getElementById("pa-fb-text");
-    dot.className = "pa-dot " + (ok ? "pa-ok" : "pa-err");
-    txt.textContent = ok ? "Conectado a Firebase RTDB" : "Sin conexión a Firebase";
-}
-
 function escribirStatus(msg, tipo = "ok") {
     const el = document.getElementById("status-bar");
     el.textContent = msg;
@@ -448,7 +460,13 @@ function escribirStatus(msg, tipo = "ok") {
     escribirStatus._t = setTimeout(() => {
         el.textContent = "";
         el.className = "status-bar";
-    }, 5000);
+    }, 6000);
+}
+
+function escapeHtml(txt) {
+    return String(txt || "")
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
 // ------------------------------------------------------------
@@ -459,8 +477,6 @@ function confirmar(titulo, mensajeHtml, onAceptar) {
     document.getElementById("modal-titulo").textContent = titulo;
     document.getElementById("modal-mensaje").innerHTML = mensajeHtml;
     document.getElementById("modal-icon").textContent = "❓";
-
-    const cerrar = () => modal.classList.remove("modal-visible");
     modal.classList.add("modal-visible");
 
     const btnA = document.getElementById("modal-btn-aceptar");
@@ -470,10 +486,11 @@ function confirmar(titulo, mensajeHtml, onAceptar) {
     btnA.replaceWith(nuevoA);
     btnC.replaceWith(nuevoC);
 
+    const cerrar = () => modal.classList.remove("modal-visible");
     nuevoC.addEventListener("click", cerrar);
-    nuevoA.addEventListener("click", async () => {
+    nuevoA.addEventListener("click", () => {
         cerrar();
-        try { await onAceptar(); }
+        try { onAceptar(); }
         catch (e) { escribirStatus("❌ Error: " + e.message, "err"); }
     });
 }
@@ -481,14 +498,9 @@ function confirmar(titulo, mensajeHtml, onAceptar) {
 // ------------------------------------------------------------
 //  Arranque
 // ------------------------------------------------------------
-document.getElementById("pa-btn-enviar").addEventListener("click", enviarAlertas);
-document.getElementById("pa-btn-liberar-todas").addEventListener("click", liberarTodas);
+document.getElementById("pa-btn-descargar").addEventListener("click", descargarJSON);
+document.getElementById("pa-btn-copiar").addEventListener("click", copiarJSON);
 document.getElementById("pa-btn-reset").addEventListener("click", resetearTodo);
+document.getElementById("pa-mi-toggle").addEventListener("click", togglePreview);
 
-// Tick cada segundo para refrescar contadores de restante
-setInterval(() => {
-    get(refComando).then(s => renderAlertasActivas(s.val() || {}));
-}, 1000);
-
-renderTarjetas();
-actualizarResumen();
+cargarEstado();
