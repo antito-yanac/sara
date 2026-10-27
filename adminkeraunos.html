@@ -15,7 +15,7 @@
 
     <div class="admin-header">
         <h1><span class="icon">🔔</span> Editor estado.json</h1>
-        <p>Edita manualmente el estado de los 4 sectores y descarga el JSON</p>
+        <p>Configura el nivel y la duración de cada zona. Descarga el JSON y súbelo a GitHub.</p>
         <div class="pa-modo-badge">⚙️ MODO MANUAL</div>
     </div>
 
@@ -26,40 +26,29 @@
     </div>
 
     <!-- ============================================================
-         Sección: Alertas activas (derivadas de estado.json)
-         ============================================================ -->
-    <section class="pa-aa-section" id="pa-aa-section" style="display:none;">
-        <div class="pa-aa-titulo">🚨 ALERTAS ACTIVAS <span id="pa-aa-count">(0)</span></div>
-        <div class="pa-aa-lista" id="pa-aa-lista"></div>
-        <button type="button" class="pa-aa-btn-liberar-todas" id="pa-btn-liberar-todas">
-            🛑 LIBERAR TODAS LAS ALERTAS
-        </button>
-    </section>
-
-    <!-- ============================================================
-         Sección: Editar sectores (4 tarjetas fijas)
+         Sección: Zonas (4 tarjetas grandes, cada una con 3 niveles)
          ============================================================ -->
     <section>
-        <div class="pa-na-titulo">⚡ EDITAR SECTORES</div>
-        <div class="pa-na-lista" id="pa-na-lista"></div>
+        <div class="pa-na-titulo">⚡ CONFIGURAR ZONAS</div>
+        <div class="pa-zonas-lista" id="pa-zonas-lista"></div>
     </section>
 
     <!-- Resumen -->
     <div class="pa-resumen" id="pa-resumen"></div>
 
     <!-- ============================================================
-         Botones de salida
+         Botones de acción
          ============================================================ -->
     <button type="button" class="pa-btn-enviar" id="pa-btn-descargar">
         💾 DESCARGAR estado.json
     </button>
 
-    <button type="button" class="pa-btn-reset" id="pa-btn-copiar">
-        📋 COPIAR JSON AL PORTAPAPELES
-    </button>
-
     <button type="button" class="pa-btn-reset" id="pa-btn-reset">
         🔄 RESETEAR TODO A VERDE
+    </button>
+
+    <button type="button" class="pa-btn-reset" id="pa-btn-copiar">
+        📋 COPIAR JSON AL PORTAPAPELES
     </button>
 
     <!-- Vista previa del JSON -->
