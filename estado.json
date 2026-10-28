@@ -1,29 +1,29 @@
 {
-  "actualizado": "2026-10-28T13:18:19.060Z",
-  "estadoGlobal": "VERDE",
-  "estadoGlobalNumero": 0,
+  "actualizado": "2026-10-28T21:03:17.583Z",
+  "estadoGlobal": "AMARILLA",
+  "estadoGlobalNumero": 1,
   "totalSectores": 4,
   "resumen": {
     "roja": 0,
     "naranja": 0,
-    "amarilla": 0,
-    "verde": 4
+    "amarilla": 1,
+    "verde": 3
   },
   "sectores": [
     {
       "nombre": "Campamento Yanacancha - (Nuevo Campamento, Descarga Norte Presa Relaves, Polishing Pond, Garita Laguna Huallacocha, Garita plataforma km 114, Tailing Dam Norte - Punto Y, Garita Portón Principal, Grifo Yanacancha)",
-      "nivel": "VERDE",
-      "nivelNumero": 0,
-      "color": "#2ECC71",
-      "inicio": "2026-10-28 08:18:19",
-      "fin": null
+      "nivel": "AMARILLA",
+      "nivelNumero": 1,
+      "color": "#FFD400",
+      "inicio": "2026-10-28 16:00:44",
+      "fin": "2026-10-28 16:15:44"
     },
     {
       "nombre": "Oficinas Mina - (Grifo 4448, Punto E, Ingreso Laguna Seca, Nasa, Oficinas Mina, Concentradora, Plataforma Pre PM, Presa Relaves, Plataforma de Armado)",
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": "2026-10-28 08:18:19",
+      "inicio": "2026-10-28 16:03:17",
       "fin": null
     },
     {
@@ -31,7 +31,7 @@
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": "2026-10-28 08:18:19",
+      "inicio": "2026-10-28 16:03:17",
       "fin": null
     },
     {
@@ -39,9 +39,26 @@
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": "2026-10-28 08:18:19",
+      "inicio": "2026-10-28 16:03:17",
       "fin": null
     }
   ],
-  "alertas": []
+  "alertas": [
+    {
+      "sectorOriginal": "Campamento Yanacancha - (Nuevo Campamento, Descarga Norte Presa Relaves, Polishing Pond, Garita Laguna Huallacocha, Garita plataforma km 114, Tailing Dam Norte - Punto Y, Garita Portón Principal, Grifo Yanacancha)",
+      "nivelScraper": "AMARILLA",
+      "nivel": "amarilla",
+      "distrito": "Zona 1 - Campamentos",
+      "lat": -9.5822364,
+      "lng": -77.02231,
+      "duracionMin": 15,
+      "timestampInicio": 1793221244000,
+      "inicio": "2026-10-28 16:00:44",
+      "fin": "2026-10-28 16:15:44",
+      "color": "#FFD400",
+      "emoji": "🟡",
+      "titulo": "⚡ ALERTA AMARILLA — Campamento Yanacancha - (Nuevo Campamento, Descarga Norte Presa Relaves, Polishing Pond, Garita Laguna Huallacocha, Garita plataforma km 114, Tailing Dam Norte - Punto Y, Garita Portón Principal, Grifo Yanacancha)",
+      "mensaje": "Actividad eléctrica detectada en Campamento Yanacancha - (Nuevo Campamento, Descarga Norte Presa Relaves, Polishing Pond, Garita Laguna Huallacocha, Garita plataforma km 114, Tailing Dam Norte - Punto Y, Garita Portón Principal, Grifo Yanacancha) (Zona 1 - Campamentos). Nivel AMARILLA. Inicio: 2026-10-28 16:00:44. Fin previsto: 2026-10-28 16:15:44."
+    }
+  ]
 }
