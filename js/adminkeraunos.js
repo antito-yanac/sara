@@ -2,6 +2,13 @@
 //  adminkeraunos.js — Editor manual de estado.json
 //  Cada zona tiene 3 niveles (amarilla/naranja/roja) con su
 //  propia duración. Solo un nivel activo por zona a la vez.
+//
+//  v2 (2026-10):
+//    - Apariencia unificada con admin.html
+//    - Sección GitHub preparada (inputs + toggle + guardado
+//      de owner/repo/path en localStorage, NUNCA el token)
+//    - Handler de "Publicar" con placeholder subirAGitHub()
+//      (lógica de PUT a GitHub API en el siguiente paso)
 // ============================================================
 
 // ------------------------------------------------------------
@@ -10,6 +17,12 @@
 const ESTADO_URL    = "./estado.json";
 const TZ_OFFSET_MIN = -300;  // Perú UTC-5
 const DURACION_DEF  = 15;
+
+// GitHub
+const GH_STORAGE_KEY = "keraunos_gh_config";
+const GH_DEFAULT_OWNER = "antito-yanac";
+const GH_DEFAULT_REPO  = "sara";
+const GH_DEFAULT_PATH  = "estado.json";
 
 const NIVELES = {
     ROJA:     { numero: 3, color: "#FA5858", clase: "roja",     emoji: "🔴", label: "Roja" },
@@ -54,8 +67,7 @@ const ZONAS = [
 ];
 
 // ------------------------------------------------------------
-//  Borrador editable:
-//  { zonaId: { AMARILLA: {activo, min}, NARANJA: {activo, min}, ROJA: {activo, min} } }
+//  Borrador editable
 // ------------------------------------------------------------
 const borrador = {};
 
@@ -115,7 +127,7 @@ function duracionDeZona(zonaId) {
 }
 
 // ------------------------------------------------------------
-//  Construcción del estado.json (idéntica a guardarJSON de monitor.js)
+//  Construcción del estado.json
 // ------------------------------------------------------------
 function construirEstado() {
     const ahora = fechaPeru();
@@ -253,10 +265,8 @@ function renderZonas() {
                 const cfg = borrador[zid][nivel];
 
                 if (cfg.activo) {
-                    // Desactivar
                     cfg.activo = false;
                 } else {
-                    // Activar: desactivar los otros niveles de la misma zona
                     NIVELES_ACTIVABLES.forEach(n => {
                         borrador[zid][n].activo = (n === nivel);
                     });
@@ -340,7 +350,7 @@ function actualizarResumen() {
 }
 
 // ------------------------------------------------------------
-//  Acciones
+//  Acciones (descargar, copiar, reset, preview)
 // ------------------------------------------------------------
 function resetearTodo() {
     confirmar(
@@ -387,9 +397,6 @@ async function copiarJSON() {
     }
 }
 
-// ------------------------------------------------------------
-//  Vista previa del JSON
-// ------------------------------------------------------------
 function togglePreview() {
     const campos = document.getElementById("pa-mi-campos");
     const toggle = document.getElementById("pa-mi-toggle");
@@ -495,12 +502,149 @@ function confirmar(titulo, mensajeHtml, onAceptar) {
     });
 }
 
-// ------------------------------------------------------------
+// ============================================================
+//  GITHUB — Estado, guardado y handler (preparado)
+// ============================================================
+
+/** Lee owner/repo/path del localStorage (NUNCA el token) */
+function cargarConfigGH() {
+    try {
+        const raw = localStorage.getItem(GH_STORAGE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch { return null; }
+}
+
+/** Guarda solo owner/repo/path en localStorage */
+function guardarConfigGH(owner, repo, path) {
+    try {
+        localStorage.setItem(GH_STORAGE_KEY, JSON.stringify({ owner, repo, path }));
+    } catch {}
+}
+
+/** Muestra estado en la sección GitHub */
+function ghStatus(msg, tipo = "info") {
+    const el = document.getElementById("pa-gh-status");
+    if (!el) return;
+    el.textContent = msg;
+    el.className = "pa-gh-status pa-" + tipo;
+}
+
+/** Inicializa inputs de GitHub y engancha toggle del ojo */
+function inicializarInputsGH() {
+    const saved = cargarConfigGH();
+    document.getElementById("gh-owner").value = saved?.owner || GH_DEFAULT_OWNER;
+    document.getElementById("gh-repo").value  = saved?.repo  || GH_DEFAULT_REPO;
+    document.getElementById("gh-path").value  = saved?.path  || GH_DEFAULT_PATH;
+
+    const inputToken = document.getElementById("gh-token");
+    const btnOjo = document.getElementById("gh-toggle-ojo");
+    btnOjo.addEventListener("click", () => {
+        inputToken.type = inputToken.type === "password" ? "text" : "password";
+        btnOjo.textContent = inputToken.type === "password" ? "👁️" : "🙈";
+    });
+}
+
+/**
+ * ⚠️ PLACEHOLDER — Aquí irá la subida real en el siguiente paso.
+ * Recibirá (owner, repo, path, token) y hará el PUT a:
+ *   https://api.github.com/repos/{owner}/{repo}/contents/{path}
+ * con base64 del JSON y sha del archivo actual.
+ */
+async function subirAGitHub(owner, repo, path, token) {
+    throw new Error("subirAGitHub() aún no implementado. Pendiente siguiente paso.");
+}
+
+/** Handler del botón PUBLICAR */
+async function onClickPublicar() {
+    const owner = document.getElementById("gh-owner").value.trim();
+    const repo  = document.getElementById("gh-repo").value.trim();
+    const path  = document.getElementById("gh-path").value.trim();
+    const token = document.getElementById("gh-token").value.trim();
+    const recordar = document.getElementById("gh-recordar").checked;
+
+    // Validaciones básicas
+    if (!owner || !repo || !path) {
+        ghStatus("⚠️ Completa owner, repo y ruta.", "err");
+        return;
+    }
+    if (!token) {
+        ghStatus("⚠️ Pega tu GitHub PAT.", "err");
+        return;
+    }
+    if (!token.startsWith("gh")) {
+        ghStatus("⚠️ El token no parece válido (debe empezar con 'gh').", "err");
+        return;
+    }
+
+    // Confirmación con resumen
+    const estado = construirEstado();
+    const r = estado.resumen;
+    const mensajeHtml =
+        `<div>Vas a publicar <strong>estado.json</strong> en:</div>` +
+        `<div style="margin:10px 0;font-family:monospace;font-size:13px;color:#7dc8ff;">` +
+        `${escapeHtml(owner)}/${escapeHtml(repo)} → ${escapeHtml(path)}` +
+        `</div>` +
+        `<div style="margin-top:8px;">` +
+        `🔴 ${r.roja} · 🟠 ${r.naranja} · 🟡 ${r.amarilla} · 🟢 ${r.verde}` +
+        `</div>` +
+        `<div style="margin-top:10px;opacity:0.75;">Se creará un commit en la rama <strong>main</strong>.</div>`;
+
+    confirmar("🚀 Publicar en GitHub", mensajeHtml, async () => {
+        const btn = document.getElementById("pa-btn-publicar");
+        btn.disabled = true;
+        btn.classList.add("pa-publicando");
+        btn.innerHTML = "⏳ Publicando…";
+
+        try {
+            if (recordar) guardarConfigGH(owner, repo, path);
+
+            await subirAGitHub(owner, repo, path, token);
+
+            ghStatus("✅ Publicado en GitHub.", "ok");
+            escribirStatus("✅ estado.json publicado. GitHub Pages tarda ~30–90s en reflejarlo.", "ok");
+        } catch (e) {
+            console.error("GitHub publish error:", e);
+            ghStatus("❌ " + e.message, "err");
+            escribirStatus("❌ " + e.message, "err");
+        } finally {
+            btn.disabled = false;
+            btn.classList.remove("pa-publicando");
+            btn.innerHTML = "🚀 PUBLICAR EN GITHUB";
+        }
+    });
+}
+
+/** Engancha la sección GitHub completa */
+function engancharGitHub() {
+    inicializarInputsGH();
+    document.getElementById("pa-btn-publicar").addEventListener("click", onClickPublicar);
+}
+
+// ============================================================
 //  Arranque
-// ------------------------------------------------------------
+// ============================================================
+
 document.getElementById("pa-btn-descargar").addEventListener("click", descargarJSON);
 document.getElementById("pa-btn-copiar").addEventListener("click", copiarJSON);
 document.getElementById("pa-btn-reset").addEventListener("click", resetearTodo);
 document.getElementById("pa-mi-toggle").addEventListener("click", togglePreview);
 
+// Botones del header
+document.getElementById("btn-volver-admin").addEventListener("click", () => {
+    window.location.href = "./admin.html";
+});
+
+document.getElementById("btn-logout-keraunos").addEventListener("click", () => {
+    // Intentar cerrar sesión Firebase si auth.js está disponible; luego volver a admin.html
+    import("./auth.js")
+        .then(m => m.cerrarSesion().catch(() => {}))
+        .catch(() => {})
+        .finally(() => {
+            window.location.href = "./admin.html";
+        });
+});
+
+// Enganchar GitHub y cargar estado
+engancharGitHub();
 cargarEstado();
