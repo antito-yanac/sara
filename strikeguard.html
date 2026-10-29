@@ -9,16 +9,19 @@
 
 <title>Antamina · SARA</title>
 
+<!-- Estilos principales -->
 <link rel="stylesheet" href="style.css">
 
+<!-- Leaflet para el mapa -->
 <link rel="stylesheet"
 href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
+<!-- Notificaciones y Alertas -->
 <link rel="stylesheet" href="notifications.css">
-
 <link rel="stylesheet" href="css/alerts.css">
 <link rel="stylesheet" href="css/panico.css">
 
+<!-- Favicon -->
 <link rel="icon" type="image/png" href="./favicon-96x96.png" sizes="96x96">
 <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 <link rel="shortcut icon" href="./favicon.ico">
@@ -31,7 +34,9 @@ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 <div class="app">
 
-    <!-- MAPA A PANTALLA COMPLETA -->
+    <!-- =========================================================
+         MAPA A PANTALLA COMPLETA
+         ========================================================= -->
     <main id="map-container">
         <div id="map"></div>
 
@@ -56,7 +61,9 @@ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     </main>
 
 
-    <!-- CABECERA -->
+    <!-- =========================================================
+         CABECERA (Branding)
+         ========================================================= -->
     <section class="top-ui">
 
         <div class="left-ui">
@@ -79,58 +86,13 @@ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
             </div>
 
-
-            <!-- BUSCADOR (Oculto manteniendo espacio) -->
-            <div class="search-box" style="visibility: hidden;">
-
-                <span class="search-icon">
-                    ⌕
-                </span>
-
-                <input
-                    id="search"
-                    type="search"
-                    placeholder="Buscar lugar..."
-                    autocomplete="off">
-
-            </div>
-
-
-            <!-- RESULTADOS DEL BUSCADOR -->
-            <div id="results"></div>
-
-            <div id="stats">
-                Cargando lugares...
-            </div>
-
-
-            <!-- ============================================
-                 FILTROS UNIFICADOS (Oculto manteniendo espacio)
-                 ============================================ -->
-            <div class="filter-bar" style="visibility: hidden;">
-
-                <div class="type-filter" id="type-filter">
-                    <button class="type-btn active" data-type="all">Todo</button>
-                    <button class="type-btn" data-type="Point">Puntos</button>
-                    <button class="type-btn" data-type="Polygon">Polígonos</button>
-                    <button class="type-btn" data-type="LineString">Rutas</button>
-                </div>
-
-                <div class="divider"></div>
-
-                <div class="folder-filter">
-                    <select id="folder-select" aria-label="Filtrar por carpeta">
-                        <option value="__all__">Todas</option>
-                    </select>
-                </div>
-
-            </div>
-
         </div>
 
     </section>
 
-    <!-- TARJETA INFERIOR -->
+    <!-- =========================================================
+         TARJETA INFERIOR (Estado de vigilancia)
+         ========================================================= -->
     <section
         class="info"
         id="info-panel">
@@ -167,8 +129,7 @@ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
         </div>
 
-
-        <!-- SE CONSERVA PARA TU JS DE ALERTAS -->
+        <!-- Botón oculto que usa el JS de alertas -->
         <button
             id="btn-test-alerta"
             type="button"
@@ -181,6 +142,7 @@ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     </section>
 
 
+    <!-- Footer -->
     <footer class="footer">
         Antamina · Información meteorológica · 2026
     </footer>
@@ -189,32 +151,29 @@ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 
 <!-- =========================================================
-     LIBRERÍAS EXTERNAS (deben cargar ANTES de js/app.js)
+     LIBRERÍAS EXTERNAS (Solo Leaflet para el mapa)
      ========================================================= -->
-
-<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
-<script src="https://unpkg.com/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
-
 <!-- =========================================================
-     MÓDULO PRINCIPAL (al final, cuando todo lo demás existe)
+     MÓDULOS PRINCIPALES
      ========================================================= -->
 <!-- Configuración de la página (debe cargarse ANTES que app.js) -->
 <script src="./js/index-config.js"></script>
 
+<!-- App principal (mapa + alertas Firestore) -->
 <script type="module" src="js/app.js"></script>
+
 <!-- Botón de Pánico (SOS) -->
 <script type="module" src="js/panico.js"></script>
+
 <!-- Botón Consultar Keraunos (abajo-izquierda) -->
 <a href="./keraunos.html" id="btn-consultar-keraunos" title="Consultar Keraunos">
     🛰️ Consultar Keraunos
 </a>
 
 <style>
+    /* Estilos del botón Keraunos (se mantiene) */
     #btn-consultar-keraunos {
         position: fixed;
         bottom: calc(27px + 5px + env(safe-area-inset-bottom, 0px));
