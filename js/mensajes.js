@@ -1,11 +1,12 @@
 // js/mensajes.js
 //
 // Sistema de mensajes en tiempo real usando Firebase Firestore.
-// v5:
+// v6:
 //   - Lee window.__APP_CONFIG__.usarFirestore (index: true, keraunos: false).
 //   - Filtra por origen según APP_CONFIG.origenFiltro ("manual" | "scraper").
 //   - index.html: solo procesa origen === "manual".
 //   - keraunos.html: NO usa Firestore (usa estado.json).
+//   - FIX: Ignora las alertas manuales que ya fueron liberadas en localStorage.
 // ============================================================
 
 import {
@@ -57,10 +58,6 @@ function modoEstaActivo() {
 // ----------------------------------------------------------
 // Filtro por origen
 // ----------------------------------------------------------
-// Devuelve true si el doc debe procesarse en esta página.
-// - "manual": solo docs con origen === "manual".
-// - "scraper": solo docs con origen !== "manual".
-// ----------------------------------------------------------
 function debeProcesar(data) {
     const cfg = obtenerConfig();
     const esAlerta = data.tipo === "alerta" ||
@@ -68,7 +65,6 @@ function debeProcesar(data) {
     const esResuelta = data.tipo === "alerta-resuelta";
     const esNormal = !esAlerta && !esResuelta;
 
-    // Los mensajes normales (no alerta) siempre se procesan
     if (esNormal) return true;
 
     if (cfg.origenFiltro === "manual") {
@@ -144,10 +140,9 @@ export function escucharMensajesPush() {
 
     const cfg = obtenerConfig();
 
-    // Si la config dice "no usar Firestore" (keraunos.html), salir temprano.
     if (!cfg.usarFirestore) {
         console.log("[mensajes] Firestore desactivado en esta página (keraunos.html)");
-        marcarArranqueListo("firestore"); // liberar barrera
+        marcarArranqueListo("firestore");
         return;
     }
 
@@ -215,6 +210,13 @@ function procesarPrimeraCarga(snapshot) {
             if (!distrito) continue;
 
             const tsInicio = data.timestampInicio || (data.fecha?.toMillis?.() || 0);
+            
+            // NUEVO: Ignorar si ya fue liberada manualmente en este navegador
+            try {
+                const liberadas = JSON.parse(localStorage.getItem("manual_liberadas") || "{}");
+                if (liberadas[distrito] === tsInicio) continue;
+            } catch (e) {}
+
             const duracionMin = data.duracionMin || 15;
             const duracionMs = duracionMin * 60 * 1000;
 
@@ -258,6 +260,19 @@ function procesarPrimeraCarga(snapshot) {
 // ----------------------------------------------------------
 function procesarDocumentoNuevo(data) {
     if (!debeProcesar(data)) return;
+
+    // NUEVO: Verificar si la alerta ya fue liberada
+    const esAlertaCheck = data.tipo === "alerta" || (data.nivel && data.nivel !== "normal" && data.nivel !== "vigilancia");
+    if (esAlertaCheck) {
+        const distrito = data.distrito || "";
+        const tsInicio = data.timestampInicio || null;
+        if (distrito && tsInicio) {
+            try {
+                const liberadas = JSON.parse(localStorage.getItem("manual_liberadas") || "{}");
+                if (liberadas[distrito] === tsInicio) return; // Ignorar
+            } catch (e) {}
+        }
+    }
 
     const titulo = data.titulo || "🔔 Notificación";
     const cuerpo = data.cuerpo || "";
