@@ -10,8 +10,7 @@
 <link rel="stylesheet" href="css/adminkeraunos.css">
 <style>
 /* ============================================================
-   Panel de Alertas — estilos (prefijo "pa-")
-   Copiados 1:1 desde admin.html para igualar apariencia
+   Estilos copiados 1:1 desde admin.html para igualar apariencia
    ============================================================ */
 
 /* El panel de admin es más ancho que el de login */
@@ -20,27 +19,7 @@
     width: 95vw;
 }
 
-/* ---------- Alertas activas (heredado, no se usa aquí) ---------- */
-.pa-aa-section { margin-bottom: 24px; }
-.pa-aa-titulo { font-size: 13px; font-weight: 700; color: #ffb3a7; letter-spacing: 1.5px; margin-bottom: 10px; }
-.pa-aa-lista { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
-.pa-aa-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.04); border-left: 5px solid #888; }
-.pa-aa-item.pa-nivel-amarilla { border-left-color: #f1c40f; background: rgba(241,196,15,0.07); }
-.pa-aa-item.pa-nivel-naranja  { border-left-color: #e67e22; background: rgba(230,126,34,0.08); }
-.pa-aa-item.pa-nivel-roja     { border-left-color: #e74c3c; background: rgba(231,76,60,0.10); }
-.pa-aa-icono { font-size: 22px; flex-shrink: 0; }
-.pa-aa-info { flex: 1; min-width: 0; }
-.pa-aa-nombre { font-size: 14px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pa-aa-meta { font-size: 12px; color: rgba(255,255,255,0.65); display: flex; align-items: center; gap: 8px; margin-top: 3px; }
-.pa-aa-restante { font-family: 'Courier New', monospace; font-size: 15px; font-weight: 700; color: #7dffa3; letter-spacing: 1px; }
-.pa-aa-restante.pa-critico { color: #ff6b5b; animation: pa-parpadeo 0.7s ease-in-out infinite; }
-@keyframes pa-parpadeo { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-.pa-aa-btn-liberar { flex-shrink: 0; padding: 8px 12px; border-radius: 8px; background: rgba(231,76,60,0.15); border: 1.5px solid #e74c3c; color: #ffb3a7; font-size: 12px; font-weight: 700; cursor: pointer; transition: background 0.15s, color 0.15s; }
-.pa-aa-btn-liberar:hover { background: #e74c3c; color: #fff; }
-.pa-aa-btn-liberar-todas { width: 100%; padding: 11px; border-radius: 10px; background: rgba(231,76,60,0.15); border: 2px solid #e74c3c; color: #ffb3a7; font-size: 13px; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: background 0.15s, color 0.15s; margin-top: 6px; }
-.pa-aa-btn-liberar-todas:hover { background: #e74c3c; color: #fff; }
-
-/* ---------- Nueva alerta por sector (IDÉNTICO A ADMIN) ---------- */
+/* ---------- Nueva alerta por sector ---------- */
 .pa-na-titulo {
     font-size: 13px;
     font-weight: 700;
@@ -150,9 +129,21 @@
     color: #fff;
     border-color: rgba(255,255,255,0.4);
 }
-.pa-pill.pa-sel-amarilla { background: #f1c40f; color: #2b2b00; border-color: #f1c40f; }
-.pa-pill.pa-sel-naranja { background: #e67e22; color: #fff; border-color: #e67e22; }
-.pa-pill.pa-sel-roja { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+.pa-pill.pa-sel-amarilla {
+    background: #f1c40f;
+    color: #2b2b00;
+    border-color: #f1c40f;
+}
+.pa-pill.pa-sel-naranja {
+    background: #e67e22;
+    color: #fff;
+    border-color: #e67e22;
+}
+.pa-pill.pa-sel-roja {
+    background: #e74c3c;
+    color: #fff;
+    border-color: #e74c3c;
+}
 
 .pa-duracion-wrap {
     display: flex;
@@ -164,7 +155,10 @@
     padding: 0 10px;
     height: 38px;
 }
-.pa-duracion-wrap.pa-disabled { opacity: 0.35; pointer-events: none; }
+.pa-duracion-wrap.pa-disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
 .pa-duracion-wrap input {
     width: 46px;
     background: transparent;
@@ -177,7 +171,10 @@
     padding: 0;
 }
 .pa-duracion-wrap input:focus { outline: none; }
-.pa-duracion-wrap span { font-size: 11px; opacity: 0.6; }
+.pa-duracion-wrap span {
+    font-size: 11px;
+    opacity: 0.6;
+}
 
 /* ---------- Resumen ---------- */
 .pa-resumen {
@@ -194,7 +191,7 @@
 .pa-resumen.pa-visible { display: block; }
 .pa-resumen strong { color: #fff; }
 
-/* ---------- Botón enviar grande (y descargar) ---------- */
+/* ---------- Botón enviar grande ---------- */
 .pa-btn-enviar {
     width: 100%;
     padding: 18px;
@@ -210,12 +207,24 @@
     transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
     margin-bottom: 20px;
 }
-.pa-btn-enviar:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-2px); box-shadow: 0 12px 28px rgba(231,76,60,0.5); }
+.pa-btn-enviar:hover:not(:disabled) {
+    filter: brightness(1.08);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(231,76,60,0.5);
+}
 .pa-btn-enviar:active:not(:disabled) { transform: scale(0.98); }
-.pa-btn-enviar:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.5); box-shadow: none; }
+.pa-btn-enviar:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+    box-shadow: none;
+}
 
-/* ---------- Mensaje informativo colapsable / Preview JSON ---------- */
-.pa-mi-section { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; margin-top: 10px; }
+/* ---------- Mensaje informativo colapsable ---------- */
+.pa-mi-section {
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 14px;
+}
 .pa-mi-toggle {
     width: 100%;
     padding: 10px 12px;
@@ -229,8 +238,16 @@
     font-family: inherit;
     transition: all 0.15s;
 }
-.pa-mi-toggle:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
-.pa-mi-campos { margin-top: 12px; padding: 12px; border-radius: 10px; background: rgba(0,0,0,0.2); }
+.pa-mi-toggle:hover {
+    color: #fff;
+    border-color: rgba(255,255,255,0.35);
+}
+.pa-mi-campos {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.2);
+}
 
 /* ---------- Modales ---------- */
 .pa-modal-msg-lista {
@@ -244,17 +261,29 @@
     max-height: 200px;
     overflow-y: auto;
 }
-.pa-modal-peligro .modal-box { border: 2px solid #e74c3c; box-shadow: 0 0 40px rgba(231,76,60,0.5); }
+.pa-modal-peligro .modal-box {
+    border: 2px solid #e74c3c;
+    box-shadow: 0 0 40px rgba(231,76,60,0.5);
+}
 .pa-modal-peligro .modal-icon { font-size: 42px; }
-.pa-modal-peligro h3 { color: #ff8c7a; font-size: 18px; letter-spacing: 1px; }
-.pa-btn-peligro { background: #e74c3c !important; color: #fff !important; font-weight: 800 !important; border: 2px solid #fff !important; }
+.pa-modal-peligro h3 {
+    color: #ff8c7a;
+    font-size: 18px;
+    letter-spacing: 1px;
+}
+.pa-btn-peligro {
+    background: #e74c3c !important;
+    color: #fff !important;
+    font-weight: 800 !important;
+    border: 2px solid #fff !important;
+}
 .pa-btn-peligro:hover { filter: brightness(1.15); }
 
 /* ---------- Utilidades ---------- */
 .pa-hidden { display: none !important; }
 
 /* ============================================================
-   Sección GitHub — Estilos integrados al tema admin
+   Sección GitHub (con el mismo lenguaje visual)
    ============================================================ */
 .pa-gh-section {
     margin: 18px 0 10px;
@@ -273,10 +302,25 @@
     align-items: center;
     gap: 8px;
 }
-.pa-gh-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-.pa-gh-row > .form-group { flex: 1; min-width: 160px; margin-bottom: 0; }
-.pa-gh-input-wrap { position: relative; display: flex; align-items: center; }
-.pa-gh-input-wrap input { padding-right: 44px !important; }
+.pa-gh-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+.pa-gh-row > .form-group {
+    flex: 1;
+    min-width: 160px;
+    margin-bottom: 0;
+}
+.pa-gh-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.pa-gh-input-wrap input {
+    padding-right: 44px !important;
+}
 .pa-gh-toggle-ojo {
     position: absolute;
     right: 8px;
@@ -290,6 +334,7 @@
     font-family: inherit;
 }
 .pa-gh-toggle-ojo:hover { color: #fff; }
+
 .pa-gh-check {
     display: flex;
     align-items: center;
@@ -300,7 +345,12 @@
     cursor: pointer;
     user-select: none;
 }
-.pa-gh-check input { width: 16px; height: 16px; cursor: pointer; accent-color: #4285f4; }
+.pa-gh-check input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #4285f4;
+}
 
 .pa-btn-publicar {
     width: 100%;
@@ -321,9 +371,18 @@
     justify-content: center;
     gap: 8px;
 }
-.pa-btn-publicar:hover:not(:disabled) { filter: brightness(1.2); transform: translateY(-2px); }
-.pa-btn-publicar:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-.pa-btn-publicar.pa-publicando { background: linear-gradient(135deg, #e67e22, #b9530f); }
+.pa-btn-publicar:hover:not(:disabled) {
+    filter: brightness(1.2);
+    transform: translateY(-2px);
+}
+.pa-btn-publicar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+.pa-btn-publicar.pa-publicando {
+    background: linear-gradient(135deg, #e67e22, #b9530f);
+}
 
 .pa-gh-status {
     margin-top: 10px;
@@ -358,7 +417,10 @@
     font-family: inherit;
     transition: background 0.15s, transform 0.15s;
 }
-.pa-btn-header-secondary:hover { background: rgba(255,255,255,0.18); transform: translateY(-1px); }
+.pa-btn-header-secondary:hover {
+    background: rgba(255,255,255,0.18);
+    transform: translateY(-1px);
+}
 
 /* ---------- Responsive ---------- */
 @media (max-width: 560px) {
@@ -397,10 +459,11 @@
     </div>
 
     <!-- ============================================================
-         Sección: Zonas (4 tarjetas grandes, cada una con 3 niveles)
+         Sección: Zonas (Tarjetas compactas horizontales)
          ============================================================ -->
     <section>
         <div class="pa-na-titulo">⚡ CONFIGURAR ZONAS</div>
+        <!-- OJO: la clase es pa-na-lista (igual que admin.html) -->
         <div class="pa-na-lista" id="pa-zonas-lista"></div>
     </section>
 
@@ -483,7 +546,7 @@
 </div>
 
 <!-- ============================================================
-     Modal de confirmación (igual que admin.html)
+     Modal de confirmación
      ============================================================ -->
 <div class="modal-overlay" id="modal-confirm">
     <div class="modal-box" id="modal-box">
