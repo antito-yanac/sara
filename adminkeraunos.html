@@ -270,7 +270,7 @@
 </div>
 
 <!-- ============================================================
-     JAVASCRIPT CON AUTENTICACIÓN
+     JAVASCRIPT CON AUTENTICACIÓN Y TRUNCADO
      ============================================================ -->
 <script type="module">
 // Importar Firebase y Autenticación
@@ -291,14 +291,13 @@ const loginStatus = document.getElementById("login-status");
 const btnLogout = document.getElementById("btn-logout-keraunos");
 
 // ------------------------------------------------------------
-//  Lógica de Autenticación (CORREGIDA)
+//  Lógica de Autenticación
 // ------------------------------------------------------------
 let panelYaInicializado = false;
 
 observarSesion((user) => {
     if (user) {
         loginContainer.style.display = "none";
-        // Forzamos display flex para que el panel se expanda correctamente
         panelContainer.style.display = "flex"; 
         panelContainer.style.flexDirection = "column";
         if (!panelYaInicializado) {
@@ -417,7 +416,7 @@ function escapeHtml(txt) {
 }
 
 // ------------------------------------------------------------
-//  Generar JSON (para GitHub)
+//  Generar JSON (para GitHub y para Firestore)
 // ------------------------------------------------------------
 function construirEstado() {
     const ahora = fechaPeru();
@@ -439,12 +438,20 @@ function construirEstado() {
         const info = NIVELES[s.nivel];
         const timestampInicio = parseFechaPeru(s.inicio);
         const duracionMin = Math.max(1, Math.round((parseFechaPeru(s.fin) - timestampInicio) / 60000));
+        
+        // CONSTRUCCIÓN SEGURA DE TÍTULO Y MENSAJE (Truncado para reglas de Firestore)
+        const rawTitulo = `⚡ ALERTA ${s.nivel} — ${z.zona}`;
+        const rawMensaje = `Actividad eléctrica detectada en ${z.zona}. Nivel ${s.nivel}. Inicio: ${s.inicio}. Fin previsto: ${s.fin}.`;
+        
+        const tituloSeguro = rawTitulo.substring(0, 100); // Max 100 caracteres
+        const mensajeSeguro = rawMensaje.substring(0, 490); // Max 500 caracteres (dejamos 10 de margen)
+
         alertas.push({
             sectorOriginal: s.nombre, nivelScraper: s.nivel, nivel: s.nivel.toLowerCase(),
             distrito: z.zona, lat: z.lat, lng: z.lng, duracionMin, timestampInicio,
             inicio: s.inicio, fin: s.fin, color: s.color, emoji: info.emoji,
-            titulo: `⚡ ALERTA ${s.nivel} — ${z.zona}`,
-            mensaje: `Actividad eléctrica detectada en ${z.zona}. Nivel ${s.nivel}. Inicio: ${s.inicio}. Fin previsto: ${s.fin}.`
+            titulo: tituloSeguro,
+            mensaje: mensajeSeguro
         });
     }
 
@@ -463,7 +470,7 @@ function construirEstado() {
 // ------------------------------------------------------------
 function renderZonas() {
     const cont = document.getElementById("pa-zonas-lista");
-    if (!cont) return; // Seguridad extra
+    if (!cont) return; 
     cont.innerHTML = "";
 
     ZONAS.forEach((z, index) => {
@@ -501,7 +508,6 @@ function renderZonas() {
             </div>
         `;
 
-        // Eventos
         card.querySelector(".pa-na-check").addEventListener("click", () => {
             if (nivelActivoDeZona(z.id) !== "VERDE") NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = false);
             else borrador[z.id].AMARILLA.activo = true;
