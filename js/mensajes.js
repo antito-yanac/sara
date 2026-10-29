@@ -1,12 +1,11 @@
 // js/mensajes.js
 //
 // Sistema de mensajes en tiempo real usando Firebase Firestore.
-// v6:
-//   - Lee window.__APP_CONFIG__.usarFirestore (index: true, keraunos: false).
-//   - Filtra por origen según APP_CONFIG.origenFiltro ("manual" | "scraper").
-//   - index.html: solo procesa origen === "manual".
-//   - keraunos.html: NO usa Firestore (usa estado.json).
-//   - FIX: Ignora las alertas manuales que ya fueron liberadas en localStorage.
+// v7:
+//   - Filtra por origen (manual/scraper).
+//   - FIX CRÍTICO: Al recibir una alerta-resuelta, guarda la huella 
+//     en localStorage para que Firestore no reviva la alerta en la 
+//     siguiente lectura o recarga.
 // ============================================================
 
 import {
@@ -29,13 +28,31 @@ let primeraCarga = true;
 
 const docsProcesados = new Set();
 
-// Estado local del modo manual (leído de Firestore)
 export const estadoModo = {
     modo: "automatico",
     zonasActivas: [],
     expiraEn: 0,
     cargado: false
 };
+
+// --- Utilidad para manejar liberaciones manuales ---
+const LIBERADAS_KEY = "manual_liberadas";
+
+function registrarLiberacion(distrito, timestampInicio) {
+    try {
+        const liberadas = JSON.parse(localStorage.getItem(LIBERADAS_KEY) || "{}");
+        if (distrito) liberadas[distrito] = timestampInicio;
+        localStorage.setItem(LIBERADAS_KEY, JSON.stringify(liberadas));
+    } catch (e) { }
+}
+
+function estaLiberada(distrito, timestampInicio) {
+    try {
+        const liberadas = JSON.parse(localStorage.getItem(LIBERADAS_KEY) || "{}");
+        return liberadas[distrito] === timestampInicio;
+    } catch (e) { return false; }
+}
+// ---------------------------------------------------
 
 function obtenerDB() {
     if (!db) db = getFirestore(obtenerApp());
@@ -49,15 +66,6 @@ function obtenerConfig() {
     };
 }
 
-function modoEstaActivo() {
-    if (estadoModo.modo !== "manual") return false;
-    if (estadoModo.expiraEn && estadoModo.expiraEn < Date.now()) return false;
-    return true;
-}
-
-// ----------------------------------------------------------
-// Filtro por origen
-// ----------------------------------------------------------
 function debeProcesar(data) {
     const cfg = obtenerConfig();
     const esAlerta = data.tipo === "alerta" ||
@@ -66,19 +74,11 @@ function debeProcesar(data) {
     const esNormal = !esAlerta && !esResuelta;
 
     if (esNormal) return true;
-
-    if (cfg.origenFiltro === "manual") {
-        return data.origen === "manual";
-    }
-    if (cfg.origenFiltro === "scraper") {
-        return data.origen !== "manual";
-    }
+    if (cfg.origenFiltro === "manual") return data.origen === "manual";
+    if (cfg.origenFiltro === "scraper") return data.origen !== "manual";
     return true;
 }
 
-// ----------------------------------------------------------
-// Enviar mensaje
-// ----------------------------------------------------------
 export async function enviarMensajePush(titulo, cuerpo, datosAlerta = null) {
     const database = obtenerDB();
     const ref = collection(database, NOMBRE_COLECCION);
@@ -97,9 +97,6 @@ export async function enviarMensajePush(titulo, cuerpo, datosAlerta = null) {
     await addDoc(ref, docData);
 }
 
-// ----------------------------------------------------------
-// Listener del flag de modo (manual / automatico)
-// ----------------------------------------------------------
 function escucharModo() {
     try {
         const database = obtenerDB();
@@ -131,9 +128,6 @@ function escucharModo() {
     }
 }
 
-// ----------------------------------------------------------
-// Escuchar mensajes
-// ----------------------------------------------------------
 export function escucharMensajesPush() {
     if (yaEscuchando) return;
     yaEscuchando = true;
@@ -172,19 +166,16 @@ export function escucharMensajesPush() {
         }, (error) => {
             console.error("Error escuchando mensajes:", error);
             marcarArranqueListo("firestore");
-            try { mostrarAlertaLibre(); } catch (e) {}
+            try { mostrarAlertaLibre(); } catch (e) { }
         });
 
     } catch (error) {
         console.error("No se pudo iniciar la escucha de mensajes:", error);
         marcarArranqueListo("firestore");
-        try { mostrarAlertaLibre(); } catch (e) {}
+        try { mostrarAlertaLibre(); } catch (e) { }
     }
 }
 
-// ----------------------------------------------------------
-// Primera carga
-// ----------------------------------------------------------
 function procesarPrimeraCarga(snapshot) {
     const docs = snapshot.docs.map(d => ({ id: d.id, data: d.data() })).reverse();
     const estadoPorZona = new Map();
@@ -211,11 +202,8 @@ function procesarPrimeraCarga(snapshot) {
 
             const tsInicio = data.timestampInicio || (data.fecha?.toMillis?.() || 0);
             
-            // NUEVO: Ignorar si ya fue liberada manualmente en este navegador
-            try {
-                const liberadas = JSON.parse(localStorage.getItem("manual_liberadas") || "{}");
-                if (liberadas[distrito] === tsInicio) continue;
-            } catch (e) {}
+            // FIX: Ignorar si esta alerta ya fue liberada
+            if (estaLiberada(distrito, tsInicio)) continue;
 
             const duracionMin = data.duracionMin || 15;
             const duracionMs = duracionMin * 60 * 1000;
@@ -255,27 +243,8 @@ function procesarPrimeraCarga(snapshot) {
     }
 }
 
-// ----------------------------------------------------------
-// Nuevo documento
-// ----------------------------------------------------------
 function procesarDocumentoNuevo(data) {
     if (!debeProcesar(data)) return;
-
-    // NUEVO: Verificar si la alerta ya fue liberada
-    const esAlertaCheck = data.tipo === "alerta" || (data.nivel && data.nivel !== "normal" && data.nivel !== "vigilancia");
-    if (esAlertaCheck) {
-        const distrito = data.distrito || "";
-        const tsInicio = data.timestampInicio || null;
-        if (distrito && tsInicio) {
-            try {
-                const liberadas = JSON.parse(localStorage.getItem("manual_liberadas") || "{}");
-                if (liberadas[distrito] === tsInicio) return; // Ignorar
-            } catch (e) {}
-        }
-    }
-
-    const titulo = data.titulo || "🔔 Notificación";
-    const cuerpo = data.cuerpo || "";
 
     const esResuelta = data.tipo === "alerta-resuelta";
     const esAlerta = data.tipo === "alerta" ||
@@ -283,29 +252,46 @@ function procesarDocumentoNuevo(data) {
 
     if (esResuelta) {
         const distrito = data.distrito || "";
-        if (distrito) quitarAlerta(distrito);
-        else mostrarAlertaLibre();
-        return;
-    }
-
-    if (esAlerta) {
-        reproducirSonido();
-        const duracionMin = data.duracionMin || 15;
-        const tsInicio = (typeof data.timestampInicio === "number") ? data.timestampInicio : null;
-        mostrarAlertaActiva(data, duracionMin, tsInicio);
-
-        if ("Notification" in window && Notification.permission === "granted") {
-            try {
-                new Notification(titulo, {
-                    body: cuerpo,
-                    icon: "https://cdn-icons-png.flaticon.com/512/1827/1827301.png",
-                    tag: "antamina-alerta-" + Date.now()
-                });
-            } catch (e) {}
+        if (distrito) {
+            // FIX: Al recibir la resolución, marcar como liberada ANTES de quitar
+            // para evitar que cualquier lectura concurrente la reviva.
+            const liberadas = JSON.parse(localStorage.getItem(LIBERADAS_KEY) || "{}");
+            // No tenemos el tsInicio original aquí a menos que lo busquemos en estado.zonasActivas, 
+            // así que si el admin envió el timestamp en la data, lo usamos.
+            if (data.timestampInicio) registrarLiberacion(distrito, data.timestampInicio);
+            
+            quitarAlerta(distrito);
+        } else {
+            mostrarAlertaLibre();
         }
         return;
     }
 
+    if (esAlerta) {
+        const distrito = data.distrito || "";
+        const tsInicio = (typeof data.timestampInicio === "number") ? data.timestampInicio : null;
+        
+        // FIX: Si ya fue liberada, ignorar la alerta entrante
+        if (distrito && tsInicio && estaLiberada(distrito, tsInicio)) return;
+
+        reproducirSonido();
+        const duracionMin = data.duracionMin || 15;
+        mostrarAlertaActiva(data, duracionMin, tsInicio);
+
+        if ("Notification" in window && Notification.permission === "granted") {
+            try {
+                new Notification(data.titulo || "🔔 Notificación", {
+                    body: data.cuerpo || "",
+                    icon: "https://cdn-icons-png.flaticon.com/512/1827/1827301.png",
+                    tag: "antamina-alerta-" + Date.now()
+                });
+            } catch (e) { }
+        }
+        return;
+    }
+
+    const titulo = data.titulo || "🔔 Notificación";
+    const cuerpo = data.cuerpo || "";
     mostrarToast(titulo, cuerpo, "alerta", true);
 
     if ("Notification" in window && Notification.permission === "granted") {
@@ -315,7 +301,7 @@ function procesarDocumentoNuevo(data) {
                 icon: "https://cdn-icons-png.flaticon.com/512/1827/1827301.png",
                 tag: "antamina-mensaje-" + Date.now()
             });
-        } catch (e) {}
+        } catch (e) { }
     }
 }
 
