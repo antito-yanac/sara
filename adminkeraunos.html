@@ -273,7 +273,7 @@
 <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
 
 <!-- ============================================================
-     JAVASCRIPT CON AUTENTICACIÓN Y TRUNCADO
+     JAVASCRIPT CON AUTENTICACIÓN, TRUNCADO Y FIX DE ORIGEN
      ============================================================ -->
 <script type="module">
 // Importar Firebase y Autenticación
@@ -604,12 +604,10 @@ function mostrarToastLocal(titulo, mensaje, tipo = "exito") {
     toast.innerHTML = `<span style="font-size:20px;">${tipo === "exito" ? "✅" : tipo === "error" ? "❌" : "ℹ️"}</span> <div><div style="font-weight:700;">${titulo}</div><div style="font-size:12px;font-weight:400;opacity:0.9;">${mensaje}</div></div>`;
     container.appendChild(toast);
 
-    // Animación de entrada
     requestAnimationFrame(() => {
         toast.style.transform = "translateX(0)";
     });
 
-    // Auto-eliminar a los 4 segundos
     setTimeout(() => {
         toast.style.transform = "translateX(120%)";
         setTimeout(() => toast.remove(), 300);
@@ -683,16 +681,41 @@ async function enviarAlertaFirestore() {
     btn.innerHTML = "⏳ Enviando...";
 
     try {
-        // Intentar inicializar Firebase, pero si falla (ej. FCM 401), no bloquear el envío
+        // Intentar inicializar Firebase sin bloquear
         try {
             await inicializarFirebase();
         } catch (e) {
             console.warn("FCM no disponible (no crítico):", e.message);
         }
 
-        const estado = construirEstado();
-        
-        if (!estado.alertas || estado.alertas.length === 0) {
+        // LEER DIRECTAMENTE DEL DOM
+        const ZONAS_DEF = [
+            { id: "campamento", nombreCorto: "Campamento Yanacancha", zona: "Zona 1 - Campamentos", lat: -9.5822364, lng: -77.0223100 },
+            { id: "oficinas", nombreCorto: "Oficinas Mina", zona: "Zona 2 - Oficinas Mina", lat: -9.5718388, lng: -77.0447182 },
+            { id: "tucush", nombreCorto: "Tucush", zona: "Zona 3 - Tucush", lat: -9.5263487, lng: -77.0485794 },
+            { id: "tajo", nombreCorto: "Tajo", zona: "Zona 4 - Tajo", lat: -9.5416465, lng: -77.0707659 }
+        ];
+
+        const zonasActivas = [];
+        document.querySelectorAll(".pa-pill[class*='pa-sel-']").forEach(btnPill => {
+            const zonaId = btnPill.dataset.zona;
+            const nivel = btnPill.dataset.nivel;
+            const zona = ZONAS_DEF.find(z => z.id === zonaId);
+            if (zona) {
+                const inputMin = document.querySelector(`input[data-rol="min"][data-zona="${zonaId}"]`);
+                const min = inputMin ? parseInt(inputMin.value, 10) : 15;
+                zonasActivas.push({
+                    distrito: zona.zona,
+                    nivel: nivel,
+                    duracionMin: min,
+                    lat: zona.lat,
+                    lng: zona.lng,
+                    sectorOriginal: zona.nombreCorto
+                });
+            }
+        });
+
+        if (zonasActivas.length === 0) {
             mostrarToastLocal("⚠️ Sin alertas", "No hay zonas activas para enviar.", "error");
             escribirStatus("⚠️ No hay zonas activas para enviar.", "warn");
             btn.disabled = false;
@@ -701,30 +724,29 @@ async function enviarAlertaFirestore() {
         }
 
         let enviadas = 0;
-        for (const alerta of estado.alertas) {
-            // Truncado de seguridad para Firestore
-            const titulo = String(alerta.titulo || `⚡ ALERTA ${alerta.nivel.toUpperCase()} — ${alerta.distrito}`).substring(0, 100);
-            const mensaje = String(alerta.mensaje || `Actividad eléctrica detectada en ${alerta.distrito}.`).substring(0, 490);
+        for (const a of zonasActivas) {
+            const nivelInfo = NIVELES[a.nivel] || NIVELES.ROJA;
+            const titulo = `⚡ ALERTA ${a.nivel} — ${a.distrito}`.substring(0, 100);
+            const mensaje = `Actividad eléctrica detectada en ${a.distrito}. Nivel ${a.nivel}. Inicio: ${new Date().toLocaleString("es-PE")}.`.substring(0, 490);
 
             await enviarMensajePush(
                 titulo,
                 mensaje,
                 {
                     tipo: "alerta",
-                    nivel: alerta.nivel,
-                    distrito: alerta.distrito,
-                    lat: alerta.lat,
-                    lng: alerta.lng,
-                    duracionMin: alerta.duracionMin,
-                    timestampInicio: alerta.timestampInicio,
-                    sectorOriginal: alerta.sectorOriginal,
-                    origen: "scraper"
+                    nivel: a.nivel.toLowerCase(),
+                    distrito: a.distrito,
+                    lat: a.lat,
+                    lng: a.lng,
+                    duracionMin: a.duracionMin,
+                    timestampInicio: Date.now(),
+                    sectorOriginal: a.sectorOriginal,
+                    origen: "manual" // <-- CAMBIO CRÍTICO: Ahora se envía como "manual"
                 }
             );
             enviadas++;
         }
 
-        // TOAST DE CONFIRMACIÓN
         mostrarToastLocal("✅ Enviado a Firestore", `${enviadas} alerta(s) notificada(s) al instante.`, "exito");
         escribirStatus(`✅ ${enviadas} alerta(s) enviada(s) a Firestore.`, "ok");
 
