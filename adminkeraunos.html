@@ -15,8 +15,8 @@
 #panel-container.admin-panel-wide { max-width: 720px; width: 95vw; }
 
 /* ---------- Login (reutilizado de admin.html) ---------- */
-#login-container { display: flex; } /* Visible por defecto */
-#panel-container { display: none; } /* Oculto por defecto */
+#login-container { display: flex; }
+#panel-container { display: none; } 
 
 /* ---------- Nueva alerta por sector ---------- */
 .pa-na-titulo {
@@ -182,7 +182,7 @@
 <!-- ============================================
      PANEL PRINCIPAL (Oculto hasta login)
      ============================================ -->
-<div class="admin-container admin-panel-wide" id="panel-container" style="display:none;">
+<div class="admin-container admin-panel-wide" id="panel-container" style="display:none; flex-direction: column;">
 
     <div class="admin-header">
         <h1><span class="icon">🔔</span> Editor estado.json</h1>
@@ -291,20 +291,22 @@ const loginStatus = document.getElementById("login-status");
 const btnLogout = document.getElementById("btn-logout-keraunos");
 
 // ------------------------------------------------------------
-//  Lógica de Autenticación
+//  Lógica de Autenticación (CORREGIDA)
 // ------------------------------------------------------------
 let panelYaInicializado = false;
 
 observarSesion((user) => {
     if (user) {
         loginContainer.style.display = "none";
-        panelContainer.style.display = "";
+        // Forzamos display flex para que el panel se expanda correctamente
+        panelContainer.style.display = "flex"; 
+        panelContainer.style.flexDirection = "column";
         if (!panelYaInicializado) {
             panelYaInicializado = true;
             inicializarPanel();
         }
     } else {
-        loginContainer.style.display = "flex"; // Volver al login
+        loginContainer.style.display = "flex"; 
         panelContainer.style.display = "none";
     }
 });
@@ -461,6 +463,7 @@ function construirEstado() {
 // ------------------------------------------------------------
 function renderZonas() {
     const cont = document.getElementById("pa-zonas-lista");
+    if (!cont) return; // Seguridad extra
     cont.innerHTML = "";
 
     ZONAS.forEach((z, index) => {
@@ -542,6 +545,7 @@ function actualizarResumen() {
     });
 
     const el = document.getElementById("pa-resumen");
+    if (!el) return;
     if (!activas.length) { el.classList.remove("pa-visible"); el.innerHTML = ""; return; }
 
     el.classList.add("pa-visible");
@@ -631,13 +635,9 @@ async function enviarAlertaFirestore() {
     btn.innerHTML = "⏳ Enviando...";
 
     try {
-        // 1. Asegurar inicialización de Firebase
         await inicializarFirebase();
-        
-        // 2. Construir el estado actual
         const estado = construirEstado();
         
-        // 3. Enviar cada alerta activa a Firestore
         let enviadas = 0;
         for (const alerta of estado.alertas) {
             await enviarMensajePush(
