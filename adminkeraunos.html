@@ -8,6 +8,290 @@
 <link rel="stylesheet" href="css/panico.css">
 <link rel="stylesheet" href="css/alerts.css">
 <link rel="stylesheet" href="css/adminkeraunos.css">
+<style>
+/* ============================================================
+   Ajustes para igualar apariencia a admin.html
+   (prefijo "pa-" para no chocar con admin.css)
+   ============================================================ */
+
+/* Panel más ancho que el de login, igual que admin.html */
+#panel-container.admin-panel-wide {
+    max-width: 720px;
+    width: 95vw;
+}
+
+/* ---------- Alertas activas (no aplica aquí, pero heredado) ---------- */
+
+/* ---------- Nueva alerta por sector ---------- */
+.pa-na-titulo {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffd75e;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+}
+.pa-na-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* ---------- Resumen ---------- */
+.pa-resumen {
+    margin: 10px 0 18px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    border-left: 3px solid #ffd75e;
+    font-size: 13px;
+    color: rgba(255,255,255,0.9);
+    line-height: 1.55;
+    display: none;
+}
+.pa-resumen.pa-visible { display: block; }
+.pa-resumen strong { color: #fff; }
+
+/* ---------- Botón enviar grande (igual que admin.html) ---------- */
+.pa-btn-enviar {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(231,76,60,0.4);
+    transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
+    margin-bottom: 20px;
+}
+.pa-btn-enviar:hover:not(:disabled) {
+    filter: brightness(1.08);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(231,76,60,0.5);
+}
+.pa-btn-enviar:active:not(:disabled) { transform: scale(0.98); }
+.pa-btn-enviar:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+    box-shadow: none;
+}
+
+/* ---------- Mensaje informativo colapsable ---------- */
+.pa-mi-section {
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 14px;
+    margin-top: 10px;
+}
+.pa-mi-toggle {
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: 1px dashed rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: rgba(255,255,255,0.55);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+.pa-mi-toggle:hover {
+    color: #fff;
+    border-color: rgba(255,255,255,0.35);
+}
+.pa-mi-campos {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.2);
+}
+
+/* ---------- Modales ---------- */
+.pa-modal-msg-lista {
+    margin: 14px 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.3);
+    font-size: 13px;
+    line-height: 1.7;
+    text-align: left;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.pa-modal-peligro .modal-box {
+    border: 2px solid #e74c3c;
+    box-shadow: 0 0 40px rgba(231,76,60,0.5);
+}
+.pa-modal-peligro .modal-icon { font-size: 42px; }
+.pa-modal-peligro h3 {
+    color: #ff8c7a;
+    font-size: 18px;
+    letter-spacing: 1px;
+}
+.pa-btn-peligro {
+    background: #e74c3c !important;
+    color: #fff !important;
+    font-weight: 800 !important;
+    border: 2px solid #fff !important;
+}
+.pa-btn-peligro:hover { filter: brightness(1.15); }
+
+/* ---------- Utilidades ---------- */
+.pa-hidden { display: none !important; }
+
+/* ============================================================
+   Sección GitHub (nueva, integrada al diseño admin)
+   ============================================================ */
+.pa-gh-section {
+    margin: 18px 0 10px;
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.25);
+    border: 1.5px solid rgba(255,255,255,0.08);
+}
+.pa-gh-titulo {
+    font-size: 13px;
+    font-weight: 700;
+    color: #7dc8ff;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.pa-gh-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+.pa-gh-row > .form-group {
+    flex: 1;
+    min-width: 160px;
+    margin-bottom: 0;
+}
+.pa-gh-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.pa-gh-input-wrap input {
+    padding-right: 44px !important;
+}
+.pa-gh-toggle-ojo {
+    position: absolute;
+    right: 8px;
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.6);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 6px;
+    line-height: 1;
+    font-family: inherit;
+}
+.pa-gh-toggle-ojo:hover { color: #fff; }
+
+.pa-gh-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+.pa-gh-check input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #4285f4;
+}
+
+/* Botón Publicar GitHub (estilo admin) */
+.pa-btn-publicar {
+    width: 100%;
+    padding: 16px;
+    margin-top: 12px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #24292f, #0d1117);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+    transition: transform 0.15s, filter 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.pa-btn-publicar:hover:not(:disabled) {
+    filter: brightness(1.2);
+    transform: translateY(-2px);
+}
+.pa-btn-publicar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+.pa-btn-publicar.pa-publicando {
+    background: linear-gradient(135deg, #e67e22, #b9530f);
+}
+
+/* Estado GitHub */
+.pa-gh-status {
+    margin-top: 10px;
+    font-size: 12px;
+    text-align: center;
+    min-height: 18px;
+    color: rgba(255,255,255,0.7);
+    transition: color 0.3s;
+    line-height: 1.4;
+}
+.pa-gh-status.pa-ok   { color: #2ecc71; font-weight: 700; }
+.pa-gh-status.pa-err  { color: #ff6b5b; font-weight: 700; }
+.pa-gh-status.pa-info { color: #7dc8ff; }
+
+/* ---------- Botones secundarios del header ---------- */
+.pa-header-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+.pa-btn-header-secondary {
+    padding: 9px 14px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.08);
+    border: 1.5px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, transform 0.15s;
+}
+.pa-btn-header-secondary:hover {
+    background: rgba(255,255,255,0.18);
+    transform: translateY(-1px);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 560px) {
+    #panel-container.admin-panel-wide { max-width: 100%; }
+    .pa-gh-row > .form-group { min-width: 100%; }
+}
+</style>
 </head>
 <body>
 
@@ -15,8 +299,17 @@
 
     <div class="admin-header">
         <h1><span class="icon">🔔</span> Editor estado.json</h1>
-        <p>Configura el nivel y la duración de cada zona. Descarga el JSON y súbelo a GitHub.</p>
-        <div class="pa-modo-badge">⚙️ MODO MANUAL</div>
+        <p>Configura el nivel y la duración de cada zona. Publica directo a GitHub.</p>
+        <div class="pa-modo-badge">⚙️ MODO MANUAL KERAUNOS</div>
+
+        <div class="pa-header-actions">
+            <button type="button" class="pa-btn-header-secondary" id="btn-volver-admin">
+                ← Volver a Panel de Alertas
+            </button>
+            <button type="button" class="pa-btn-header-secondary" id="btn-logout-keraunos">
+                🚪 Cerrar sesión
+            </button>
+        </div>
     </div>
 
     <!-- Estado de carga -->
@@ -37,9 +330,55 @@
     <div class="pa-resumen" id="pa-resumen"></div>
 
     <!-- ============================================================
+         SECCIÓN GITHUB — Publicar directo con PAT
+         ============================================================ -->
+    <section class="pa-gh-section">
+        <div class="pa-gh-titulo">🐙 PUBLICAR EN GITHUB (PAT)</div>
+
+        <div class="pa-gh-row">
+            <div class="form-group">
+                <label for="gh-owner">👤 Owner</label>
+                <input type="text" id="gh-owner" placeholder="antito-yanac" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="gh-repo">📦 Repo</label>
+                <input type="text" id="gh-repo" placeholder="sara" autocomplete="off">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="gh-path">📄 Ruta del archivo</label>
+            <input type="text" id="gh-path" placeholder="estado.json" autocomplete="off">
+        </div>
+
+        <div class="form-group">
+            <label for="gh-token">🔑 GitHub PAT (Personal Access Token)</label>
+            <div class="pa-gh-input-wrap">
+                <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+                <button type="button" class="pa-gh-toggle-ojo" id="gh-toggle-ojo" aria-label="Mostrar/ocultar token">👁️</button>
+            </div>
+            <small style="display:block;margin-top:6px;color:rgba(255,255,255,0.5);font-size:11px;">
+                El token solo vive en memoria. Se borra al cerrar la página.
+                Scope necesario: <strong>repo</strong> (o <strong>public_repo</strong> si es público).
+            </small>
+        </div>
+
+        <label class="pa-gh-check">
+            <input type="checkbox" id="gh-recordar">
+            Recordar owner/repo/ruta (NO el token) en este navegador
+        </label>
+
+        <div class="pa-gh-status" id="pa-gh-status"></div>
+    </section>
+
+    <!-- ============================================================
          Botones de acción
          ============================================================ -->
-    <button type="button" class="pa-btn-enviar" id="pa-btn-descargar">
+    <button type="button" class="pa-btn-publicar" id="pa-btn-publicar">
+        🚀 PUBLICAR EN GITHUB
+    </button>
+
+    <button type="button" class="pa-btn-enviar" id="pa-btn-descargar" style="margin-top:12px;">
         💾 DESCARGAR estado.json
     </button>
 
@@ -65,7 +404,9 @@
     <div class="status-bar" id="status-bar"></div>
 </div>
 
-<!-- Modal de confirmación -->
+<!-- ============================================================
+     Modal de confirmación (igual que admin.html)
+     ============================================================ -->
 <div class="modal-overlay" id="modal-confirm">
     <div class="modal-box" id="modal-box">
         <div class="modal-icon" id="modal-icon">❓</div>
