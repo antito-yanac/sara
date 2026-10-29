@@ -1,5 +1,5 @@
 {
-  "actualizado": "2026-10-29T06:33:55.245Z",
+  "actualizado": "2026-10-29T08:30:21.590Z",
   "estadoGlobal": "AMARILLA",
   "estadoGlobalNumero": 1,
   "totalSectores": 4,
@@ -15,15 +15,15 @@
       "nivel": "AMARILLA",
       "nivelNumero": 1,
       "color": "#FFD400",
-      "inicio": "2026-10-29 01:33:55",
-      "fin": "2026-10-29 01:35:55"
+      "inicio": "2026-10-29 03:30:21",
+      "fin": "2026-10-29 03:32:21"
     },
     {
       "nombre": "Oficinas Mina - (Grifo 4448, Punto E, Ingreso Laguna Seca, Nasa, Oficinas Mina, Concentradora, Plataforma Pre PM, Presa Relaves, Plataforma de Armado)",
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": "2026-10-29 01:33:55",
+      "inicio": "2026-10-29 03:30:21",
       "fin": null
     },
     {
@@ -31,7 +31,7 @@
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": "2026-10-29 01:33:55",
+      "inicio": "2026-10-29 03:30:21",
       "fin": null
     },
     {
@@ -39,7 +39,7 @@
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": "2026-10-29 01:33:55",
+      "inicio": "2026-10-29 03:30:21",
       "fin": null
     }
   ],
@@ -52,13 +52,13 @@
       "lat": -9.5822364,
       "lng": -77.02231,
       "duracionMin": 2,
-      "timestampInicio": 1793255635000,
-      "inicio": "2026-10-29 01:33:55",
-      "fin": "2026-10-29 01:35:55",
+      "timestampInicio": 1793262621000,
+      "inicio": "2026-10-29 03:30:21",
+      "fin": "2026-10-29 03:32:21",
       "color": "#FFD400",
       "emoji": "🟡",
       "titulo": "⚡ ALERTA AMARILLA — Zona 1 - Campamentos",
-      "mensaje": "Actividad eléctrica detectada en Zona 1 - Campamentos. Nivel AMARILLA. Inicio: 2026-10-29 01:33:55. Fin previsto: 2026-10-29 01:35:55."
+      "mensaje": "Actividad eléctrica detectada en Zona 1 - Campamentos. Nivel AMARILLA. Inicio: 2026-10-29 03:30:21. Fin previsto: 2026-10-29 03:32:21."
     }
   ]
 }
