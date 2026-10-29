@@ -6,6 +6,8 @@
 //   - En modo keraunos, se oculta el icono SVG del rayo central.
 //   - En su lugar, se muestra solo el emoji circular del nivel.
 //   - En modo manual (index.html) no cambia nada.
+//   - FIX: Registra en localStorage las alertas liberadas desde admin
+//     para evitar que mensajes.js las vuelva a pintar.
 // ============================================================
 
 import { reproducirSonidoAlerta, detenerSonidoAlerta } from "./notifications.js";
@@ -399,6 +401,17 @@ export async function mostrarAlertaCompleta(datos = {}) {
         const duracionMin = (datos.duracionMin && datos.duracionMin > 0) ? datos.duracionMin : DURACION_TIMER_MINUTOS;
         const tsInicio = (typeof datos.timestampInicio === "number" && datos.timestampInicio > 0) ? datos.timestampInicio : Date.now();
         
+        // NUEVO: Limpiar registro de liberación si llega una alerta NUEVA (timestamp distinto)
+        if (origen === "manual") {
+            try {
+                const liberadas = JSON.parse(localStorage.getItem("manual_liberadas") || "{}");
+                if (liberadas[distritoFinal] && liberadas[distritoFinal] !== tsInicio) {
+                    delete liberadas[distritoFinal];
+                    localStorage.setItem("manual_liberadas", JSON.stringify(liberadas));
+                }
+            } catch (e) {}
+        }
+
         const yaExistia = estado.zonasActivas.has(distritoFinal);
         const zonaAnterior = yaExistia ? estado.zonasActivas.get(distritoFinal) : null;
         const cambioNivel = !!(zonaAnterior && zonaAnterior.nivelKey !== nivelKey);
@@ -500,6 +513,18 @@ export async function quitarAlerta(distrito) {
         const origen = estado.zonasActivas.get(distritoReal)?.origen || null;
         const esOculta = APP_CONFIG.origenFiltro === "manual" && esZonaOcultaManual(distritoReal);
 
+        // NUEVO: Guardar en localStorage que esta zona fue liberada (para origen manual)
+        if (origen === "manual") {
+            try {
+                const liberadas = JSON.parse(localStorage.getItem("manual_liberadas") || "{}");
+                const alertaActual = estado.zonasActivas.get(distritoReal);
+                if (alertaActual) {
+                    liberadas[distritoReal] = alertaActual.timestampInicio;
+                    localStorage.setItem("manual_liberadas", JSON.stringify(liberadas));
+                }
+            } catch (e) {}
+        }
+
         if (!esOculta) {
             const mod = await obtenerModuloMapa();
             if (mod && typeof mod.pintarPoligonoZona === "function") {
@@ -593,7 +618,6 @@ function pintarBannerDeZona(zona, opts = {}) {
     aplicarVars(panelEl);
     aplicarVars(modalEl);
 
-    // AQUI SE DECIDE SI USAR EL RAYO (iconoBig) O EL CIRCULO (icono)
     const iconoAMostrar = isKeraunos ? nivel.icono : nivel.iconoBig;
     
     document.getElementById("al-icono-big").textContent = iconoAMostrar;
@@ -608,7 +632,7 @@ function pintarBannerDeZona(zona, opts = {}) {
     if (!opts.noReabrir) overlayEl.classList.add("al-visible");
     panelEl.classList.add("al-sirena-activa");
 
-    if (!opts.noReabrir) activarFlashFondo(); // MANTENEMOS EL FLASH DE FONDO
+    if (!opts.noReabrir) activarFlashFondo();
 
     const wrap = document.getElementById("al-contador-wrap");
     const el = document.getElementById("al-contador");
