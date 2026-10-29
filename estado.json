@@ -1,11 +1,11 @@
 {
-  "actualizado": "2026-10-29T21:16:56.314Z",
+  "actualizado": "2026-10-29T21:19:03.468Z",
   "estadoGlobal": "ROJA",
   "estadoGlobalNumero": 3,
   "totalSectores": 4,
   "resumen": {
-    "roja": 3,
-    "naranja": 1,
+    "roja": 4,
+    "naranja": 0,
     "amarilla": 0,
     "verde": 0
   },
@@ -36,11 +36,11 @@
     },
     {
       "nombre": "Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
-      "nivel": "NARANJA",
-      "nivelNumero": 2,
-      "color": "#FF8C00",
-      "inicio": "2026-10-29 15:53:53",
-      "fin": "2026-10-29 16:30:53"
+      "nivel": "ROJA",
+      "nivelNumero": 3,
+      "color": "#FA5858",
+      "inicio": "2026-10-29 16:17:27",
+      "fin": "2026-10-29 16:32:27"
     }
   ],
   "alertas": [
@@ -94,19 +94,19 @@
     },
     {
       "sectorOriginal": "Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
-      "nivelScraper": "NARANJA",
-      "nivel": "naranja",
+      "nivelScraper": "ROJA",
+      "nivel": "roja",
       "distrito": "Zona 4 - Tajo",
       "lat": -9.5416465,
       "lng": -77.0707659,
-      "duracionMin": 37,
-      "timestampInicio": 1793307233000,
-      "inicio": "2026-10-29 15:53:53",
-      "fin": "2026-10-29 16:30:53",
-      "color": "#FF8C00",
-      "emoji": "🟠",
-      "titulo": "⚡ ALERTA NARANJA — Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
-      "mensaje": "Actividad eléctrica detectada en Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria) (Zona 4 - Tajo). Nivel NARANJA. Inicio: 2026-10-29 15:53:53. Fin previsto: 2026-10-29 16:30:53."
+      "duracionMin": 15,
+      "timestampInicio": 1793308647000,
+      "inicio": "2026-10-29 16:17:27",
+      "fin": "2026-10-29 16:32:27",
+      "color": "#FA5858",
+      "emoji": "🔴",
+      "titulo": "⚡ ALERTA ROJA — Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
+      "mensaje": "Actividad eléctrica detectada en Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria) (Zona 4 - Tajo). Nivel ROJA. Inicio: 2026-10-29 16:17:27. Fin previsto: 2026-10-29 16:32:27."
     }
   ]
 }
