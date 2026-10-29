@@ -12,238 +12,112 @@
 /* ============================================================
    Estilos copiados 1:1 desde admin.html
    ============================================================ */
-#panel-container.admin-panel-wide {
-    max-width: 720px;
-    width: 95vw;
-}
+#panel-container.admin-panel-wide { max-width: 720px; width: 95vw; }
 
 /* ---------- Nueva alerta por sector ---------- */
 .pa-na-titulo {
-    font-size: 13px;
-    font-weight: 700;
-    color: #ffd75e;
-    letter-spacing: 1.5px;
-    margin-bottom: 12px;
+    font-size: 13px; font-weight: 700; color: #ffd75e;
+    letter-spacing: 1.5px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
 }
-.pa-na-lista {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 20px;
-}
+.pa-na-lista { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
 
 .pa-na-card {
-    padding: 12px 14px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.035);
-    border: 2px solid rgba(255,255,255,0.09);
-    transition: border-color 0.2s, background 0.2s;
-    position: relative;
+    padding: 12px 14px; border-radius: 12px;
+    background: rgba(255,255,255,0.035); border: 2px solid rgba(255,255,255,0.09);
+    transition: border-color 0.2s, background 0.2s; position: relative;
 }
 .pa-na-card.pa-activa-amarilla { border-color: #f1c40f; background: rgba(241,196,15,0.07); }
 .pa-na-card.pa-activa-naranja  { border-color: #e67e22; background: rgba(230,126,34,0.08); }
 .pa-na-card.pa-activa-roja     { border-color: #e74c3c; background: rgba(231,76,60,0.09); }
-.pa-na-card.pa-ultima-tocada {
-    box-shadow: 0 0 0 3px rgba(255,215,94,0.35);
-}
 
-.pa-na-row1 {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-}
+.pa-na-row1 { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .pa-na-check {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    border: 2.5px solid rgba(255,255,255,0.3);
-    background: transparent;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-    color: #fff;
-    flex-shrink: 0;
-    transition: all 0.15s;
+    width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.3);
+    background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: #fff; flex-shrink: 0; transition: all 0.15s;
 }
 .pa-na-check:hover { border-color: #fff; }
-.pa-na-check.pa-on {
-    background: #fff;
-    color: #1a1a1a;
-    border-color: #fff;
-}
+.pa-na-check.pa-on { background: #fff; color: #1a1a1a; border-color: #fff; }
 
 .pa-na-nombre {
-    flex: 1;
-    font-size: 14px;
-    font-weight: 700;
-    color: #fff;
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.pa-na-shortcut {
-    font-family: 'Courier New', monospace;
-    font-size: 11px;
-    color: rgba(255,255,255,0.5);
-    background: rgba(0,0,0,0.35);
-    padding: 3px 8px;
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.12);
-    flex-shrink: 0;
+    flex: 1; font-size: 14px; font-weight: 700; color: #fff;
+    min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-.pa-na-row2 {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
+/* Botón resetear zona individual */
+.pa-btn-reset-zona {
+    background: rgba(231,76,60,0.15); border: 1px solid #e74c3c;
+    color: #ffb3a7; padding: 4px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.15s; font-family: inherit;
 }
-.pa-pill-group {
-    display: flex;
-    gap: 6px;
-    flex: 1;
-    min-width: 0;
-}
+.pa-btn-reset-zona:hover { background: #e74c3c; color: #fff; }
+
+.pa-na-row2 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pa-pill-group { display: flex; gap: 6px; flex: 1; min-width: 0; }
 .pa-pill {
-    flex: 1;
-    min-width: 70px;
-    padding: 9px 6px;
-    border-radius: 8px;
-    background: rgba(0,0,0,0.35);
-    border: 2px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.65);
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s;
-    text-align: center;
-    font-family: inherit;
+    flex: 1; min-width: 70px; padding: 9px 6px; border-radius: 8px;
+    background: rgba(0,0,0,0.35); border: 2px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.65); font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s; text-align: center; font-family: inherit;
 }
-.pa-pill:hover {
-    color: #fff;
-    border-color: rgba(255,255,255,0.4);
-}
+.pa-pill:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
 .pa-pill.pa-sel-amarilla { background: #f1c40f; color: #2b2b00; border-color: #f1c40f; }
 .pa-pill.pa-sel-naranja { background: #e67e22; color: #fff; border-color: #e67e22; }
 .pa-pill.pa-sel-roja { background: #e74c3c; color: #fff; border-color: #e74c3c; }
 
 .pa-duracion-wrap {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: rgba(0,0,0,0.35);
-    border: 2px solid rgba(255,255,255,0.12);
-    border-radius: 8px;
-    padding: 0 10px;
-    height: 38px;
+    display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.35);
+    border: 2px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 0 10px; height: 38px;
 }
 .pa-duracion-wrap.pa-disabled { opacity: 0.35; pointer-events: none; }
 .pa-duracion-wrap input {
-    width: 46px;
-    background: transparent;
-    border: none;
-    color: #fff;
-    font-size: 15px;
-    font-weight: 700;
-    text-align: center;
-    font-family: inherit;
-    padding: 0;
+    width: 46px; background: transparent; border: none; color: #fff;
+    font-size: 15px; font-weight: 700; text-align: center; font-family: inherit; padding: 0;
 }
 .pa-duracion-wrap input:focus { outline: none; }
 .pa-duracion-wrap span { font-size: 11px; opacity: 0.6; }
 
 /* ---------- Resumen ---------- */
 .pa-resumen {
-    margin: 10px 0 18px;
-    padding: 10px 14px;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.04);
-    border-left: 3px solid #ffd75e;
-    font-size: 13px;
-    color: rgba(255,255,255,0.9);
-    line-height: 1.55;
-    display: none;
+    margin: 10px 0 18px; padding: 10px 14px; border-radius: 10px;
+    background: rgba(255,255,255,0.04); border-left: 3px solid #ffd75e;
+    font-size: 13px; color: rgba(255,255,255,0.9); line-height: 1.55; display: none;
 }
 .pa-resumen.pa-visible { display: block; }
 .pa-resumen strong { color: #fff; }
 
-/* ---------- Botones ---------- */
-.pa-btn-enviar {
-    width: 100%;
-    padding: 18px;
-    border: none;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
-    color: #fff;
-    font-size: 17px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    cursor: pointer;
-    box-shadow: 0 8px 24px rgba(231,76,60,0.4);
-    transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
+/* ---------- Botones Principales ---------- */
+.pa-btn-publicar {
+    width: 100%; padding: 18px; border: none; border-radius: 14px;
+    background: linear-gradient(135deg, #24292f, #0d1117); color: #fff;
+    font-size: 17px; font-weight: 800; letter-spacing: 1px; cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4); transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
     margin-bottom: 20px;
 }
-.pa-btn-enviar:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-2px); box-shadow: 0 12px 28px rgba(231,76,60,0.5); }
-.pa-btn-enviar:active:not(:disabled) { transform: scale(0.98); }
-.pa-btn-enviar:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.5); box-shadow: none; }
-
-/* ---------- Mensaje informativo / Preview ---------- */
-.pa-mi-section { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; margin-top: 10px; }
-.pa-mi-toggle {
-    width: 100%; padding: 10px 12px; background: transparent;
-    border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px;
-    color: rgba(255,255,255,0.55); font-size: 12px; text-align: left;
-    cursor: pointer; font-family: inherit; transition: all 0.15s;
-}
-.pa-mi-toggle:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
-.pa-mi-campos { margin-top: 12px; padding: 12px; border-radius: 10px; background: rgba(0,0,0,0.2); }
-
-/* ---------- Modales ---------- */
-.pa-modal-msg-lista {
-    margin: 14px 0; padding: 10px 12px; border-radius: 8px;
-    background: rgba(0,0,0,0.3); font-size: 13px; line-height: 1.7;
-    text-align: left; max-height: 200px; overflow-y: auto;
-}
-.pa-modal-peligro .modal-box { border: 2px solid #e74c3c; box-shadow: 0 0 40px rgba(231,76,60,0.5); }
-.pa-modal-peligro .modal-icon { font-size: 42px; }
-.pa-modal-peligro h3 { color: #ff8c7a; font-size: 18px; letter-spacing: 1px; }
-.pa-btn-peligro { background: #e74c3c !important; color: #fff !important; font-weight: 800 !important; border: 2px solid #fff !important; }
-.pa-btn-peligro:hover { filter: brightness(1.15); }
-
-/* ---------- GitHub Section ---------- */
-.pa-gh-section {
-    margin: 18px 0 10px; padding: 16px; border-radius: 12px;
-    background: rgba(0,0,0,0.25); border: 1.5px solid rgba(255,255,255,0.08);
-}
-.pa-gh-titulo { font-size: 13px; font-weight: 700; color: #7dc8ff; letter-spacing: 1px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-.pa-gh-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-.pa-gh-row > .form-group { flex: 1; min-width: 160px; margin-bottom: 0; }
-.pa-gh-input-wrap { position: relative; display: flex; align-items: center; }
-.pa-gh-input-wrap input { padding-right: 44px !important; }
-.pa-gh-toggle-ojo { position: absolute; right: 8px; background: transparent; border: none; color: rgba(255,255,255,0.6); font-size: 16px; cursor: pointer; padding: 4px 6px; line-height: 1; font-family: inherit; }
-.pa-gh-toggle-ojo:hover { color: #fff; }
-.pa-gh-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 8px; cursor: pointer; user-select: none; }
-.pa-gh-check input { width: 16px; height: 16px; cursor: pointer; accent-color: #4285f4; }
-
-.pa-btn-publicar {
-    width: 100%; padding: 16px; margin-top: 12px; border: none; border-radius: 12px;
-    background: linear-gradient(135deg, #24292f, #0d1117); color: #fff;
-    font-size: 15px; font-weight: 800; letter-spacing: 0.5px; cursor: pointer;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.4); transition: transform 0.15s, filter 0.2s;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-}
 .pa-btn-publicar:hover:not(:disabled) { filter: brightness(1.2); transform: translateY(-2px); }
-.pa-btn-publicar:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.pa-btn-publicar:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.5); box-shadow: none; }
 .pa-btn-publicar.pa-publicando { background: linear-gradient(135deg, #e67e22, #b9530f); }
 
-.pa-gh-status { margin-top: 10px; font-size: 12px; text-align: center; min-height: 18px; color: rgba(255,255,255,0.7); transition: color 0.3s; line-height: 1.4; }
-.pa-gh-status.pa-ok   { color: #2ecc71; font-weight: 700; }
-.pa-gh-status.pa-err  { color: #ff6b5b; font-weight: 700; }
-.pa-gh-status.pa-info { color: #7dc8ff; }
+.pa-btn-reset-global {
+    width: 100%; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.85);
+    font-size: 14px; font-weight: 700; letter-spacing: 1px; cursor: pointer;
+    transition: all 0.15s; margin-bottom: 20px; font-family: inherit;
+}
+.pa-btn-reset-global:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: #fff; }
+
+/* ---------- Auto-publicar toggle ---------- */
+.pa-auto-publish {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.04);
+    border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+}
+.pa-auto-publish input[type="checkbox"] {
+    width: 20px; height: 20px; cursor: pointer; accent-color: #2ecc71;
+}
+.pa-auto-publish label {
+    font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85); cursor: pointer; user-select: none;
+}
 
 /* ---------- Header Actions ---------- */
 .pa-header-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
@@ -254,10 +128,13 @@
 }
 .pa-btn-header-secondary:hover { background: rgba(255,255,255,0.18); transform: translateY(-1px); }
 
-/* ---------- Responsive ---------- */
+.pa-gh-status { margin-top: 10px; font-size: 12px; text-align: center; min-height: 18px; color: rgba(255,255,255,0.7); transition: color 0.3s; line-height: 1.4; }
+.pa-gh-status.pa-ok   { color: #2ecc71; font-weight: 700; }
+.pa-gh-status.pa-err  { color: #ff6b5b; font-weight: 700; }
+.pa-gh-status.pa-info { color: #7dc8ff; }
+
 @media (max-width: 560px) {
     #panel-container.admin-panel-wide { max-width: 100%; }
-    .pa-gh-row > .form-group { min-width: 100%; }
     .pa-na-row2 { flex-direction: column; align-items: stretch; }
     .pa-pill-group { width: 100%; }
     .pa-pill { min-width: 0; padding: 9px 4px; font-size: 11px; }
@@ -301,59 +178,21 @@
     <!-- Resumen -->
     <div class="pa-resumen" id="pa-resumen"></div>
 
-    <!-- ============================================================
-         SECCIÓN GITHUB
-         ============================================================ -->
-    <section class="pa-gh-section">
-        <div class="pa-gh-titulo">🐙 PUBLICAR EN GITHUB (PAT)</div>
+    <!-- Botón Reset Global -->
+    <button type="button" class="pa-btn-reset-global" id="pa-btn-reset-global">
+        🔄 RESETEAR TODO A VERDE
+    </button>
 
-        <div class="pa-gh-row">
-            <div class="form-group">
-                <label for="gh-owner">👤 Owner</label>
-                <input type="text" id="gh-owner" placeholder="antito-yanac" autocomplete="off">
-            </div>
-            <div class="form-group">
-                <label for="gh-repo">📦 Repo</label>
-                <input type="text" id="gh-repo" placeholder="sara" autocomplete="off">
-            </div>
-        </div>
+    <!-- Toggle Auto-Publicar -->
+    <div class="pa-auto-publish">
+        <input type="checkbox" id="auto-publish-toggle">
+        <label for="auto-publish-toggle">Auto-publicar al cambiar (Publica solo)</label>
+    </div>
 
-        <div class="form-group">
-            <label for="gh-path">📄 Ruta del archivo</label>
-            <input type="text" id="gh-path" placeholder="estado.json" autocomplete="off">
-        </div>
-
-        <div class="form-group">
-            <label for="gh-token">🔑 GitHub PAT (Personal Access Token)</label>
-            <div class="pa-gh-input-wrap">
-                <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
-                <button type="button" class="pa-gh-toggle-ojo" id="gh-toggle-ojo" aria-label="Mostrar/ocultar token">👁️</button>
-            </div>
-            <small style="display:block;margin-top:6px;color:rgba(255,255,255,0.5);font-size:11px;">
-                El token solo vive en memoria. Scope necesario: <strong>repo</strong> o <strong>public_repo</strong>.
-            </small>
-        </div>
-
-        <label class="pa-gh-check">
-            <input type="checkbox" id="gh-recordar">
-            Recordar owner/repo/ruta (NO el token) en este navegador
-        </label>
-
-        <div class="pa-gh-status" id="pa-gh-status"></div>
-    </section>
-
+    <!-- Botón Publicar Manual -->
     <button type="button" class="pa-btn-publicar" id="pa-btn-publicar">🚀 PUBLICAR EN GITHUB</button>
-    <button type="button" class="pa-btn-enviar" id="pa-btn-descargar" style="margin-top:12px;">💾 DESCARGAR estado.json</button>
-    <button type="button" class="pa-btn-reset" id="pa-btn-reset">🔄 RESETEAR TODO A VERDE</button>
-    <button type="button" class="pa-btn-reset" id="pa-btn-copiar">📋 COPIAR JSON AL PORTAPAPELES</button>
 
-    <section class="pa-mi-section">
-        <button type="button" class="pa-mi-toggle" id="pa-mi-toggle">▸ 👁️ Vista previa del JSON (opcional)</button>
-        <div class="pa-mi-campos" id="pa-mi-campos" style="display:none;">
-            <pre id="pa-json-preview" class="pa-json-preview"></pre>
-        </div>
-    </section>
-
+    <div class="pa-gh-status" id="pa-gh-status"></div>
     <div class="status-bar" id="status-bar"></div>
 </div>
 
@@ -371,19 +210,24 @@
 </div>
 
 <!-- ============================================================
-     JAVASCRIPT INTEGRADO (Modificado para renderizar en Horizontal)
+     JAVASCRIPT
      ============================================================ -->
 <script>
-// ------------------------------------------------------------
-//  Constantes
-// ------------------------------------------------------------
+// ============================================================
+//  CONFIGURACIÓN (A NIVEL DE CÓDIGO)
+// ============================================================
+// ⚠️ PEGA TU TOKEN AQUÍ ABAJO (reemplaza el texto entre comillas):
+const GITHUB_PAT = "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"; 
+// ============================================================
+
+const GH_OWNER = "antito-yanac";
+const GH_REPO  = "sara";
+const GH_PATH  = "estado.json";
+const GH_BRANCH = "main";
+
 const ESTADO_URL    = "./estado.json";
 const TZ_OFFSET_MIN = -300;
 const DURACION_DEF  = 15;
-const GH_STORAGE_KEY = "keraunos_gh_config";
-const GH_DEFAULT_OWNER = "antito-yanac";
-const GH_DEFAULT_REPO  = "sara";
-const GH_DEFAULT_PATH  = "estado.json";
 
 const NIVELES = {
     ROJA:     { numero: 3, color: "#FA5858", clase: "roja",     emoji: "🔴", label: "Roja" },
@@ -395,69 +239,37 @@ const NIVELES = {
 const NIVELES_ACTIVABLES = ["AMARILLA", "NARANJA", "ROJA"];
 
 const ZONAS = [
-    {
-        id: "campamento",
-        nombreCorto: "Campamento Yanacancha",
-        nombre: "Campamento Yanacancha - (Nuevo Campamento, Descarga Norte Presa Relaves, Polishing Pond, Garita Laguna Huallacocha, Garita plataforma km 114, Tailing Dam Norte - Punto Y, Garita Portón Principal, Grifo Yanacancha)",
-        zona: "Zona 1 - Campamentos",
-        lat: -9.5822364, lng: -77.0223100
-    },
-    {
-        id: "oficinas",
-        nombreCorto: "Oficinas Mina",
-        nombre: "Oficinas Mina - (Grifo 4448, Punto E, Ingreso Laguna Seca, Nasa, Oficinas Mina, Concentradora, Plataforma Pre PM, Presa Relaves, Plataforma de Armado)",
-        zona: "Zona 2 - Oficinas Mina",
-        lat: -9.5718388, lng: -77.0447182
-    },
-    {
-        id: "tucush",
-        nombreCorto: "Tucush",
-        nombre: "Tucush - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa)",
-        zona: "Zona 3 - Tucush",
-        lat: -9.5263487, lng: -77.0485794
-    },
-    {
-        id: "tajo",
-        nombreCorto: "Tajo",
-        nombre: "Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
-        zona: "Zona 4 - Tajo",
-        lat: -9.5416465, lng: -77.0707659
-    }
+    { id: "campamento", nombreCorto: "Campamento Yanacancha", zona: "Zona 1 - Campamentos", nombre: "Campamento Yanacancha - (Nuevo Campamento, Descarga Norte Presa Relaves, Polishing Pond, Garita Laguna Huallacocha, Garita plataforma km 114, Tailing Dam Norte - Punto Y, Garita Portón Principal, Grifo Yanacancha)", lat: -9.5822364, lng: -77.0223100 },
+    { id: "oficinas", nombreCorto: "Oficinas Mina", zona: "Zona 2 - Oficinas Mina", nombre: "Oficinas Mina - (Grifo 4448, Punto E, Ingreso Laguna Seca, Nasa, Oficinas Mina, Concentradora, Plataforma Pre PM, Presa Relaves, Plataforma de Armado)", lat: -9.5718388, lng: -77.0447182 },
+    { id: "tucush", nombreCorto: "Tucush", zona: "Zona 3 - Tucush", nombre: "Tucush - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa)", lat: -9.5263487, lng: -77.0485794 },
+    { id: "tajo", nombreCorto: "Tajo", zona: "Zona 4 - Tajo", nombre: "Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)", lat: -9.5416465, lng: -77.0707659 }
 ];
 
 const borrador = {};
-
 function initBorrador() {
     ZONAS.forEach(z => {
         borrador[z.id] = {};
-        NIVELES_ACTIVABLES.forEach(n => {
-            borrador[z.id][n] = { activo: false, min: DURACION_DEF };
-        });
+        NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n] = { activo: false, min: DURACION_DEF });
     });
 }
 initBorrador();
 
 // ------------------------------------------------------------
-//  Utilidades de fecha
+//  Utilidades
 // ------------------------------------------------------------
 const pad = (n) => String(n).padStart(2, "0");
-
 function fechaPeru(date = new Date()) {
     const ms = date.getTime() + TZ_OFFSET_MIN * 60000;
     const d = new Date(ms);
-    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
-           `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
 }
-
 function sumarMinutos(fechaStr, minutos) {
     const [f, h] = fechaStr.split(" ");
     const [Y, M, D] = f.split("-").map(Number);
     const [H, Mi, S] = h.split(":").map(Number);
     const utcMs = Date.UTC(Y, M - 1, D, H, Mi, S) - TZ_OFFSET_MIN * 60000;
-    const fin = new Date(utcMs + minutos * 60000);
-    return fechaPeru(fin);
+    return fechaPeru(new Date(utcMs + minutos * 60000));
 }
-
 function parseFechaPeru(str) {
     if (!str) return NaN;
     const [f, h] = str.split(" ");
@@ -465,102 +277,62 @@ function parseFechaPeru(str) {
     const [H, Mi, S] = h.split(":").map(Number);
     return Date.UTC(Y, M - 1, D, H, Mi, S) - TZ_OFFSET_MIN * 60000;
 }
-
 function nivelActivoDeZona(zonaId) {
-    for (const n of NIVELES_ACTIVABLES) {
-        if (borrador[zonaId][n].activo) return n;
-    }
+    for (const n of NIVELES_ACTIVABLES) if (borrador[zonaId][n].activo) return n;
     return "VERDE";
 }
-
 function duracionDeZona(zonaId) {
-    for (const n of NIVELES_ACTIVABLES) {
-        if (borrador[zonaId][n].activo) return borrador[zonaId][n].min;
-    }
+    for (const n of NIVELES_ACTIVABLES) if (borrador[zonaId][n].activo) return borrador[zonaId][n].min;
     return 0;
+}
+function escapeHtml(txt) {
+    return String(txt || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
 // ------------------------------------------------------------
-//  Construcción del estado
+//  Generar JSON
 // ------------------------------------------------------------
 function construirEstado() {
     const ahora = fechaPeru();
-
     const sectores = ZONAS.map(z => {
         const nivel = nivelActivoDeZona(z.id);
         const info = NIVELES[nivel];
-        let inicio = ahora;
-        let fin = null;
-
-        if (nivel !== "VERDE") {
-            const min = duracionDeZona(z.id);
-            fin = sumarMinutos(inicio, min);
-        }
-
-        return {
-            nombre: z.nombre,
-            nivel,
-            nivelNumero: info.numero,
-            color: info.color,
-            inicio,
-            fin
-        };
+        let inicio = ahora, fin = null;
+        if (nivel !== "VERDE") fin = sumarMinutos(inicio, duracionDeZona(z.id));
+        return { nombre: z.nombre, nivel, nivelNumero: info.numero, color: info.color, inicio, fin };
     });
 
     let estadoGlobal = "VERDE", max = 0;
-    for (const s of sectores) {
-        if (s.nivelNumero > max) { max = s.nivelNumero; estadoGlobal = s.nivel; }
-    }
+    for (const s of sectores) if (s.nivelNumero > max) { max = s.nivelNumero; estadoGlobal = s.nivel; }
 
     const alertas = [];
     for (const s of sectores) {
         if (s.nivel === "VERDE") continue;
         const z = ZONAS.find(x => x.nombre === s.nombre);
-        if (!z) continue;
-
         const info = NIVELES[s.nivel];
         const timestampInicio = parseFechaPeru(s.inicio);
         const duracionMin = Math.max(1, Math.round((parseFechaPeru(s.fin) - timestampInicio) / 60000));
-
         alertas.push({
-            sectorOriginal: s.nombre,
-            nivelScraper:   s.nivel,
-            nivel:          s.nivel.toLowerCase(),
-            distrito:       z.zona,
-            lat:            z.lat,
-            lng:            z.lng,
-            duracionMin,
-            timestampInicio,
-            inicio:         s.inicio,
-            fin:            s.fin,
-            color:          s.color,
-            emoji:          info.emoji,
-            titulo:  `⚡ ALERTA ${s.nivel} — ${z.zona}`,
-            mensaje: `Actividad eléctrica detectada en ${z.zona}. Nivel ${s.nivel}. ` +
-                     `Inicio: ${s.inicio}. Fin previsto: ${s.fin}.`
+            sectorOriginal: s.nombre, nivelScraper: s.nivel, nivel: s.nivel.toLowerCase(),
+            distrito: z.zona, lat: z.lat, lng: z.lng, duracionMin, timestampInicio,
+            inicio: s.inicio, fin: s.fin, color: s.color, emoji: info.emoji,
+            titulo: `⚡ ALERTA ${s.nivel} — ${z.zona}`,
+            mensaje: `Actividad eléctrica detectada en ${z.zona}. Nivel ${s.nivel}. Inicio: ${s.inicio}. Fin previsto: ${s.fin}.`
         });
     }
 
     const resumen = {
-        roja:     sectores.filter(s => s.nivel === "ROJA").length,
-        naranja:  sectores.filter(s => s.nivel === "NARANJA").length,
+        roja: sectores.filter(s => s.nivel === "ROJA").length,
+        naranja: sectores.filter(s => s.nivel === "NARANJA").length,
         amarilla: sectores.filter(s => s.nivel === "AMARILLA").length,
-        verde:    sectores.filter(s => s.nivel === "VERDE").length
+        verde: sectores.filter(s => s.nivel === "VERDE").length
     };
 
-    return {
-        actualizado: new Date().toISOString(),
-        estadoGlobal,
-        estadoGlobalNumero: NIVELES[estadoGlobal].numero,
-        totalSectores: sectores.length,
-        resumen,
-        sectores,
-        alertas
-    };
+    return { actualizado: new Date().toISOString(), estadoGlobal, estadoGlobalNumero: NIVELES[estadoGlobal].numero, totalSectores: sectores.length, resumen, sectores, alertas };
 }
 
 // ------------------------------------------------------------
-//  RENDER HORIZONTAL (igualando la imagen 2 y el admin.html)
+//  Render Zonas
 // ------------------------------------------------------------
 function renderZonas() {
     const cont = document.getElementById("pa-zonas-lista");
@@ -569,78 +341,66 @@ function renderZonas() {
     ZONAS.forEach((z, index) => {
         const nivelActivo = nivelActivoDeZona(z.id);
         const infoActivo = NIVELES[nivelActivo];
-
         const card = document.createElement("div");
         card.className = "pa-na-card";
         if (nivelActivo !== "VERDE") card.classList.add("pa-activa-" + infoActivo.clase);
 
-        // Obtener la duración actual de la zona (si no está activa, usar 15)
         const currentMin = duracionDeZona(z.id) || DURACION_DEF;
         const shortKey = String(index + 1);
 
         card.innerHTML = `
             <div class="pa-na-row1">
-                <button type="button" class="pa-na-check ${nivelActivo !== "VERDE" ? "pa-on" : ""}" 
-                        data-id="${z.id}" data-distrito="${z.nombreCorto}">
+                <button type="button" class="pa-na-check ${nivelActivo !== "VERDE" ? "pa-on" : ""}" data-id="${z.id}">
                     ${nivelActivo !== "VERDE" ? "✓" : ""}
                 </button>
                 <div class="pa-na-nombre">Zona ${shortKey} - ${escapeHtml(z.nombreCorto)}</div>
-                <div class="pa-na-shortcut">${shortKey}</div>
+                <button type="button" class="pa-btn-reset-zona" data-id="${z.id}" title="Resetear a Verde">🔄 Reset</button>
             </div>
             <div class="pa-na-row2">
                 <div class="pa-pill-group">
                     ${NIVELES_ACTIVABLES.map(n => {
                         const info = NIVELES[n];
                         const cfg = borrador[z.id][n];
-                        return `<button type="button" class="pa-pill ${cfg.activo ? "pa-sel-" + info.clase : ""}" 
-                                data-zona="${z.id}" data-nivel="${n}">
+                        return `<button type="button" class="pa-pill ${cfg.activo ? "pa-sel-" + info.clase : ""}" data-zona="${z.id}" data-nivel="${n}">
                                     ${info.emoji} ${info.label}
                                 </button>`;
                     }).join("")}
                 </div>
                 <div class="pa-duracion-wrap ${nivelActivo === "VERDE" ? "pa-disabled" : ""}">
-                    <input type="number" min="1" max="1440" value="${currentMin}"
-                           data-zona="${z.id}" data-rol="min">
+                    <input type="number" min="1" max="1440" value="${currentMin}" data-zona="${z.id}" data-rol="min">
                     <span>min</span>
                 </div>
             </div>
         `;
 
-        // Evento Check principal (Activa/Desactiva en Amarilla por defecto)
+        // Eventos
         card.querySelector(".pa-na-check").addEventListener("click", () => {
-            const isActive = nivelActivoDeZona(z.id) !== "VERDE";
-            if (isActive) {
-                NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = false);
-            } else {
-                borrador[z.id].AMARILLA.activo = true;
-            }
-            renderZonas();
-            actualizarResumen();
+            if (nivelActivoDeZona(z.id) !== "VERDE") NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = false);
+            else borrador[z.id].AMARILLA.activo = true;
+            renderZonas(); actualizarResumen(); autoPublicar();
         });
 
-        // Eventos Pills (Seleccionar nivel)
+        card.querySelector(".pa-btn-reset-zona").addEventListener("click", () => {
+            NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = false);
+            renderZonas(); actualizarResumen();
+            escribirStatus(`🔄 Zona ${shortKey} reseteada a Verde.`);
+            autoPublicar();
+        });
+
         card.querySelectorAll(".pa-pill").forEach(btn => {
             btn.addEventListener("click", () => {
                 const nivel = btn.dataset.nivel;
                 const isSame = borrador[z.id][nivel].activo;
-                NIVELES_ACTIVABLES.forEach(n => {
-                    borrador[z.id][n].activo = (n === nivel && !isSame);
-                });
-                renderZonas();
-                actualizarResumen();
+                NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = (n === nivel && !isSame));
+                renderZonas(); actualizarResumen(); autoPublicar();
             });
         });
 
-        // Evento Input minutos
-        const inputMin = card.querySelector('input[data-rol="min"]');
-        inputMin.addEventListener("input", (e) => {
+        card.querySelector('input[data-rol="min"]').addEventListener("input", (e) => {
             let v = parseInt(e.target.value, 10);
-            if (isNaN(v) || v < 1) v = 1;
-            if (v > 1440) v = 1440;
-            NIVELES_ACTIVABLES.forEach(n => {
-                if (borrador[z.id][n].activo) borrador[z.id][n].min = v;
-            });
-            actualizarResumen();
+            if (isNaN(v) || v < 1) v = 1; if (v > 1440) v = 1440;
+            NIVELES_ACTIVABLES.forEach(n => { if (borrador[z.id][n].activo) borrador[z.id][n].min = v; });
+            actualizarResumen(); autoPublicar();
         });
 
         cont.appendChild(card);
@@ -648,30 +408,22 @@ function renderZonas() {
 }
 
 // ------------------------------------------------------------
-//  Resumen en vivo
+//  Resumen
 // ------------------------------------------------------------
 function actualizarResumen() {
     const activas = [];
     ZONAS.forEach(z => {
         const nivel = nivelActivoDeZona(z.id);
-        if (nivel !== "VERDE") {
-            activas.push({ zona: z.nombreCorto, nivel, min: duracionDeZona(z.id) });
-        }
+        if (nivel !== "VERDE") activas.push({ zona: z.nombreCorto, nivel, min: duracionDeZona(z.id) });
     });
 
     const el = document.getElementById("pa-resumen");
-
-    if (!activas.length) {
-        el.classList.remove("pa-visible");
-        el.innerHTML = "";
-        return;
-    }
+    if (!activas.length) { el.classList.remove("pa-visible"); el.innerHTML = ""; return; }
 
     el.classList.add("pa-visible");
-
     const cnt = { roja: 0, naranja: 0, amarilla: 0, verde: 0 };
     ZONAS.forEach(z => cnt[NIVELES[nivelActivoDeZona(z.id)].clase]++);
-
+    
     let globalNivel = "VERDE", globalNum = 0;
     ZONAS.forEach(z => {
         const n = nivelActivoDeZona(z.id);
@@ -679,123 +431,32 @@ function actualizarResumen() {
     });
     const g = NIVELES[globalNivel];
 
-    const items = activas.map(a => {
-        const info = NIVELES[a.nivel];
-        return `<div>${info.emoji} <strong>${escapeHtml(a.zona)}</strong> · ${info.label} · ${a.min} min</div>`;
-    }).join("");
-
     el.innerHTML = `
         <strong>📊 Resumen (${activas.length} zona${activas.length > 1 ? "s" : ""} activa${activas.length > 1 ? "s" : ""})</strong>
-        <div style="margin-top:6px;">${items}</div>
+        <div style="margin-top:6px;">${activas.map(a => `<div>${NIVELES[a.nivel].emoji} <strong>${escapeHtml(a.zona)}</strong> · ${NIVELES[a.nivel].label} · ${a.min} min</div>`).join("")}</div>
         <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);">
-            Global: ${g.emoji} <strong>${g.label}</strong> ·
-            🔴 ${cnt.roja} · 🟠 ${cnt.naranja} · 🟡 ${cnt.amarilla} · 🟢 ${cnt.verde}
+            Global: ${g.emoji} <strong>${g.label}</strong> · 🔴 ${cnt.roja} · 🟠 ${cnt.naranja} · 🟡 ${cnt.amarilla} · 🟢 ${cnt.verde}
         </div>
     `;
 }
 
 // ------------------------------------------------------------
-//  Acciones
+//  Acciones Globales
 // ------------------------------------------------------------
-function resetearTodo() {
-    confirmar("Resetear a VERDE", `¿Desactivar TODOS los niveles y dejar las 4 zonas en VERDE?`, () => {
+function resetearTodoGlobal() {
+    confirmar("Resetear Todo", `¿Desactivar TODOS los niveles y dejar las 4 zonas en VERDE?`, () => {
         ZONAS.forEach(z => NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = false));
-        renderZonas();
-        actualizarResumen();
+        renderZonas(); actualizarResumen();
         escribirStatus("✅ Todo reseteado a VERDE");
+        autoPublicar();
     });
-}
-
-function descargarJSON() {
-    const estado = construirEstado();
-    const json = JSON.stringify(estado, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "estado.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    escribirStatus("✅ estado.json descargado.");
-}
-
-async function copiarJSON() {
-    try {
-        await navigator.clipboard.writeText(JSON.stringify(construirEstado(), null, 2));
-        escribirStatus("✅ JSON copiado al portapapeles");
-    } catch (e) {
-        escribirStatus("❌ No se pudo copiar. Usa 'Descargar'.", "err");
-    }
-}
-
-function togglePreview() {
-    const campos = document.getElementById("pa-mi-campos");
-    const toggle = document.getElementById("pa-mi-toggle");
-    const visible = campos.style.display !== "none";
-
-    if (visible) {
-        campos.style.display = "none";
-        toggle.textContent = "▸ 👁️ Vista previa del JSON (opcional)";
-    } else {
-        campos.style.display = "block";
-        toggle.textContent = "▾ 👁️ Vista previa del JSON (opcional)";
-        document.getElementById("pa-json-preview").textContent = JSON.stringify(construirEstado(), null, 2);
-    }
-}
-
-async function cargarEstado() {
-    const dot = document.getElementById("pa-dot");
-    const txt = document.getElementById("pa-carga-texto");
-
-    try {
-        const res = await fetch(`${ESTADO_URL}?t=${Date.now()}`, { cache: "no-store" });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const data = await res.json();
-
-        ZONAS.forEach(z => {
-            const sec = (data.sectores || []).find(s => s.nombre === z.nombre);
-            if (sec && sec.nivel !== "VERDE") {
-                const nivel = sec.nivel;
-                if (NIVELES_ACTIVABLES.includes(nivel)) {
-                    borrador[z.id][nivel].activo = true;
-                    if (sec.inicio && sec.fin) {
-                        borrador[z.id][nivel].min = Math.max(1, Math.round(
-                            (parseFechaPeru(sec.fin) - parseFechaPeru(sec.inicio)) / 60000
-                        ));
-                    }
-                }
-            }
-        });
-
-        dot.className = "pa-dot pa-ok";
-        txt.textContent = `estado.json cargado (${data.actualizado || "sin fecha"})`;
-        escribirStatus("✅ estado.json cargado");
-    } catch (e) {
-        console.warn("No se pudo cargar estado.json:", e);
-        dot.className = "pa-dot pa-err";
-        txt.textContent = "estado.json no encontrado — se iniciará desde VERDE";
-        escribirStatus("⚠️ No se cargó estado.json (se creará uno nuevo)", "warn");
-    }
-
-    renderZonas();
-    actualizarResumen();
 }
 
 function escribirStatus(msg, tipo = "ok") {
     const el = document.getElementById("status-bar");
-    el.textContent = msg;
-    el.className = "status-bar status-" + tipo;
+    el.textContent = msg; el.className = "status-bar status-" + tipo;
     clearTimeout(escribirStatus._t);
-    escribirStatus._t = setTimeout(() => {
-        el.textContent = "";
-        el.className = "status-bar";
-    }, 6000);
-}
-
-function escapeHtml(txt) {
-    return String(txt || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    escribirStatus._t = setTimeout(() => { el.textContent = ""; el.className = "status-bar"; }, 6000);
 }
 
 function confirmar(titulo, mensajeHtml, onAceptar) {
@@ -804,156 +465,132 @@ function confirmar(titulo, mensajeHtml, onAceptar) {
     document.getElementById("modal-mensaje").innerHTML = mensajeHtml;
     document.getElementById("modal-icon").textContent = "❓";
     modal.classList.add("modal-visible");
-
     const btnA = document.getElementById("modal-btn-aceptar");
     const btnC = document.getElementById("modal-btn-cancelar");
-    const nuevoA = btnA.cloneNode(true);
-    const nuevoC = btnC.cloneNode(true);
-    btnA.replaceWith(nuevoA);
-    btnC.replaceWith(nuevoC);
-
+    const nuevoA = btnA.cloneNode(true); const nuevoC = btnC.cloneNode(true);
+    btnA.replaceWith(nuevoA); btnC.replaceWith(nuevoC);
     const cerrar = () => modal.classList.remove("modal-visible");
     nuevoC.addEventListener("click", cerrar);
-    nuevoA.addEventListener("click", () => {
-        cerrar();
-        try { onAceptar(); } catch (e) { escribirStatus("❌ Error: " + e.message, "err"); }
-    });
+    nuevoA.addEventListener("click", () => { cerrar(); try { onAceptar(); } catch (e) { escribirStatus("❌ Error: " + e.message, "err"); } });
 }
 
 // ------------------------------------------------------------
-//  GitHub (Lógica)
+//  Carga inicial
 // ------------------------------------------------------------
-function cargarConfigGH() { try { return JSON.parse(localStorage.getItem(GH_STORAGE_KEY)); } catch { return null; } }
-function guardarConfigGH(owner, repo, path) { try { localStorage.setItem(GH_STORAGE_KEY, JSON.stringify({ owner, repo, path })); } catch {} }
+async function cargarEstado() {
+    const dot = document.getElementById("pa-dot");
+    const txt = document.getElementById("pa-carga-texto");
+    try {
+        const res = await fetch(`${ESTADO_URL}?t=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        ZONAS.forEach(z => {
+            const sec = (data.sectores || []).find(s => s.nombre === z.nombre);
+            if (sec && sec.nivel !== "VERDE" && NIVELES_ACTIVABLES.includes(sec.nivel)) {
+                borrador[z.id][sec.nivel].activo = true;
+                if (sec.inicio && sec.fin) borrador[z.id][sec.nivel].min = Math.max(1, Math.round((parseFechaPeru(sec.fin) - parseFechaPeru(sec.inicio)) / 60000));
+            }
+        });
+        dot.className = "pa-dot pa-ok"; txt.textContent = `estado.json cargado`;
+    } catch (e) {
+        dot.className = "pa-dot pa-err"; txt.textContent = "estado.json no encontrado — inicia desde VERDE";
+    }
+    renderZonas(); actualizarResumen();
+}
+
+// ------------------------------------------------------------
+//  GitHub (Publicar con Token Oculto)
+// ------------------------------------------------------------
 function ghStatus(msg, tipo = "info") {
     const el = document.getElementById("pa-gh-status");
     if (el) { el.textContent = msg; el.className = "pa-gh-status pa-" + tipo; }
 }
-
-function inicializarInputsGH() {
-    const saved = cargarConfigGH();
-    document.getElementById("gh-owner").value = saved?.owner || GH_DEFAULT_OWNER;
-    document.getElementById("gh-repo").value  = saved?.repo  || GH_DEFAULT_REPO;
-    document.getElementById("gh-path").value  = saved?.path  || GH_DEFAULT_PATH;
-
-    const inputToken = document.getElementById("gh-token");
-    const btnOjo = document.getElementById("gh-toggle-ojo");
-    btnOjo.addEventListener("click", () => {
-        inputToken.type = inputToken.type === "password" ? "text" : "password";
-        btnOjo.textContent = inputToken.type === "password" ? "👁️" : "🙈";
-    });
-}
-
 function utf8ToBase64(str) {
     const bytes = new TextEncoder().encode(str);
-    let bin = "";
-    for (const b of bytes) bin += String.fromCharCode(b);
+    let bin = ""; for (const b of bytes) bin += String.fromCharCode(b);
     return btoa(bin);
 }
-
-async function obtenerSHAactual(owner, repo, path, token) {
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
-    const res = await fetch(url, { headers: { "Authorization": `Bearer ${token}`, "Accept": "application/vnd.github+json" } });
+async function obtenerSHAactual() {
+    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(GH_PATH)}`;
+    const res = await fetch(url, { headers: { "Authorization": `Bearer ${GITHUB_PAT}`, "Accept": "application/vnd.github+json" } });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`GET ${res.status}`);
     const data = await res.json();
     return data.sha || null;
 }
 
-async function subirAGitHub(owner, repo, path, token) {
-    const json = JSON.stringify(construirEstado(), null, 2);
-    const contenidoB64 = utf8ToBase64(json);
+let publicando = false; // Evita doble publicación
+async function subirAGitHub() {
+    if (publicando) return;
+    publicando = true;
 
-    ghStatus("🔍 Verificando archivo remoto…", "info");
-    const sha = await obtenerSHAactual(owner, repo, path, token);
+    const btn = document.getElementById("pa-btn-publicar");
+    btn.disabled = true; btn.classList.add("pa-publicando"); btn.innerHTML = "⏳ Publicando…";
 
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
-    const body = {
-        message: `🔔 estado.json actualizado — ${new Date().toLocaleString("es-PE")}`,
-        content: contenidoB64,
-        branch: "main"
-    };
-    if (sha) body.sha = sha;
+    try {
+        if (!GITHUB_PAT || !GITHUB_PAT.startsWith("gh")) throw new Error("Falta configurar el GITHUB_PAT en el código.");
+        
+        const json = JSON.stringify(construirEstado(), null, 2);
+        const contenidoB64 = utf8ToBase64(json);
+        ghStatus("🔍 Verificando archivo remoto…", "info");
+        
+        const sha = await obtenerSHAactual();
+        const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(GH_PATH)}`;
+        const body = { message: `🔔 estado.json actualizado — ${new Date().toLocaleString("es-PE")}`, content: contenidoB64, branch: GH_BRANCH };
+        if (sha) body.sha = sha;
 
-    ghStatus("🚀 Publicando en GitHub…", "info");
-    const res = await fetch(url, {
-        method: "PUT",
-        headers: { "Authorization": `Bearer ${token}`, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-    });
+        ghStatus("🚀 Publicando en GitHub…", "info");
+        const res = await fetch(url, {
+            method: "PUT",
+            headers: { "Authorization": `Bearer ${GITHUB_PAT}`, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
 
-    if (res.status === 409) {
-        ghStatus("⚠️ Conflicto, reintentando…", "info");
-        const shaNuevo = await obtenerSHAactual(owner, repo, path, token);
-        if (shaNuevo) {
-            body.sha = shaNuevo;
-            const res2 = await fetch(url, {
-                method: "PUT",
-                headers: { "Authorization": `Bearer ${token}`, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
-                body: JSON.stringify(body)
-            });
-            if (!res2.ok) throw new Error(`PUT ${res2.status}`);
-            return await res2.json();
+        if (!res.ok) {
+            if (res.status === 401) throw new Error("Token inválido (401).");
+            if (res.status === 403) throw new Error("Sin permisos (403).");
+            if (res.status === 404) throw new Error("Repo/Path no encontrado (404).");
+            throw new Error(`PUT ${res.status}`);
         }
+
+        ghStatus("✅ Publicado en GitHub.", "ok");
+        escribirStatus("✅ Publicado. GitHub Pages se actualizará pronto.", "ok");
+    } catch (e) {
+        ghStatus("❌ " + e.message, "err");
+        escribirStatus("❌ " + e.message, "err");
+    } finally {
+        btn.disabled = false; btn.classList.remove("pa-publicando"); btn.innerHTML = "🚀 PUBLICAR EN GITHUB";
+        publicando = false;
     }
-    if (!res.ok) {
-        if (res.status === 401) throw new Error("Token inválido (401).");
-        if (res.status === 403) throw new Error("Sin permisos (403).");
-        if (res.status === 404) throw new Error("Repo/Path no encontrado (404).");
-        throw new Error(`PUT ${res.status}`);
-    }
-    return await res.json();
 }
 
-async function onClickPublicar() {
-    const owner = document.getElementById("gh-owner").value.trim();
-    const repo  = document.getElementById("gh-repo").value.trim();
-    const path  = document.getElementById("gh-path").value.trim();
-    const token = document.getElementById("gh-token").value.trim();
-    const recordar = document.getElementById("gh-recordar").checked;
-
-    if (!owner || !repo || !path) return ghStatus("⚠️ Completa owner, repo y ruta.", "err");
-    if (!token || !token.startsWith("gh")) return ghStatus("⚠️ PAT inválido.", "err");
-
+function onClickPublicar() {
     const r = construirEstado().resumen;
     confirmar("🚀 Publicar en GitHub", 
-        `<div>Publicar en: <strong>${escapeHtml(owner)}/${escapeHtml(repo)} → ${escapeHtml(path)}</strong></div>` +
+        `<div>Se publicará el estado actual en el repositorio.</div>` +
         `<div style="margin-top:8px;">🔴 ${r.roja} · 🟠 ${r.naranja} · 🟡 ${r.amarilla} · 🟢 ${r.verde}</div>`, 
-        async () => {
-        const btn = document.getElementById("pa-btn-publicar");
-        btn.disabled = true;
-        btn.classList.add("pa-publicando");
-        btn.innerHTML = "⏳ Publicando…";
+        async () => { await subirAGitHub(); }
+    );
+}
 
-        try {
-            if (recordar) guardarConfigGH(owner, repo, path);
-            await subirAGitHub(owner, repo, path, token);
-            ghStatus("✅ Publicado en GitHub.", "ok");
-            escribirStatus("✅ Publicado. GitHub Pages tarda ~30–90s.", "ok");
-        } catch (e) {
-            ghStatus("❌ " + e.message, "err");
-            escribirStatus("❌ " + e.message, "err");
-        } finally {
-            btn.disabled = false;
-            btn.classList.remove("pa-publicando");
-            btn.innerHTML = "🚀 PUBLICAR EN GITHUB";
-        }
-    });
+function autoPublicar() {
+    const isAuto = document.getElementById("auto-publish-toggle").checked;
+    if (isAuto) {
+        ghStatus("⏳ Auto-publicando...", "info");
+        // Pequeño delay para agrupar clics rápidos
+        clearTimeout(autoPublicar._t);
+        autoPublicar._t = setTimeout(() => { subirAGitHub(); }, 800);
+    }
 }
 
 // ------------------------------------------------------------
 //  Arranque
 // ------------------------------------------------------------
-document.getElementById("pa-btn-descargar").addEventListener("click", descargarJSON);
-document.getElementById("pa-btn-copiar").addEventListener("click", copiarJSON);
-document.getElementById("pa-btn-reset").addEventListener("click", resetearTodo);
-document.getElementById("pa-mi-toggle").addEventListener("click", togglePreview);
+document.getElementById("pa-btn-reset-global").addEventListener("click", resetearTodoGlobal);
 document.getElementById("pa-btn-publicar").addEventListener("click", onClickPublicar);
-
 document.getElementById("btn-volver-admin").addEventListener("click", () => window.location.href = "./admin.html");
 document.getElementById("btn-logout-keraunos").addEventListener("click", () => window.location.href = "./admin.html");
 
-inicializarInputsGH();
 cargarEstado();
 </script>
 </body>
