@@ -119,6 +119,22 @@
     font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85); cursor: pointer; user-select: none;
 }
 
+/* ---------- GitHub Input Section ---------- */
+.pa-gh-section {
+    margin: 18px 0 10px; padding: 16px; border-radius: 12px;
+    background: rgba(0,0,0,0.25); border: 1.5px solid rgba(255,255,255,0.08);
+}
+.pa-gh-titulo { font-size: 13px; font-weight: 700; color: #7dc8ff; letter-spacing: 1px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.pa-gh-input-wrap { position: relative; display: flex; align-items: center; }
+.pa-gh-input-wrap input { padding-right: 44px !important; }
+.pa-gh-toggle-ojo { position: absolute; right: 8px; background: transparent; border: none; color: rgba(255,255,255,0.6); font-size: 16px; cursor: pointer; padding: 4px 6px; line-height: 1; font-family: inherit; }
+.pa-gh-toggle-ojo:hover { color: #fff; }
+
+.pa-gh-status { margin-top: 10px; font-size: 12px; text-align: center; min-height: 18px; color: rgba(255,255,255,0.7); transition: color 0.3s; line-height: 1.4; }
+.pa-gh-status.pa-ok   { color: #2ecc71; font-weight: 700; }
+.pa-gh-status.pa-err  { color: #ff6b5b; font-weight: 700; }
+.pa-gh-status.pa-info { color: #7dc8ff; }
+
 /* ---------- Header Actions ---------- */
 .pa-header-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
 .pa-btn-header-secondary {
@@ -127,11 +143,6 @@
     font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s, transform 0.15s;
 }
 .pa-btn-header-secondary:hover { background: rgba(255,255,255,0.18); transform: translateY(-1px); }
-
-.pa-gh-status { margin-top: 10px; font-size: 12px; text-align: center; min-height: 18px; color: rgba(255,255,255,0.7); transition: color 0.3s; line-height: 1.4; }
-.pa-gh-status.pa-ok   { color: #2ecc71; font-weight: 700; }
-.pa-gh-status.pa-err  { color: #ff6b5b; font-weight: 700; }
-.pa-gh-status.pa-info { color: #7dc8ff; }
 
 @media (max-width: 560px) {
     #panel-container.admin-panel-wide { max-width: 100%; }
@@ -189,10 +200,28 @@
         <label for="auto-publish-toggle">Auto-publicar al cambiar (Publica solo)</label>
     </div>
 
-    <!-- Botón Publicar Manual -->
+    <!-- ============================================================
+         SECCIÓN GITHUB (Token Visible)
+         ============================================================ -->
+    <section class="pa-gh-section">
+        <div class="pa-gh-titulo">🐙 PUBLICAR EN GITHUB (PAT)</div>
+
+        <div class="form-group">
+            <label for="gh-token">🔑 GitHub PAT (Personal Access Token)</label>
+            <div class="pa-gh-input-wrap">
+                <input type="password" id="gh-token" placeholder="Pega tu token aquí (ghp_...)" autocomplete="off">
+                <button type="button" class="pa-gh-toggle-ojo" id="gh-toggle-ojo" aria-label="Mostrar/ocultar token">👁️</button>
+            </div>
+            <small style="display:block;margin-top:6px;color:rgba(255,255,255,0.5);font-size:11px;">
+                El token solo vive en memoria. Scope necesario: <strong>repo</strong>.
+            </small>
+        </div>
+
+        <div class="pa-gh-status" id="pa-gh-status"></div>
+    </section>
+
     <button type="button" class="pa-btn-publicar" id="pa-btn-publicar">🚀 PUBLICAR EN GITHUB</button>
 
-    <div class="pa-gh-status" id="pa-gh-status"></div>
     <div class="status-bar" id="status-bar"></div>
 </div>
 
@@ -213,13 +242,9 @@
      JAVASCRIPT
      ============================================================ -->
 <script>
-// ============================================================
-//  CONFIGURACIÓN (A NIVEL DE CÓDIGO)
-// ============================================================
-// ⚠️ PEGA TU TOKEN AQUÍ ABAJO (reemplaza el texto entre comillas):
-const GITHUB_PAT = "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"; 
-// ============================================================
-
+// ------------------------------------------------------------
+//  Constantes y Configuración Fija
+// ------------------------------------------------------------
 const GH_OWNER = "antito-yanac";
 const GH_REPO  = "sara";
 const GH_PATH  = "estado.json";
@@ -499,7 +524,7 @@ async function cargarEstado() {
 }
 
 // ------------------------------------------------------------
-//  GitHub (Publicar con Token Oculto)
+//  GitHub (Publicar con Token)
 // ------------------------------------------------------------
 function ghStatus(msg, tipo = "info") {
     const el = document.getElementById("pa-gh-status");
@@ -510,9 +535,9 @@ function utf8ToBase64(str) {
     let bin = ""; for (const b of bytes) bin += String.fromCharCode(b);
     return btoa(bin);
 }
-async function obtenerSHAactual() {
+async function obtenerSHAactual(token) {
     const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(GH_PATH)}`;
-    const res = await fetch(url, { headers: { "Authorization": `Bearer ${GITHUB_PAT}`, "Accept": "application/vnd.github+json" } });
+    const res = await fetch(url, { headers: { "Authorization": `Bearer ${token}`, "Accept": "application/vnd.github+json" } });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`GET ${res.status}`);
     const data = await res.json();
@@ -522,19 +547,24 @@ async function obtenerSHAactual() {
 let publicando = false; // Evita doble publicación
 async function subirAGitHub() {
     if (publicando) return;
-    publicando = true;
 
+    const tokenInput = document.getElementById("gh-token");
+    const token = tokenInput ? tokenInput.value.trim() : "";
+
+    if (!token || !token.startsWith("gh")) {
+        return ghStatus("⚠️ PAT inválido o vacío. Pega tu token en el campo.", "err");
+    }
+
+    publicando = true;
     const btn = document.getElementById("pa-btn-publicar");
     btn.disabled = true; btn.classList.add("pa-publicando"); btn.innerHTML = "⏳ Publicando…";
 
     try {
-        if (!GITHUB_PAT || !GITHUB_PAT.startsWith("gh")) throw new Error("Falta configurar el GITHUB_PAT en el código.");
-        
         const json = JSON.stringify(construirEstado(), null, 2);
         const contenidoB64 = utf8ToBase64(json);
         ghStatus("🔍 Verificando archivo remoto…", "info");
         
-        const sha = await obtenerSHAactual();
+        const sha = await obtenerSHAactual(token);
         const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(GH_PATH)}`;
         const body = { message: `🔔 estado.json actualizado — ${new Date().toLocaleString("es-PE")}`, content: contenidoB64, branch: GH_BRANCH };
         if (sha) body.sha = sha;
@@ -542,14 +572,14 @@ async function subirAGitHub() {
         ghStatus("🚀 Publicando en GitHub…", "info");
         const res = await fetch(url, {
             method: "PUT",
-            headers: { "Authorization": `Bearer ${GITHUB_PAT}`, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
+            headers: { "Authorization": `Bearer ${token}`, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
             body: JSON.stringify(body)
         });
 
         if (!res.ok) {
-            if (res.status === 401) throw new Error("Token inválido (401).");
-            if (res.status === 403) throw new Error("Sin permisos (403).");
-            if (res.status === 404) throw new Error("Repo/Path no encontrado (404).");
+            if (res.status === 401) throw new Error("Token inválido o expirado (401).");
+            if (res.status === 403) throw new Error("Sin permisos. Verifica el scope 'repo' (403).");
+            if (res.status === 404) throw new Error("Repo/Path no encontrado (404). Verifica el nombre del repositorio.");
             throw new Error(`PUT ${res.status}`);
         }
 
@@ -565,6 +595,12 @@ async function subirAGitHub() {
 }
 
 function onClickPublicar() {
+    const tokenInput = document.getElementById("gh-token");
+    const token = tokenInput ? tokenInput.value.trim() : "";
+    if (!token || !token.startsWith("gh")) {
+        return ghStatus("⚠️ PAT inválido o vacío. Pega tu token en el campo.", "err");
+    }
+
     const r = construirEstado().resumen;
     confirmar("🚀 Publicar en GitHub", 
         `<div>Se publicará el estado actual en el repositorio.</div>` +
@@ -590,6 +626,13 @@ document.getElementById("pa-btn-reset-global").addEventListener("click", resetea
 document.getElementById("pa-btn-publicar").addEventListener("click", onClickPublicar);
 document.getElementById("btn-volver-admin").addEventListener("click", () => window.location.href = "./admin.html");
 document.getElementById("btn-logout-keraunos").addEventListener("click", () => window.location.href = "./admin.html");
+
+const inputToken = document.getElementById("gh-token");
+const btnOjo = document.getElementById("gh-toggle-ojo");
+btnOjo.addEventListener("click", () => {
+    inputToken.type = inputToken.type === "password" ? "text" : "password";
+    btnOjo.textContent = inputToken.type === "password" ? "👁️" : "🙈";
+});
 
 cargarEstado();
 </script>
