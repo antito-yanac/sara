@@ -1,13 +1,13 @@
 {
-  "actualizado": "2026-10-28T22:38:50.208Z",
-  "estadoGlobal": "VERDE",
-  "estadoGlobalNumero": 0,
+  "actualizado": "2026-10-29T02:32:56.029Z",
+  "estadoGlobal": "AMARILLA",
+  "estadoGlobalNumero": 1,
   "totalSectores": 4,
   "resumen": {
     "roja": 0,
     "naranja": 0,
-    "amarilla": 0,
-    "verde": 4
+    "amarilla": 1,
+    "verde": 3
   },
   "sectores": [
     {
@@ -15,7 +15,7 @@
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": "2026-10-28 17:38:50",
+      "inicio": "2026-10-28 21:32:56",
       "fin": null
     },
     {
@@ -23,25 +23,42 @@
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": "2026-10-28 17:38:50",
+      "inicio": "2026-10-28 21:32:56",
       "fin": null
     },
     {
       "nombre": "Tucush  - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa)",
-      "nivel": "VERDE",
-      "nivelNumero": 0,
-      "color": "#2ECC71",
-      "inicio": "2026-10-28 17:38:50",
-      "fin": null
+      "nivel": "AMARILLA",
+      "nivelNumero": 1,
+      "color": "#FFD400",
+      "inicio": "2026-10-28 21:31:27",
+      "fin": "2026-10-28 21:46:27"
     },
     {
       "nombre": "Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)",
       "nivel": "VERDE",
       "nivelNumero": 0,
       "color": "#2ECC71",
-      "inicio": "2026-10-28 17:38:50",
+      "inicio": "2026-10-28 21:32:56",
       "fin": null
     }
   ],
-  "alertas": []
+  "alertas": [
+    {
+      "sectorOriginal": "Tucush  - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa)",
+      "nivelScraper": "AMARILLA",
+      "nivel": "amarilla",
+      "distrito": "Zona 3 - Tucush",
+      "lat": -9.5263487,
+      "lng": -77.0485794,
+      "duracionMin": 15,
+      "timestampInicio": 1793241087000,
+      "inicio": "2026-10-28 21:31:27",
+      "fin": "2026-10-28 21:46:27",
+      "color": "#FFD400",
+      "emoji": "🟡",
+      "titulo": "⚡ ALERTA AMARILLA — Tucush  - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa)",
+      "mensaje": "Actividad eléctrica detectada en Tucush  - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa) (Zona 3 - Tucush). Nivel AMARILLA. Inicio: 2026-10-28 21:31:27. Fin previsto: 2026-10-28 21:46:27."
+    }
+  ]
 }
