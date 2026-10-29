@@ -159,7 +159,7 @@
 
     <div class="admin-header">
         <h1><span class="icon">🔔</span> Editor estado.json</h1>
-        <p>Configura el nivel y la duración de cada zona. Publica directo a GitHub.</p>
+        <p>Configura el nivel y la duración de cada zona. Envía alertas al instante.</p>
         <div class="pa-modo-badge">⚙️ MODO MANUAL KERAUNOS</div>
 
         <div class="pa-header-actions">
@@ -194,17 +194,21 @@
         🔄 RESETEAR TODO A VERDE
     </button>
 
-    <!-- Toggle Auto-Publicar -->
-    <div class="pa-auto-publish">
-        <input type="checkbox" id="auto-publish-toggle">
-        <label for="auto-publish-toggle">Auto-publicar al cambiar (Publica solo)</label>
-    </div>
+    <!-- ============================================================
+         BOTÓN DE ENVÍO INSTANTÁNEO A FIRESTORE
+         ============================================================ -->
+    <button type="button" class="pa-btn-publicar" id="pa-btn-enviar-firestore" style="background: linear-gradient(135deg, #e67e22, #b9530f);">
+        🚀 ENVIAR ALERTA (Firestore)
+    </button>
+    <p style="text-align:center; font-size:11px; color:rgba(255,255,255,0.5); margin-top:-15px; margin-bottom:20px;">
+        (Notifica al instante a todos los usuarios públicos. No espera a GitHub Pages).
+    </p>
 
     <!-- ============================================================
-         SECCIÓN GITHUB (Token Visible)
+         SECCIÓN GITHUB (Token Visible) - Opcional
          ============================================================ -->
     <section class="pa-gh-section">
-        <div class="pa-gh-titulo">🐙 PUBLICAR EN GITHUB (PAT)</div>
+        <div class="pa-gh-titulo">🐙 PUBLICAR EN GITHUB (PAT) - Opcional</div>
 
         <div class="form-group">
             <label for="gh-token">🔑 GitHub PAT (Personal Access Token)</label>
@@ -213,7 +217,7 @@
                 <button type="button" class="pa-gh-toggle-ojo" id="gh-toggle-ojo" aria-label="Mostrar/ocultar token">👁️</button>
             </div>
             <small style="display:block;margin-top:6px;color:rgba(255,255,255,0.5);font-size:11px;">
-                El token solo vive en memoria. Scope necesario: <strong>repo</strong>.
+                Usar solo si quieres actualizar el archivo estado.json en GitHub.
             </small>
         </div>
 
@@ -241,7 +245,11 @@
 <!-- ============================================================
      JAVASCRIPT
      ============================================================ -->
-<script>
+<script type="module">
+// Importar funciones de mensajes y firebase
+import { enviarMensajePush } from "./js/mensajes.js";
+import { inicializarFirebase } from "./js/notifications.js";
+
 // ------------------------------------------------------------
 //  Constantes y Configuración Fija
 // ------------------------------------------------------------
@@ -315,7 +323,7 @@ function escapeHtml(txt) {
 }
 
 // ------------------------------------------------------------
-//  Generar JSON
+//  Generar JSON (para GitHub)
 // ------------------------------------------------------------
 function construirEstado() {
     const ahora = fechaPeru();
@@ -402,14 +410,13 @@ function renderZonas() {
         card.querySelector(".pa-na-check").addEventListener("click", () => {
             if (nivelActivoDeZona(z.id) !== "VERDE") NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = false);
             else borrador[z.id].AMARILLA.activo = true;
-            renderZonas(); actualizarResumen(); autoPublicar();
+            renderZonas(); actualizarResumen();
         });
 
         card.querySelector(".pa-btn-reset-zona").addEventListener("click", () => {
             NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = false);
             renderZonas(); actualizarResumen();
             escribirStatus(`🔄 Zona ${shortKey} reseteada a Verde.`);
-            autoPublicar();
         });
 
         card.querySelectorAll(".pa-pill").forEach(btn => {
@@ -417,7 +424,7 @@ function renderZonas() {
                 const nivel = btn.dataset.nivel;
                 const isSame = borrador[z.id][nivel].activo;
                 NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = (n === nivel && !isSame));
-                renderZonas(); actualizarResumen(); autoPublicar();
+                renderZonas(); actualizarResumen();
             });
         });
 
@@ -425,7 +432,7 @@ function renderZonas() {
             let v = parseInt(e.target.value, 10);
             if (isNaN(v) || v < 1) v = 1; if (v > 1440) v = 1440;
             NIVELES_ACTIVABLES.forEach(n => { if (borrador[z.id][n].activo) borrador[z.id][n].min = v; });
-            actualizarResumen(); autoPublicar();
+            actualizarResumen();
         });
 
         cont.appendChild(card);
@@ -473,7 +480,6 @@ function resetearTodoGlobal() {
         ZONAS.forEach(z => NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = false));
         renderZonas(); actualizarResumen();
         escribirStatus("✅ Todo reseteado a VERDE");
-        autoPublicar();
     });
 }
 
@@ -524,7 +530,57 @@ async function cargarEstado() {
 }
 
 // ------------------------------------------------------------
-//  GitHub (Publicar con Token)
+//  Envío a Firestore (INSTANTÁNEO)
+// ------------------------------------------------------------
+async function enviarAlertaFirestore() {
+    const btn = document.getElementById("pa-btn-enviar-firestore");
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Enviando...";
+
+    try {
+        // 1. Inicializar Firebase
+        await inicializarFirebase();
+        
+        // 2. Construir el estado actual
+        const estado = construirEstado();
+        
+        // 3. Enviar cada alerta activa a Firestore
+        let enviadas = 0;
+        for (const alerta of estado.alertas) {
+            await enviarMensajePush(
+                alerta.titulo,
+                alerta.mensaje,
+                {
+                    tipo: "alerta",
+                    nivel: alerta.nivel,
+                    distrito: alerta.distrito,
+                    lat: alerta.lat,
+                    lng: alerta.lng,
+                    duracionMin: alerta.duracionMin,
+                    timestampInicio: alerta.timestampInicio,
+                    sectorOriginal: alerta.sectorOriginal,
+                    origen: "scraper" // Se envía como scraper para que index.html lo procese
+                }
+            );
+            enviadas++;
+        }
+
+        if (enviadas > 0) {
+            escribirStatus(`✅ ${enviadas} alerta(s) enviada(s) a Firestore (Instantáneo).`, "ok");
+        } else {
+            escribirStatus("⚠️ No hay zonas activas para enviar.", "warn");
+        }
+    } catch (e) {
+        console.error("Error enviando a Firestore:", e);
+        escribirStatus("❌ Error al enviar: " + e.message, "err");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = "🚀 ENVIAR ALERTA (Firestore)";
+    }
+}
+
+// ------------------------------------------------------------
+//  GitHub (Publicar)
 // ------------------------------------------------------------
 function ghStatus(msg, tipo = "info") {
     const el = document.getElementById("pa-gh-status");
@@ -544,7 +600,7 @@ async function obtenerSHAactual(token) {
     return data.sha || null;
 }
 
-let publicando = false; // Evita doble publicación
+let publicando = false;
 async function subirAGitHub() {
     if (publicando) return;
 
@@ -579,7 +635,7 @@ async function subirAGitHub() {
         if (!res.ok) {
             if (res.status === 401) throw new Error("Token inválido o expirado (401).");
             if (res.status === 403) throw new Error("Sin permisos. Verifica el scope 'repo' (403).");
-            if (res.status === 404) throw new Error("Repo/Path no encontrado (404). Verifica el nombre del repositorio.");
+            if (res.status === 404) throw new Error("Repo/Path no encontrado (404).");
             throw new Error(`PUT ${res.status}`);
         }
 
@@ -594,36 +650,12 @@ async function subirAGitHub() {
     }
 }
 
-function onClickPublicar() {
-    const tokenInput = document.getElementById("gh-token");
-    const token = tokenInput ? tokenInput.value.trim() : "";
-    if (!token || !token.startsWith("gh")) {
-        return ghStatus("⚠️ PAT inválido o vacío. Pega tu token en el campo.", "err");
-    }
-
-    const r = construirEstado().resumen;
-    confirmar("🚀 Publicar en GitHub", 
-        `<div>Se publicará el estado actual en el repositorio.</div>` +
-        `<div style="margin-top:8px;">🔴 ${r.roja} · 🟠 ${r.naranja} · 🟡 ${r.amarilla} · 🟢 ${r.verde}</div>`, 
-        async () => { await subirAGitHub(); }
-    );
-}
-
-function autoPublicar() {
-    const isAuto = document.getElementById("auto-publish-toggle").checked;
-    if (isAuto) {
-        ghStatus("⏳ Auto-publicando...", "info");
-        // Pequeño delay para agrupar clics rápidos
-        clearTimeout(autoPublicar._t);
-        autoPublicar._t = setTimeout(() => { subirAGitHub(); }, 800);
-    }
-}
-
 // ------------------------------------------------------------
 //  Arranque
 // ------------------------------------------------------------
 document.getElementById("pa-btn-reset-global").addEventListener("click", resetearTodoGlobal);
-document.getElementById("pa-btn-publicar").addEventListener("click", onClickPublicar);
+document.getElementById("pa-btn-enviar-firestore").addEventListener("click", enviarAlertaFirestore);
+document.getElementById("pa-btn-publicar").addEventListener("click", subirAGitHub);
 document.getElementById("btn-volver-admin").addEventListener("click", () => window.location.href = "./admin.html");
 document.getElementById("btn-logout-keraunos").addEventListener("click", () => window.location.href = "./admin.html");
 
