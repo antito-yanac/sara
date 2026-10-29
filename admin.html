@@ -436,9 +436,15 @@
     <div class="admin-header">
         <h1><span class="icon">🔔</span> Panel de Alertas</h1>
         <p>Configura y envía alertas meteorológicas por sector</p>
-        <button type="button" class="btn btn-cancelar" id="btn-logout" style="margin-top:12px;">
-            🚪 Cerrar sesión
-        </button>
+        
+        <div style="display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-cancelar" id="btn-logout" style="flex:1; min-width:140px;">
+                🚪 Cerrar sesión
+            </button>
+            <button type="button" class="btn btn-enviar" id="btn-keraunos-manual" style="flex:1; min-width:140px; background: #2ecc71; color: white;">
+                ⚙️ Keraunos Manual
+            </button>
+        </div>
     </div>
 
     <!-- Sección: Alertas activas -->
@@ -509,5 +515,13 @@
 
 <script type="module" src="js/admin.js"></script>
 <script type="module" src="js/panico-admin.js"></script>
+
+<!-- Script para el botón Keraunos Manual -->
+<script>
+document.getElementById("btn-keraunos-manual")?.addEventListener("click", () => {
+    window.location.href = "./adminkeraunos.html";
+});
+</script>
+
 </body>
 </html>
