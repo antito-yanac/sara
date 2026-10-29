@@ -1,13 +1,9 @@
 //======================================================
-// Buscador Lugares Antamina 2026
-// Archivo principal
-// v4: en modo "keraunos" (keraunos.html) NO carga lugares.json
-//     ni el buscador. Solo crea el mapa, pinta zonas2.json y
-//     arranca estado-cliente para leer estado.json.
+// App principal Antamina 2026
+// v5: Eliminadas todas las referencias a lugares.json, 
+//     lugares.kml, buscador y filtros.
 //======================================================
 
-import { cargarLugares } from "./data.js";
-import { crearBuscador, teclado } from "./search.js";
 import { crearMapa } from "./map.js";
 import { inicializarFirebase } from "./notifications.js";
 import { escucharMensajesPush } from "./mensajes.js";
@@ -26,41 +22,18 @@ const CONFIG = window.__APP_CONFIG__ || {
 console.log(`[app] modo: ${CONFIG.modo} | zonas: ${CONFIG.zonasFile} | filtro: ${CONFIG.origenFiltro}`);
 
 //======================================================
-// Referencias HTML
-//======================================================
-
-const input = document.getElementById("search");
-const stats = document.getElementById("stats");
-const results = document.getElementById("results");
-
-//======================================================
-
-let lugares = [];
-let buscar = null;
-let mapa = null;
-
-//======================================================
 // Inicio
 //======================================================
 
 async function iniciar() {
-
     try {
-
         // ==================================================
         // MODO KERAUNOS (keraunos.html)
-        // - Sin buscador, sin lugares.json
-        // - Solo mapa + zonas2.json + estado.json
         // ==================================================
         if (CONFIG.modo === "keraunos") {
-            console.log("[app] modo keraunos: sin buscador ni lugares.json");
+            console.log("[app] modo keraunos");
 
-            // Ocultar el buscador y stats (por si acaso el HTML los tiene)
-            if (input) input.closest(".search-box")?.style.setProperty("display", "none");
-            if (results) results.style.setProperty("display", "none");
-            if (stats) stats.style.setProperty("display", "none");
-
-            mapa = crearMapa("map");
+            crearMapa("map");
 
             // Pintar las 4 zonas de zonas2.json en verde
             try {
@@ -72,31 +45,20 @@ async function iniciar() {
                 console.warn("[app] No se pudieron pintar las zonas base:", e);
             }
 
-            // Arrancar estado-cliente (lee estado.json cada 30 s)
+            // Arrancar estado-cliente (lee estado.json cada 10s)
             try {
                 iniciarEstadoCliente({ modo: "index" });
             } catch (e) {
                 console.warn("[app] estado-cliente no arrancó:", e);
             }
 
-            // No hacer nada más. Sin buscador, sin Firestore, sin lugares.json.
             return;
         }
 
         // ==================================================
-        // MODO MANUAL (index.html) — comportamiento original
+        // MODO MANUAL (index.html)
         // ==================================================
-        stats.textContent = "Cargando lugares...";
-
-        lugares = await cargarLugares();
-
-        buscar = crearBuscador(lugares);
-
-        mapa = crearMapa("map");
-
-        mapa.cargarGeoJSON(lugares);
-
-        stats.textContent = `${lugares.length} lugares cargados`;
+        crearMapa("map");
 
         // Firestore: solo si la config lo pide
         if (CONFIG.usarFirestore) {
@@ -104,7 +66,7 @@ async function iniciar() {
             inicializarFirebase().catch(err => console.warn("Firebase:", err.message));
         }
 
-        // estado.json: solo si la config lo pide (index no lo usa)
+        // estado.json: solo si la config lo pide
         if (CONFIG.usarEstadoJSON) {
             try {
                 iniciarEstadoCliente({ modo: "index" });
@@ -124,57 +86,13 @@ async function iniciar() {
         }
 
     } catch (error) {
-        console.error(error);
-        if (stats) stats.textContent = "Error cargando lugares.json";
+        console.error("Error en iniciar():", error);
     }
-}
-
-//======================================================
-// Eventos (solo si existen los elementos — en keraunos.html no existen)
-//======================================================
-
-if (input) {
-    input.addEventListener("input", buscarTexto);
-    input.addEventListener("keydown", controlarTeclado);
-}
-
-//======================================================
-// Buscar
-//======================================================
-
-function buscarTexto() {
-    if (!buscar || !input) return;
-    const texto = input.value.trim();
-    cambiarColorFondo(texto);
-    buscar(texto, results, mapa, stats);
-}
-
-//======================================================
-// Teclado
-//======================================================
-
-function controlarTeclado(e) {
-    if (!mapa) return;
-    teclado(e, mapa);
-}
-
-//======================================================
-// Fondo dinámico
-//======================================================
-
-function cambiarColorFondo(texto) {
-    if (texto.length === 0) {
-        document.body.style.backgroundColor = "#2c3e50";
-        return;
-    }
-    const tono = (texto.length * 18) % 360;
-    document.body.style.backgroundColor = `hsl(${tono},45%,30%)`;
 }
 
 //======================================================
 // Botón "Consultar alerta meteorológica"
 //======================================================
-
 function configurarBotonConsulta() {
     const btn = document.getElementById("btn-test-alerta");
     if (!btn) return;
@@ -225,23 +143,6 @@ async function consultarEstadoAlerta() {
                         });
                         return;
                     }
-                } else {
-                    mostrarAlertaCompleta({
-                        nivel:           data.nivel || "roja",
-                        titulo:          data.titulo || "⚡ ALERTA DE TORMENTA ELÉCTRICA",
-                        mensaje:         data.cuerpo || "",
-                        distrito:        data.distrito || "",
-                        intensidad:      data.intensidad || "",
-                        lat:             (typeof data.lat === "number") ? data.lat : null,
-                        lng:             (typeof data.lng === "number") ? data.lng : null,
-                        duracionMin:     data.duracionMin || 15,
-                        timestampInicio: fechaDoc,
-                        sectorOriginal:  data.sectorOriginal || null,
-                        inicio:          data.inicio || null,
-                        fin:             data.fin || null,
-                        origen:          data.origen || null
-                    });
-                    return;
                 }
             }
         }
