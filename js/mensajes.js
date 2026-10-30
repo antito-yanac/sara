@@ -1,11 +1,11 @@
 // js/mensajes.js
 //
 // Sistema de mensajes en tiempo real usando Firebase Firestore.
-// v7:
-//   - Filtra por origen (manual/scraper).
-//   - FIX CRÍTICO: Al recibir una alerta-resuelta, guarda la huella 
-//     en localStorage para que Firestore no reviva la alerta en la 
-//     siguiente lectura o recarga.
+// v9:
+//   - Colección dinámica según window.__APP_CONFIG__.coleccion.
+//   - StrikeGuard usa "mensajes_push".
+//   - Keraunos usa "mensajes_keraunos".
+//   - Las alertas manuales se procesan siempre, sin importar el origenFiltro.
 // ============================================================
 
 import {
@@ -16,7 +16,12 @@ import { obtenerApp } from "./firebase-app.js";
 import { mostrarToast, reproducirSonido } from "./notifications.js";
 import { mostrarAlertaCompleta, mostrarAlertaLibre, quitarAlerta, marcarArranqueListo } from "./alertas.js";
 
-const NOMBRE_COLECCION = "mensajes_push";
+// La colección se lee de la configuración de la página
+function obtenerNombreColeccion() {
+    const cfg = window.__APP_CONFIG__ || {};
+    return cfg.coleccion || "mensajes_push"; // Fallback a mensajes_push
+}
+
 const COLECCION_SISTEMA = "sistema";
 const DOC_MODO = "estado_modo";
 const DURACION_ALERTA_MS = 15 * 60 * 1000;
@@ -35,7 +40,6 @@ export const estadoModo = {
     cargado: false
 };
 
-// --- Utilidad para manejar liberaciones manuales ---
 const LIBERADAS_KEY = "manual_liberadas";
 
 function registrarLiberacion(distrito, timestampInicio) {
@@ -52,7 +56,6 @@ function estaLiberada(distrito, timestampInicio) {
         return liberadas[distrito] === timestampInicio;
     } catch (e) { return false; }
 }
-// ---------------------------------------------------
 
 function obtenerDB() {
     if (!db) db = getFirestore(obtenerApp());
@@ -62,7 +65,8 @@ function obtenerDB() {
 function obtenerConfig() {
     return window.__APP_CONFIG__ || {
         origenFiltro: "manual",
-        usarFirestore: true
+        usarFirestore: true,
+        coleccion: "mensajes_push"
     };
 }
 
@@ -74,14 +78,19 @@ function debeProcesar(data) {
     const esNormal = !esAlerta && !esResuelta;
 
     if (esNormal) return true;
-    if (cfg.origenFiltro === "manual") return data.origen === "manual";
+
+    // FIX: Las alertas manuales SIEMPRE se procesan, sin importar el origenFiltro
+    if (data.origen === "manual") return true;
+
+    if (cfg.origenFiltro === "manual") return false;
     if (cfg.origenFiltro === "scraper") return data.origen !== "manual";
     return true;
 }
 
 export async function enviarMensajePush(titulo, cuerpo, datosAlerta = null) {
     const database = obtenerDB();
-    const ref = collection(database, NOMBRE_COLECCION);
+    const coleccionNombre = obtenerNombreColeccion();
+    const ref = collection(database, coleccionNombre);
     const docData = { titulo, cuerpo, fecha: serverTimestamp() };
 
     if (datosAlerta) {
@@ -95,6 +104,7 @@ export async function enviarMensajePush(titulo, cuerpo, datosAlerta = null) {
     }
 
     await addDoc(ref, docData);
+    console.log(`[mensajes] Enviado a colección: ${coleccionNombre}`);
 }
 
 function escucharModo() {
@@ -135,16 +145,19 @@ export function escucharMensajesPush() {
     const cfg = obtenerConfig();
 
     if (!cfg.usarFirestore) {
-        console.log("[mensajes] Firestore desactivado en esta página (keraunos.html)");
+        console.log("[mensajes] Firestore desactivado en esta página");
         marcarArranqueListo("firestore");
         return;
     }
+
+    const coleccionNombre = obtenerNombreColeccion();
+    console.log(`[mensajes] Escuchando colección: ${coleccionNombre}`);
 
     escucharModo();
 
     try {
         const database = obtenerDB();
-        const ref = collection(database, NOMBRE_COLECCION);
+        const ref = collection(database, coleccionNombre);
         const q = query(ref, orderBy("fecha", "desc"), limit(LIMITE_DOCS));
 
         onSnapshot(q, (snapshot) => {
@@ -202,7 +215,6 @@ function procesarPrimeraCarga(snapshot) {
 
             const tsInicio = data.timestampInicio || (data.fecha?.toMillis?.() || 0);
             
-            // FIX: Ignorar si esta alerta ya fue liberada
             if (estaLiberada(distrito, tsInicio)) continue;
 
             const duracionMin = data.duracionMin || 15;
@@ -253,13 +265,7 @@ function procesarDocumentoNuevo(data) {
     if (esResuelta) {
         const distrito = data.distrito || "";
         if (distrito) {
-            // FIX: Al recibir la resolución, marcar como liberada ANTES de quitar
-            // para evitar que cualquier lectura concurrente la reviva.
-            const liberadas = JSON.parse(localStorage.getItem(LIBERADAS_KEY) || "{}");
-            // No tenemos el tsInicio original aquí a menos que lo busquemos en estado.zonasActivas, 
-            // así que si el admin envió el timestamp en la data, lo usamos.
             if (data.timestampInicio) registrarLiberacion(distrito, data.timestampInicio);
-            
             quitarAlerta(distrito);
         } else {
             mostrarAlertaLibre();
@@ -271,7 +277,6 @@ function procesarDocumentoNuevo(data) {
         const distrito = data.distrito || "";
         const tsInicio = (typeof data.timestampInicio === "number") ? data.timestampInicio : null;
         
-        // FIX: Si ya fue liberada, ignorar la alerta entrante
         if (distrito && tsInicio && estaLiberada(distrito, tsInicio)) return;
 
         reproducirSonido();
