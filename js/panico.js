@@ -1,39 +1,26 @@
 // js/panico.js
 // ============================================================
 // Botón de pánico + modal + envío a colección privada + WhatsApp
-// ============================================================
-// v4 — Cambios:
-//   - CORREGIDO: Condición de CallMeBot (ya no bloquea el envío).
-//   - CORREGIDO: Envío de WhatsApp vía <img> (evita CORS).
-//   - GPS con caché (localStorage, 5 min) + pre-captura silenciosa.
-//   - Campos: DNI (8 dígitos) + Teléfono (9 dígitos) + Descripción.
-//   - Escribe en colección privada `panico_solicitudes`.
-//   - Confirmación local "Ayuda enviada" persistente 60 s.
+// v5: Usa obtenerFirestore() con persistencia local.
 // ============================================================
 
 import { mostrarToast } from "./notifications.js";
-import { getFirestore, collection, addDoc, serverTimestamp }
+import { collection, addDoc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 import { getAuth, signInAnonymously }
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
-import { obtenerApp } from "./firebase-app.js";
+import { obtenerApp, obtenerFirestore } from "./firebase-app.js";
 
-// ------------------------------------------------------------
-// CONFIG
-// ------------------------------------------------------------
 const COLECCION_PANICO = "panico_solicitudes";
 
-// WhatsApp (CallMeBot)
 const CALLMEBOT_PHONE  = "+51954125058";
-const CALLMEBOT_APIKEY = "9034887";   // ← Tu API key real
+const CALLMEBOT_APIKEY = "9034887";
 
-// GPS cache
 const GPS_CACHE_KEY        = "keraunos_gps_cache";
-const GPS_CACHE_MAX_AGE_MS = 5 * 60 * 1000;   // 5 minutos
-const GPS_FRESH_TIMEOUT_MS = 15 * 1000;       // 15 s para fix fresco
-const GPS_PRECAPTURA_MS    = 8 * 1000;        // 8 s para pre-captura silenciosa
+const GPS_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
+const GPS_FRESH_TIMEOUT_MS = 15 * 1000;
+const GPS_PRECAPTURA_MS    = 8 * 1000;
 
-// Estado
 let gpsActual = null;
 let gpsError = null;
 let watchId = null;
@@ -41,9 +28,6 @@ let modalAbierto = false;
 let enviando = false;
 let intervalConfirm = null;
 
-// ------------------------------------------------------------
-// GPS — caché
-// ------------------------------------------------------------
 function guardarGPSCache(pos) {
     try {
         localStorage.setItem(GPS_CACHE_KEY, JSON.stringify({
@@ -88,8 +72,6 @@ function pedirGPS(timeoutMs, altaPrecision) {
     });
 }
 
-// Pre-captura silenciosa al cargar (no pide permiso; solo funciona
-// si el usuario ya lo otorgó antes).
 function precapturarGPS() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
@@ -101,34 +83,27 @@ function precapturarGPS() {
             });
             console.log("panico: GPS pre-capturado");
         },
-        () => {},   // silencioso si no hay permiso
+        () => {},
         { enableHighAccuracy: false, timeout: GPS_PRECAPTURA_MS, maximumAge: 120000 }
     );
 }
 
-// Captura rápida: usa cache si existe, luego pide fix fresco.
 async function capturarGPSRapido() {
     gpsError = null;
 
-    // 1. Si hay cache reciente → úsalo YA (envío instantáneo)
     const cache = leerGPSCache();
     if (cache) {
         gpsActual = { lat: cache.lat, lng: cache.lng, accuracy: cache.accuracy };
         actualizarTextoGPS();
-        console.log("panico: usando GPS cacheado (" +
-            Math.round((Date.now() - cache.ts) / 1000) + "s de antigüedad)");
     }
 
-    // 2. En paralelo, pedir un fix fresco (baja precisión → rápido)
     try {
         const fresh = await pedirGPS(GPS_FRESH_TIMEOUT_MS, false);
         gpsActual = fresh;
         guardarGPSCache(fresh);
         actualizarTextoGPS();
     } catch (e) {
-        // Si ya teníamos cache, no pasa nada.
         if (!gpsActual) {
-            // Reintentar con alta precisión como último recurso
             try {
                 const fresh2 = await pedirGPS(GPS_FRESH_TIMEOUT_MS, true);
                 gpsActual = fresh2;
@@ -141,7 +116,6 @@ async function capturarGPSRapido() {
         }
     }
 
-    // 3. Watch continuo para refinar en background
     if (watchId !== null) navigator.geolocation.clearWatch(watchId);
     watchId = navigator.geolocation.watchPosition(
         (pos) => {
@@ -196,9 +170,6 @@ function detenerGPS() {
     }
 }
 
-// ------------------------------------------------------------
-// Sesión anónima
-// ------------------------------------------------------------
 async function asegurarSesion() {
     const auth = getAuth(obtenerApp());
     if (auth.currentUser) return auth.currentUser;
@@ -207,13 +178,9 @@ async function asegurarSesion() {
     return cred.user;
 }
 
-// ------------------------------------------------------------
-// HTML: botón + modal
-// ------------------------------------------------------------
 function inyectarEstructura() {
     if (document.getElementById("btn-panico")) return;
 
-    // Botón flotante
     const btn = document.createElement("button");
     btn.id = "btn-panico";
     btn.title = "Solicitar ayuda";
@@ -227,7 +194,6 @@ function inyectarEstructura() {
         document.body.appendChild(btn);
     }
 
-    // Modal
     const modalHtml = `
     <div id="panico-overlay" class="panico-overlay">
         <div class="panico-modal">
@@ -273,7 +239,6 @@ function inyectarEstructura() {
     cont.innerHTML = modalHtml;
     document.body.appendChild(cont.firstElementChild);
 
-    // Eventos
     btn.addEventListener("click", abrirModal);
     document.getElementById("panico-btn-cerrar").addEventListener("click", cerrarModal);
     document.getElementById("panico-overlay").addEventListener("click", (e) => {
@@ -281,7 +246,6 @@ function inyectarEstructura() {
     });
     document.getElementById("panico-btn-enviar").addEventListener("click", enviarSolicitud);
 
-    // Solo permitir dígitos en DNI y teléfono
     document.getElementById("panico-dni").addEventListener("input", (e) => {
         e.target.value = e.target.value.replace(/\D/g, "").slice(0, 8);
     });
@@ -294,9 +258,6 @@ function inyectarEstructura() {
     });
 }
 
-// ------------------------------------------------------------
-// Modal abrir/cerrar
-// ------------------------------------------------------------
 function abrirModal() {
     inyectarEstructura();
     document.getElementById("panico-overlay").classList.add("panico-visible");
@@ -307,8 +268,6 @@ function abrirModal() {
     btn.innerHTML = "🆘 ENVIAR SOLICITUD";
 
     document.getElementById("panico-dni").focus();
-
-    // Captura GPS rápida (usa cache si existe)
     capturarGPSRapido();
 }
 
@@ -319,9 +278,6 @@ function cerrarModal() {
     detenerGPS();
 }
 
-// ------------------------------------------------------------
-// Enviar
-// ------------------------------------------------------------
 async function enviarSolicitud() {
     if (enviando) return;
 
@@ -334,7 +290,6 @@ async function enviarSolicitud() {
     const telefono = (telEl.value || "").trim();
     const descripcion = (descEl.value || "").trim();
 
-    // Validaciones
     if (!/^\d{8}$/.test(dni)) {
         mostrarToast("⚠️ DNI inválido", "El DNI debe tener exactamente 8 dígitos.", "alerta", true);
         dniEl.focus();
@@ -351,7 +306,6 @@ async function enviarSolicitud() {
     btn.innerHTML = "⏳ Enviando...";
 
     try {
-        // 1. GPS (si aún no lo tenemos, intentar ahora)
         if (!gpsActual) {
             btn.innerHTML = "⏳ Obteniendo ubicación...";
             const cache = leerGPSCache();
@@ -377,7 +331,6 @@ async function enviarSolicitud() {
             actualizarTextoGPS();
         }
 
-        // 2. Sesión anónima
         btn.innerHTML = "⏳ Conectando...";
         try {
             await asegurarSesion();
@@ -389,11 +342,10 @@ async function enviarSolicitud() {
             return;
         }
 
-        // 3. Escribir en colección privada
         btn.innerHTML = "⏳ Enviando...";
         let okFirestore = false;
         try {
-            const db = getFirestore(obtenerApp());
+            const db = obtenerFirestore();
             const ref = collection(db, COLECCION_PANICO);
             const docRef = await addDoc(ref, {
                 dni:         dni,
@@ -413,19 +365,14 @@ async function enviarSolicitud() {
             console.error("panico: error Firestore", e);
         }
 
-        // 4. WhatsApp (background, no bloquea)
         try {
             enviarWhatsApp(dni, telefono, descripcion, gpsActual.lat, gpsActual.lng);
         } catch (e) {
             console.warn("panico: WhatsApp falló", e);
         }
 
-        // 5. Feedback
         if (okFirestore) {
-            // Confirmación persistente 60 s SOLO en este dispositivo
             mostrarConfirmacionEnviada();
-
-            // Cerrar modal y limpiar
             cerrarModal();
             dniEl.value = "";
             telEl.value = "";
@@ -446,11 +393,7 @@ async function enviarSolicitud() {
     }
 }
 
-// ------------------------------------------------------------
-// Confirmación local "Ayuda enviada" (60 s, solo este usuario)
-// ------------------------------------------------------------
 function mostrarConfirmacionEnviada() {
-    // Eliminar si ya existe
     document.getElementById("panico-confirm")?.remove();
     if (intervalConfirm) {
         clearInterval(intervalConfirm);
@@ -496,11 +439,7 @@ function mostrarConfirmacionEnviada() {
     card.querySelector(".panico-confirm-cerrar").addEventListener("click", cerrar);
 }
 
-// ------------------------------------------------------------
-// WhatsApp (CallMeBot) - CORREGIDO
-// ------------------------------------------------------------
 function enviarWhatsApp(dni, telefono, descripcion, lat, lng) {
-    // CORRECCIÓN 1: La condición verifica un placeholder, no tu clave real
     if (!CALLMEBOT_APIKEY || CALLMEBOT_APIKEY === "TU_API_KEY_AQUI") {
         console.warn("panico: CallMeBot no configurado. Se omite WhatsApp.");
         return;
@@ -524,21 +463,15 @@ function enviarWhatsApp(dni, telefono, descripcion, lat, lng) {
     const tel = CALLMEBOT_PHONE.replace("+", "");
     const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(tel)}&text=${encodeURIComponent(texto)}&apikey=${encodeURIComponent(CALLMEBOT_APIKEY)}`;
 
-    // CORRECCIÓN 2: Usar una etiqueta <img> para evitar bloqueos de CORS.
     const img = new Image();
     img.src = url;
     img.onload = () => console.log("panico: WhatsApp enviado (confirmado)");
     img.onerror = () => console.log("panico: WhatsApp enviado (sin confirmación visual)");
 }
 
-// ------------------------------------------------------------
-// Init
-// ------------------------------------------------------------
 function init() {
     inyectarEstructura();
-    // Pre-captura silenciosa (no muestra nada al usuario)
     setTimeout(precapturarGPS, 2000);
-    // Volver a pre-capturar cada 2 minutos para mantener el cache fresco
     setInterval(precapturarGPS, 2 * 60 * 1000);
     console.log("🆘 panico.js inicializado");
 }
