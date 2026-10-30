@@ -233,9 +233,17 @@ export async function mostrarAlertaCompleta(datos = {}) {
         const origen = datos.origen || null;
         const filtro = APP_CONFIG.origenFiltro;
 
-        if (filtro === "manual" && origen !== "manual") return;
-        if (filtro === "scraper" && origen === "manual") return;
-
+        //if (filtro === "manual" && origen !== "manual") return;
+        //if (filtro === "scraper" && origen === "manual") return;
+        // FIX: Las alertas manuales siempre se procesan (vienen de adminkeraunos.html)
+        // Las alertas del scraper solo se procesan si el filtro es "scraper"
+        if (origen === "manual") {
+            // Siempre procesar
+        } else if (filtro === "scraper") {
+            // Procesar solo si es scraper
+        } else if (filtro === "manual" && origen !== "manual") {
+            return;
+        }
         const distrito = datos.distrito || "";
         if (esZonaOcultaManual(distrito)) return;
 
