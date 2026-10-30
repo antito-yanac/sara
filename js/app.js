@@ -1,7 +1,7 @@
 //======================================================
 // App principal Antamina 2026
-// v5: Eliminadas todas las referencias a lugares.json, 
-//     lugares.kml, buscador y filtros.
+// v6: En modo keraunos también escucha Firestore
+//     para recibir alertas manuales de adminkeraunos.html
 //======================================================
 
 import { crearMapa } from "./map.js";
@@ -10,30 +10,32 @@ import { escucharMensajesPush } from "./mensajes.js";
 import { mostrarAlertaCompleta, cerrarAlertaTotal, mostrarAlertaLibre } from "./alertas.js";
 import { iniciarEstadoCliente } from "./estado-cliente.js";
 
-// Leer configuración (o defaults si no existe)
 const CONFIG = window.__APP_CONFIG__ || {
     modo: "manual",
     zonasFile: "./zonas.json",
     origenFiltro: "manual",
     usarFirestore: true,
-    usarEstadoJSON: false
+    usarEstadoJSON: false,
+    coleccion: "mensajes_push"
 };
 
-console.log(`[app] modo: ${CONFIG.modo} | zonas: ${CONFIG.zonasFile} | filtro: ${CONFIG.origenFiltro}`);
-
-//======================================================
-// Inicio
-//======================================================
+console.log(`[app] modo: ${CONFIG.modo} | zonas: ${CONFIG.zonasFile} | filtro: ${CONFIG.origenFiltro} | coleccion: ${CONFIG.coleccion}`);
 
 async function iniciar() {
     try {
         // ==================================================
-        // MODO KERAUNOS (keraunos.html)
+        // MODO KERAUNOS (index.html / keraunos.html)
         // ==================================================
         if (CONFIG.modo === "keraunos") {
             console.log("[app] modo keraunos");
 
             crearMapa("map");
+
+            // Escuchar Firestore si está activado (scraper v12 + manuales)
+            if (CONFIG.usarFirestore) {
+                escucharMensajesPush();
+                inicializarFirebase().catch(err => console.warn("Firebase:", err.message));
+            }
 
             // Pintar las 4 zonas de zonas2.json en verde
             try {
@@ -45,28 +47,28 @@ async function iniciar() {
                 console.warn("[app] No se pudieron pintar las zonas base:", e);
             }
 
-            // Arrancar estado-cliente (lee estado.json cada 10s)
-            try {
-                iniciarEstadoCliente({ modo: "index" });
-            } catch (e) {
-                console.warn("[app] estado-cliente no arrancó:", e);
+            // Leer estado.json como respaldo (si está configurado)
+            if (CONFIG.usarEstadoJSON) {
+                try {
+                    iniciarEstadoCliente({ modo: "index" });
+                } catch (e) {
+                    console.warn("[app] estado-cliente no arrancó:", e);
+                }
             }
 
             return;
         }
 
         // ==================================================
-        // MODO MANUAL (index.html)
+        // MODO MANUAL (strikeguard.html)
         // ==================================================
         crearMapa("map");
 
-        // Firestore: solo si la config lo pide
         if (CONFIG.usarFirestore) {
             escucharMensajesPush();
             inicializarFirebase().catch(err => console.warn("Firebase:", err.message));
         }
 
-        // estado.json: solo si la config lo pide
         if (CONFIG.usarEstadoJSON) {
             try {
                 iniciarEstadoCliente({ modo: "index" });
@@ -75,7 +77,6 @@ async function iniciar() {
             }
         }
 
-        // Pintar las zonas base (zonas.json, 3 zonas en modo manual)
         try {
             const mod = await import("./map.js");
             if (mod && typeof mod.pintarZonasBaseVerde === "function") {
@@ -106,7 +107,8 @@ async function consultarEstadoAlerta() {
         const { obtenerApp } = await import("./firebase-app.js");
 
         const db = getFirestore(obtenerApp());
-        const ref = collection(db, "mensajes_push");
+        const coleccion = (window.__APP_CONFIG__ || {}).coleccion || "mensajes_push";
+        const ref = collection(db, coleccion);
         const q = query(ref, orderBy("fecha", "desc"), limit(1));
         const snapshot = await getDocs(q);
 
