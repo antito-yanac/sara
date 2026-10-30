@@ -19,7 +19,8 @@ import { iniciarEstadoCliente } from "./estado-cliente.js";
 import { getFirestore, collection, query, orderBy, limit, onSnapshot,
          doc, setDoc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
-import { obtenerApp } from "./firebase-app.js";
+import { obtenerFirestore } from "./firebase-app.js";
+const db = obtenerFirestore();
 
 // ======================================================
 // ZONAS OFICIALES
