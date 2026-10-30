@@ -194,7 +194,7 @@ async function initPanel() {
         await inicializarFirebase();
         escucharMensajesPush();
 
-        renderSectores();
+        ();
         engancharEventos();
 
         mostrarEstado("Panel listo. Configura las alertas y envía.", "");
@@ -237,6 +237,7 @@ function renderSectores() {
                 <button type="button" class="pa-na-check" data-distrito="${escapeAttr(z.distrito)}"></button>
                 <div class="pa-na-nombre">${escapeHtml(z.distrito)}</div>
                 <div class="pa-na-shortcut">${z.short}</div>
+                <button type="button" class="pa-na-reset-zona" data-distrito="${escapeAttr(z.distrito)}" title="Poner zona en verde">🔄 Reset</button>
             </div>
             <div class="pa-na-row2">
                 <div class="pa-pill-group">
@@ -266,6 +267,9 @@ function engancharEventos() {
         if (checkBtn) { toggleZona(checkBtn.dataset.distrito); return; }
         const pill = e.target.closest(".pa-pill");
         if (pill) { seleccionarNivel(pill.dataset.distrito, pill.dataset.nivel); return; }
+        // NUEVO: botón Reset
+        const resetBtn = e.target.closest(".pa-na-reset-zona");
+        if (resetBtn) { onClickResetZona(resetBtn.dataset.distrito); return; }
     });
 
     paNaLista.addEventListener("input", (e) => {
@@ -762,6 +766,30 @@ async function liberarZona(distrito) {
         console.error("Error liberando zona:", e);
         mostrarToast("❌ Error", "No se pudo liberar la zona.", "alerta", true);
     }
+}
+// ======================================================
+// NUEVO: Reset por zona (escribe alerta-resuelta en Firestore)
+// ======================================================
+function onClickResetZona(distrito) {
+    abrirModal({
+        icon: "🔄",
+        titulo: "RESET A VERDE",
+        mensajeHtml:
+            `<div>Vas a poner en VERDE la zona:</div>` +
+            `<div style="margin:10px 0;font-size:15px;"><strong>${escapeHtml(distrito)}</strong></div>` +
+            `<div style="margin-top:12px;opacity:0.75;">Se enviará una señal de "alerta-resuelta" a Firestore.</div>`,
+        textoAceptar: "🔄 RESET"
+    }, async (aceptar) => {
+        if (!aceptar) return;
+        // Reutilizamos liberarZona() que ya escribe alerta-resuelta en Firestore
+        await liberarZona(distrito);
+        // También limpiamos el estado local del formulario
+        if (estado.config[distrito]) {
+            estado.config[distrito].activa = false;
+            aplicarEstadoVisual();
+            actualizarResumen();
+        }
+    });
 }
 
 function onClickLiberarTodas() {
