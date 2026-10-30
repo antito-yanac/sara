@@ -1,24 +1,23 @@
 // js/mensajes.js
 //
 // Sistema de mensajes en tiempo real usando Firebase Firestore.
-// v9:
+// v10:
+//   - Usa obtenerFirestore() con persistencia local (offline).
 //   - Colección dinámica según window.__APP_CONFIG__.coleccion.
-//   - StrikeGuard usa "mensajes_strikeguard".
-//   - Keraunos usa "mensajes_keraunos".
-//   - Las alertas manuales se procesan siempre, sin importar el origenFiltro.
+//   - Las alertas manuales se procesan siempre.
 // ============================================================
 
 import {
-    getFirestore, collection, addDoc, query, orderBy, limit,
+    collection, addDoc, query, orderBy, limit,
     onSnapshot, serverTimestamp, doc
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
-import { obtenerApp } from "./firebase-app.js";
+import { obtenerFirestore } from "./firebase-app.js";
 import { mostrarToast, reproducirSonido } from "./notifications.js";
 import { mostrarAlertaCompleta, mostrarAlertaLibre, quitarAlerta, marcarArranqueListo } from "./alertas.js";
 
 function obtenerNombreColeccion() {
     const cfg = window.__APP_CONFIG__ || {};
-    return cfg.coleccion || "mensajes_push"; // Fallback
+    return cfg.coleccion || "mensajes_push";
 }
 
 const COLECCION_SISTEMA = "sistema";
@@ -57,7 +56,7 @@ function estaLiberada(distrito, timestampInicio) {
 }
 
 function obtenerDB() {
-    if (!db) db = getFirestore(obtenerApp());
+    if (!db) db = obtenerFirestore();
     return db;
 }
 
@@ -78,7 +77,6 @@ function debeProcesar(data) {
 
     if (esNormal) return true;
 
-    // FIX: Las alertas manuales SIEMPRE se procesan
     if (data.origen === "manual") return true;
 
     if (cfg.origenFiltro === "manual") return false;
