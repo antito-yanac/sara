@@ -5,7 +5,7 @@
 // ============================================================
 window.__APP_CONFIG__ = {
     modo: "manual",
-    zonasFile: "./zonas_strikeguard.json", // 3 zonas propias
+    zonasFile: "./zonas.json", // 3 zonas propias
     origenFiltro: "manual",
     usarFirestore: true,
     usarEstadoJSON: false,
