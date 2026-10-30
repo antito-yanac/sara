@@ -523,9 +523,7 @@ function renderZonas() {
         });
 
         card.querySelector(".pa-btn-reset-zona").addEventListener("click", () => {
-            NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = false);
-            renderZonas(); actualizarResumen();
-            escribirStatus(`🔄 Zona ${shortKey} reseteada a Verde.`);
+            onClickResetZonaKeraunos(z.id, z.zona);
         });
 
         card.querySelectorAll(".pa-pill").forEach(btn => {
@@ -623,13 +621,58 @@ function mostrarToastLocal(titulo, mensaje, tipo = "exito") {
 //  Acciones Globales
 // ------------------------------------------------------------
 function resetearTodoGlobal() {
-    confirmar("Resetear Todo", `¿Desactivar TODOS los niveles y dejar las 4 zonas en VERDE?`, () => {
+    confirmar("Resetear Todo", `¿Desactivar TODOS los niveles y poner las 4 zonas en VERDE en Firestore?`, async () => {
         ZONAS.forEach(z => NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = false));
         renderZonas(); actualizarResumen();
-        escribirStatus("✅ Todo reseteado a VERDE");
+
+        let ok = 0;
+        for (const z of ZONAS) {
+            try {
+                await enviarMensajePush(
+                    `✅ Alerta finalizada — ${z.zona}`,
+                    `La alerta en ${z.zona} ha finalizado.`,
+                    { tipo: "alerta-resuelta", distrito: z.zona }
+                );
+                ok++;
+            } catch (e) {
+                console.error("Error reseteando zona:", z.zona, e);
+            }
+        }
+
+        if (ok > 0) {
+            escribirStatus(`✅ ${ok} zona(s) reseteada(s) a Verde en Firestore.`, "ok");
+            mostrarToastLocal("✅ Reset global", `${ok} zona(s) puestas en verde.`, "exito");
+        } else {
+            escribirStatus("⚠️ No se pudo resetear ninguna zona.", "warn");
+        }
     });
 }
+async function onClickResetZonaKeraunos(zonaId, nombreZona) {
+    confirmar(
+        "Reset a Verde",
+        `¿Poner en VERDE la zona <strong>${escapeHtml(nombreZona)}</strong> en Firestore?`,
+        async () => {
+            // Limpiar borrador local
+            NIVELES_ACTIVABLES.forEach(n => borrador[zonaId][n].activo = false);
+            renderZonas();
+            actualizarResumen();
 
+            try {
+                await enviarMensajePush(
+                    `✅ Alerta finalizada — ${nombreZona}`,
+                    `La alerta en ${nombreZona} ha finalizado.`,
+                    { tipo: "alerta-resuelta", distrito: nombreZona }
+                );
+                escribirStatus(`✅ Zona ${nombreZona} reseteada a Verde en Firestore.`, "ok");
+                mostrarToastLocal("✅ Reset a Verde", `${nombreZona} fue puesta en verde.`, "exito");
+            } catch (e) {
+                console.error("Error reseteando zona:", e);
+                escribirStatus("❌ Error al resetear: " + e.message, "err");
+                mostrarToastLocal("❌ Error", "No se pudo resetear la zona en Firestore.", "error");
+            }
+        }
+    );
+}
 function escribirStatus(msg, tipo = "ok") {
     const el = document.getElementById("status-bar");
     if(!el) return;
