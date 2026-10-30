@@ -194,7 +194,7 @@ async function initPanel() {
         await inicializarFirebase();
         escucharMensajesPush();
 
-        ();
+        renderSectores();
         engancharEventos();
 
         mostrarEstado("Panel listo. Configura las alertas y envía.", "");
