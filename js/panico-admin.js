@@ -7,7 +7,8 @@
 import { getFirestore, collection, query, orderBy, limit, onSnapshot,
          doc, updateDoc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
-import { obtenerApp } from "./firebase-app.js";
+import { obtenerFirestore } from "./firebase-app.js";
+const db = obtenerFirestore();
 import { mostrarToast } from "./notifications.js";
 
 const COLECCION = "panico_solicitudes";
