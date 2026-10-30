@@ -3,7 +3,7 @@
 // Sistema de mensajes en tiempo real usando Firebase Firestore.
 // v9:
 //   - Colección dinámica según window.__APP_CONFIG__.coleccion.
-//   - StrikeGuard usa "mensajes_push".
+//   - StrikeGuard usa "mensajes_strikeguard".
 //   - Keraunos usa "mensajes_keraunos".
 //   - Las alertas manuales se procesan siempre, sin importar el origenFiltro.
 // ============================================================
@@ -16,10 +16,9 @@ import { obtenerApp } from "./firebase-app.js";
 import { mostrarToast, reproducirSonido } from "./notifications.js";
 import { mostrarAlertaCompleta, mostrarAlertaLibre, quitarAlerta, marcarArranqueListo } from "./alertas.js";
 
-// La colección se lee de la configuración de la página
 function obtenerNombreColeccion() {
     const cfg = window.__APP_CONFIG__ || {};
-    return cfg.coleccion || "mensajes_push"; // Fallback a mensajes_push
+    return cfg.coleccion || "mensajes_push"; // Fallback
 }
 
 const COLECCION_SISTEMA = "sistema";
@@ -79,7 +78,7 @@ function debeProcesar(data) {
 
     if (esNormal) return true;
 
-    // FIX: Las alertas manuales SIEMPRE se procesan, sin importar el origenFiltro
+    // FIX: Las alertas manuales SIEMPRE se procesan
     if (data.origen === "manual") return true;
 
     if (cfg.origenFiltro === "manual") return false;
