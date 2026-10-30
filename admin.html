@@ -526,6 +526,16 @@ document.getElementById("btn-keraunos-manual")?.addEventListener("click", () => 
     window.location.href = "./adminkeraunos.html";
 });
 </script>
-
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+      console.log('SW registrado:', reg.scope);
+    }).catch((err) => {
+      console.warn('SW no registrado:', err);
+    });
+  });
+}
+</script>
 </body>
 </html>
