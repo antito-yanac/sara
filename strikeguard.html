@@ -223,6 +223,12 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+<script type="module">
+    import { initPWAInstall } from "./js/pwa-install.js";
+    window.addEventListener('load', () => {
+        initPWAInstall();
+    });
+</script>
 </body>
 
 </html>
