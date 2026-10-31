@@ -239,7 +239,7 @@ async function registrarServiceWorker() {
 
         const registration = await navigator.serviceWorker.register(
             "./firebase-messaging-sw.js",
-            { scope: "./" }
+            { scope: "./firebase-cloud-messaging-push-scope/" }
         );
         console.log("Service Worker registrado:", registration.scope);
         return registration;
