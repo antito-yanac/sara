@@ -14,4 +14,5 @@ export const firebaseConfig = {
 };
 
 // Par de claves VAPID para FCM Web Push (generado en Firebase Console)
-export const vapidKey = "BL5zwoCQ_l-Z0b_HFo2gLW527S0pRrXu1S-u0Tpl8yPVtsPQfv89GH5snIjUUMz4y3YwRg-kf6hKlZIrqjbsEwQ";
+//export const vapidKey = "BL5zwoCQ_l-Z0b_HFo2gLW527S0pRrXu1S-u0Tpl8yPVtsPQfv89GH5snIjUUMz4y3YwRg-kf6hKlZIrqjbsEwQ";
+export const vapidKey = "BKVA6-Y4MxdANMJqII2QcWJCfTdDBwatRP49G7gpiFW1MvccWah-Vrp-dKa6rcz18E84Kjo8F71kNviq48Hkn70";
