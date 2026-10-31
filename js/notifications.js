@@ -159,7 +159,21 @@ async function registrarServiceWorker() {
             "./firebase-messaging-sw.js",
             { scope: "./firebase-cloud-messaging-push-scope/" }
         );
-        console.log("Service Worker FCM registrado:", registration.scope);
+        
+        // Forzar la espera a que el worker esté activo
+        if (registration.installing) {
+            console.log("Service Worker FCM instalándose...");
+            await new Promise(resolve => {
+                registration.installing.addEventListener('statechange', (e) => {
+                    if (e.target.state === 'activated') resolve();
+                });
+            });
+        } else if (registration.waiting) {
+            console.log("Service Worker FCM en espera...");
+            await registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+        
+        console.log("Service Worker FCM listo:", registration.scope);
         return registration;
     } catch (error) {
         console.warn("Service Worker FCM no disponible:", error.message);
