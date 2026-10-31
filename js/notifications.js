@@ -4,11 +4,7 @@
 // habilitación silenciosa de Firebase Cloud Messaging (para
 // notificaciones nativas en segundo plano).
 //
-// IMPORTANTE: El envío REAL de mensajes a todos los navegadores se hace
-// mediante Firestore en tiempo real (ver js/mensajes.js), no aquí.
-// Este archivo solo se encarga de: mostrar popups, sonido, y pedir
-// permiso de notificaciones nativas (silenciosamente, sin toasts de
-// "activado" que confundan al usuario).
+// v3: Avisa al usuario si las notificaciones están bloqueadas (denied).
 
 import {
     getMessaging,
@@ -18,24 +14,14 @@ import {
 import { obtenerApp } from "./firebase-app.js";
 import { vapidKey } from "./firebase-config.js";
 
-// ======================================================
-// Estado interno
-// ======================================================
 let messaging = null;
 let currentToken = null;
 let audioCtx = null;
 let audioDesbloqueado = false;
 
-// ======================================================
-// Desbloqueo de audio (política de autoplay de los navegadores)
-// ======================================================
-// Los navegadores bloquean el AudioContext hasta que el usuario
-// interactúa con la página (clic, tecla, toque). Para evitar el warning
-// "The AudioContext was not allowed to start...", creamos/reanudamos el
-// contexto en el PRIMER gesto del usuario, silenciosamente.
+// Desbloqueo de audio
 function desbloquearAudioContext() {
     if (audioDesbloqueado) return;
-
     try {
         const AC = window.AudioContext || window.webkitAudioContext;
         if (AC && !audioCtx) {
@@ -45,29 +31,16 @@ function desbloquearAudioContext() {
             audioCtx.resume();
         }
         audioDesbloqueado = true;
-    } catch (e) {
-        // Silencioso
-    }
+    } catch (e) { }
 }
 
 ["click", "keydown", "touchstart"].forEach((evento) => {
     document.addEventListener(evento, desbloquearAudioContext, { once: true, passive: true });
 });
 
-// ======================================================
-// Sonido (Web Audio API + archivo WAV de respaldo)
-// ======================================================
-
-/**
- * Reproduce el sonido de notificación.
- * Usa Web Audio API (oscilador) como método principal para máxima
- * compatibilidad, y carga el archivo sounds/notificacion.wav como
- * alternativa si el navegador lo permite.
- */
+// Reproducir sonido
 export function reproducirSonido() {
     try {
-        // Asegurar que el contexto esté desbloqueado (por si se llama
-        // antes de cualquier gesto del usuario, no lanzará warnings).
         if (!audioCtx) {
             const AC = window.AudioContext || window.webkitAudioContext;
             if (AC) audioCtx = new AC();
@@ -75,14 +48,10 @@ export function reproducirSonido() {
 
         if (audioCtx) {
             if (audioCtx.state === "suspended") {
-                // Intentar reanudar; si el navegador lo bloquea, se
-                // ignora silenciosamente (no rompe la app).
                 audioCtx.resume().catch(() => {});
             }
 
-            // Doble beep ascendente: 880Hz -> 1175Hz
             const ahora = audioCtx.currentTime;
-
             const osc1 = audioCtx.createOscillator();
             const gain1 = audioCtx.createGain();
             osc1.type = "sine";
@@ -108,55 +77,27 @@ export function reproducirSonido() {
             osc2.stop(ahora + 0.6);
         }
 
-        // Método 2 (respaldo): intentar reproducir el archivo WAV
         try {
             const audio = new Audio("./sounds/notificacion.wav");
             audio.volume = 0.4;
-            audio.play().catch(() => {
-                // Silencioso: el método Web Audio ya sonó
-            });
-        } catch (e) {
-            // Silencioso
-        }
-    } catch (e) {
-        // Silencioso: el sonido es un extra, no debe romper la app
-    }
+            audio.play().catch(() => {});
+        } catch (e) { }
+    } catch (e) { }
 }
 
-// ======================================================
-// Sonido de alerta en LOOP (30 segundos por defecto)
-// ======================================================
-// Reproduce el sonido de notificación repetidamente durante
-// los segundos indicados. Se usa para las alertas meteorológicas
-// (amarillo, naranja, rojo) según los nuevos requerimientos.
 let intervalSonidoAlerta = null;
 
-/**
- * Reproduce el sonido de alerta en bucle durante `duracionSeg` segundos.
- * Por defecto 30 segundos. Detiene automáticamente al terminar.
- * @param {number} duracionSeg - duración total del loop en segundos
- */
 export function reproducirSonidoAlerta(duracionSeg = 30) {
-    // Detener cualquier loop previo
     detenerSonidoAlerta();
-
-    // Reproducir inmediatamente la primera vez
     reproducirSonido();
-
-    // Repetir cada 2 segundos (el beep dura ~0.6s, hay 1.4s de silencio)
     intervalSonidoAlerta = setInterval(() => {
         reproducirSonido();
     }, 2000);
-
-    // Detener automáticamente después de duracionSeg
     setTimeout(() => {
         detenerSonidoAlerta();
     }, duracionSeg * 1000);
 }
 
-/**
- * Detiene el loop de sonido de alerta inmediatamente.
- */
 export function detenerSonidoAlerta() {
     if (intervalSonidoAlerta) {
         clearInterval(intervalSonidoAlerta);
@@ -164,17 +105,6 @@ export function detenerSonidoAlerta() {
     }
 }
 
-// ======================================================
-// Popups / Toasts visuales
-// ======================================================
-
-/**
- * Muestra un toast (popup) en pantalla.
- * @param {string} titulo  - Título en negrita
- * @param {string} mensaje - Texto del cuerpo
- * @param {string} tipo    - "info" | "exito" | "alerta"
- * @param {boolean} conSonido - si true, reproduce sonido
- */
 export function mostrarToast(titulo, mensaje, tipo = "info", conSonido = false) {
     if (conSonido) reproducirSonido();
 
@@ -204,10 +134,7 @@ export function mostrarToast(titulo, mensaje, tipo = "info", conSonido = false) 
     `;
 
     contenedor.appendChild(toast);
-
-    requestAnimationFrame(() => {
-        toast.classList.add("toast-visible");
-    });
+    requestAnimationFrame(() => toast.classList.add("toast-visible"));
 
     toast.querySelector(".toast-cerrar").addEventListener("click", () => {
         cerrarToast(toast);
@@ -225,47 +152,47 @@ function cerrarToast(toast) {
     setTimeout(() => toast.remove(), 300);
 }
 
-// ======================================================
-// Firebase Cloud Messaging — habilitación SILENCIOSA
-// ======================================================
-// Esta parte solo pide permiso de notificaciones nativas y registra
-// el Service Worker + token FCM para uso futuro (push en segundo plano).
-// NO muestra toasts de estado: el usuario solo debe ver el popup con
-// el mensaje REAL cuando el admin lo envíe (ver js/mensajes.js).
-
 async function registrarServiceWorker() {
     try {
         if (!("serviceWorker" in navigator)) return null;
-
         const registration = await navigator.serviceWorker.register(
             "./firebase-messaging-sw.js",
             { scope: "./firebase-cloud-messaging-push-scope/" }
         );
-        console.log("Service Worker registrado:", registration.scope);
+        console.log("Service Worker FCM registrado:", registration.scope);
         return registration;
     } catch (error) {
-        console.warn("Service Worker no disponible (no crítico):", error.message);
+        console.warn("Service Worker FCM no disponible:", error.message);
         return null;
     }
 }
 
 /**
- * Inicializa Firebase Messaging de forma silenciosa:
- * - Pide permiso de notificaciones (si aún no se decidió).
- * - Registra el Service Worker.
- * - Obtiene el token FCM (solo para consola / uso interno futuro).
- * No muestra ningún toast de estado al usuario.
- * @returns {Promise<string|null>} token FCM o null
+ * Inicializa Firebase Messaging.
+ * v3: Valida si las notificaciones están bloqueadas y avisa al usuario.
  */
 export async function inicializarFirebase() {
     try {
-        const app = obtenerApp();
-        messaging = getMessaging(app);
+        if (!("Notification" in window)) {
+            console.info("Este navegador no soporta notificaciones.");
+            return null;
+        }
 
-        // Solo pedir permiso si el usuario aún no decidió (evita
-        // molestar si ya lo bloqueó o ya lo concedió antes).
-        if (!("Notification" in window)) return null;
+        // ============================================================
+        // MEJORA: Detectar si las notificaciones están bloqueadas (denied)
+        // ============================================================
+        if (Notification.permission === "denied") {
+            console.warn("⚠️ Notificaciones bloqueadas. El usuario debe habilitarlas manualmente en el candado de la URL.");
+            mostrarToast(
+                "🔕 Notificaciones bloqueadas", 
+                "Haz clic en el candado de la URL y activa las notificaciones para recibir alertas.", 
+                "alerta", 
+                false
+            );
+            return null;
+        }
 
+        // Si aún no se ha decidido, pedir permiso
         if (Notification.permission === "default") {
             const permiso = await Notification.requestPermission();
             if (permiso !== "granted") {
@@ -274,9 +201,9 @@ export async function inicializarFirebase() {
             }
         }
 
-        if (Notification.permission !== "granted") {
-            return null;
-        }
+        // A partir de aquí, el permiso es "granted"
+        const app = obtenerApp();
+        messaging = getMessaging(app);
 
         const swRegistration = await registrarServiceWorker();
         if (!swRegistration) return null;
@@ -301,9 +228,6 @@ export async function inicializarFirebase() {
     }
 }
 
-/**
- * Devuelve el token FCM actual (si ya se obtuvo).
- */
 export function obtenerToken() {
     return currentToken;
 }
