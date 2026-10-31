@@ -28,7 +28,7 @@ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
       
 </head>
 
-<body>
+<>
 
 <div class="app">
 
@@ -217,6 +217,12 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+</script>
+<script type="module">
+    import { initPWAInstall } from "./js/pwa-install.js";
+    window.addEventListener('load', () => {
+        initPWAInstall();
+    });
 </script>
 </body>
 
