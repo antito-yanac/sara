@@ -755,3 +755,9 @@ export async function pintarZonasBaseVerde() {
 
     console.log(`[map] (${APP_CONFIG.modo}) ${pintadas} zonas pintadas en verde #22c55e`);
 }
+// ✅ NUEVO: Exportar función para forzar el redimensionado del mapa
+export function invalidateSize() {
+    if (map) {
+        map.invalidateSize();
+    }
+}
