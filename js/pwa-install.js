@@ -12,7 +12,7 @@ const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
 const userAgent = window.navigator.userAgent.toLowerCase();
 const isIOS = /iphone|ipad|ipod/.test(userAgent);
 const isSafari = /safari/.test(userAgent) && !/chrome|crios|fxios/.test(userAgent);
-
+const isDesktop = window.innerWidth > 1024;
 // 1. Crear el botón flotante
 function crearBotonInstalar() {
     if (isStandalone) return; // Ya está instalada
@@ -24,19 +24,19 @@ function crearBotonInstalar() {
     // Estilos del botón (puedes moverlos a tu CSS si prefieres)
     btn.style.cssText = `
         position: fixed;
-        bottom: 80px;
-        right: 20px;
+        bottom: 75px; /* Justo encima del botón de sonido (que está en 20px + 44px de alto + margen) */
+        left: 20px;   /* Lado izquierdo */
         z-index: 9000;
         background: #4285f4;
         color: white;
         border: none;
         border-radius: 24px;
-        padding: 12px 20px;
-        font-size: 14px;
+        padding: 10px 16px;
+        font-size: 13px;
         font-weight: 700;
         cursor: pointer;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        display: none;
+        display: ${isDesktop ? "none" : "none"}; /* Se oculta si es PC. El script lo muestra luego si no es PC */
         align-items: center;
         gap: 8px;
         font-family: 'Segoe UI', sans-serif;
@@ -133,9 +133,10 @@ export function initPWAInstall() {
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault(); // Evita el banner automático
         deferredPrompt = e;
-        console.log("[PWA] Evento beforeinstallprompt capturado. Mostrando botón.");
         
-        if (btn) {
+        // ✅ MODIFICADO: Solo mostrar si NO es Desktop (PC)
+        if (btn && !isDesktop) {
+            console.log("[PWA] Evento beforeinstallprompt capturado. Mostrando botón.");
             btn.style.display = "flex";
             // Ocultar el botón después de 30s si el usuario lo ignora
             setTimeout(() => {
@@ -153,7 +154,7 @@ export function initPWAInstall() {
 
     // Para iOS y otros: Mostrar el botón después de un tiempo si no hay evento nativo
     setTimeout(() => {
-        if (!deferredPrompt && btn && btn.style.display === "none") {
+        if (!deferredPrompt && btn && btn.style.display === "none" && !isDesktop) {
             console.log("[PWA] No hay evento nativo. Mostrando botón manual (iOS/otros).");
             btn.style.display = "flex";
         }
