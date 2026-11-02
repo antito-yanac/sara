@@ -1,77 +1,85 @@
-// js/version-check.js
+// js/version-check.js  —  v2 (simplificado)
 // ============================================================
-//  Auto-actualización agresiva (sin que el usuario pulse F5)
+//  AUTO-ACTUALIZACIÓN AGRESIVA — un solo archivo de versión
 //  ------------------------------------------------------------
-//  PROBLEMA QUE RESUELVE
-//  GitHub Pages sirve TODO con `cache-control: max-age=600`
-//  (10 minutos) y con un CDN (Fastly) delante. El navegador, además,
-//  guarda los módulos ES en su propio "module map" y en disco. Si
-//  una pestaña queda abierta horas, se queda con el JS viejo aunque
-//  el servidor ya tenga el nuevo. De ahí que hubiera que refrescar
-//  a mano para ver una alerta.
+//  ÚNICO PUNTO DE CAMBIO: `version.json` (campo "build").
+//  No hay que tocar los HTML ni el Service Worker.
 //
-//  QUÉ HACE ESTE ARCHIVO (3 capas)
-//   1. Compara el build de la página (meta sara-build) con
-//      version.json, pedido SIEMPRE con cache:"no-store".
-//      Si difieren -> recarga con una URL nueva (?v=build), lo que
-//      garantiza HTML fresco y, por tanto, JS fresco.
-//   2. Revisa cada 45 s, y ADEMÁS al volver a la pestaña
-//      (visibilitychange), al recuperar red (online) y al salir de
-//      la bfcache (pageshow persisted).
-//   3. Si el documento vino de la caché (transferSize 0 en la
-//      navegación), fuerza una revalidación inmediata.
+//  PROBLEMA QUE RESUELVE
+//  GitHub Pages sirve TODO con `cache-control: max-age=600` y con
+//  un CDN (Fastly) delante. El navegador guarda además los módulos
+//  ES en su "module map". Una pestaña abierta horas se queda con el
+//  JS viejo aunque el servidor ya tenga el nuevo.
+//
+//  CÓMO FUNCIONA
+//   1. Guarda en localStorage el build que la pestaña está usando
+//      ("sara_build_actual").
+//   2. Pide `version.json` SIEMPRE con cache:"no-store" + ?t=único
+//      (rompe también la caché del CDN).
+//   3. Si el build remoto es distinto -> recarga con
+//      ?v=<build>&_r=<timestamp> (URL nueva = cero caché).
+//   4. Revisa cada 45 s y además al volver a la pestaña
+//      (visibilitychange), al recuperar red (online), al salir de la
+//      bfcache (pageshow persisted) y al recuperar el foco (focus).
+//   5. Si el documento vino de la caché (transferSize 0), revalida
+//      al instante.
 //
 //  SEGURIDAD
-//   - Nunca recarga dos veces por el mismo build (sessionStorage):
-//     imposible entrar en bucle si alguien olvida subir el meta.
-//   - No recarga si la pestaña está oculta: espera a que se vea.
+//   - Antes de recargar, guarda el build nuevo en localStorage: al
+//     volver, local == remoto y NO se recarga otra vez (sin bucles).
+//   - No recarga si la pestaña está oculta.
 //   - Si version.json falla, no hace nada (no rompe la app).
 // ============================================================
 
 (function () {
     "use strict";
 
-    var INTERVALO_MS = 45 * 1000;      // revisión periódica
+    var INTERVALO_MS = 45 * 1000;
+    var CLAVE_LOCAL = "sara_build_actual";
     var CLAVE_SESION = "sara_build_recargado";
-    var CLAVE_BUILD = "sara_build_visto";
 
     var recargando = false;
-    var temporizador = null;
 
     // ---------------------------------------------------------
-    //  Build de la página actual (lo pone el HTML en un meta)
+    //  Build que esta pestaña está usando
     // ---------------------------------------------------------
-    function buildDeLaPagina() {
-        var m = document.querySelector('meta[name="sara-build"]');
-        return m ? String(m.getAttribute("content") || "").trim() : "";
+    function buildLocal() {
+        try { return localStorage.getItem(CLAVE_LOCAL) || ""; } catch (e) { return ""; }
+    }
+
+    function guardarBuildLocal(b) {
+        try { localStorage.setItem(CLAVE_LOCAL, b); } catch (e) {}
     }
 
     // ---------------------------------------------------------
-    //  Preguntar al servidor cuál es el build actual
-    //  cache:"no-store" salta la caché HTTP y la del CDN.
+    //  Build publicado en el servidor (siempre sin caché)
     // ---------------------------------------------------------
     function consultarBuildRemoto() {
-        var url = "./version.json?t=" + Date.now();
         if (typeof fetch !== "function") return Promise.resolve(null);
 
-        return fetch(url, {
+        return fetch("./version.json?t=" + Date.now(), {
             cache: "no-store",
-            headers: { "Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache" }
+            headers: {
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache"
+            }
         }).then(function (r) {
             if (!r.ok) return null;
             return r.json();
         }).then(function (j) {
-            return (j && j.build) ? String(j.build) : null;
+            return (j && j.build) ? String(j.build).trim() : null;
         }).catch(function () { return null; });
     }
 
     // ---------------------------------------------------------
-    //  Recarga forzada: URL nueva => entrada de caché nueva
+    //  Recarga forzada con URL única
     // ---------------------------------------------------------
     function recargarConBuild(build) {
         if (recargando) return;
         recargando = true;
 
+        // Guardamos ANTES de recargar: evita bucles.
+        guardarBuildLocal(build);
         try { sessionStorage.setItem(CLAVE_SESION, build); } catch (e) {}
 
         var destino;
@@ -94,29 +102,30 @@
     function comprobar() {
         if (recargando) return;
 
-        var local = buildDeLaPagina();
-        if (!local) return;   // página sin meta: no intervenimos
-
         consultarBuildRemoto().then(function (remoto) {
             if (!remoto) return;
-            if (remoto === local) {
-                try { sessionStorage.setItem(CLAVE_BUILD, remoto); } catch (e) {}
+
+            var local = buildLocal();
+
+            // Primera visita en este navegador: solo memorizamos.
+            if (!local) {
+                guardarBuildLocal(remoto);
+                console.log("[version] build inicial memorizado: " + remoto);
                 return;
             }
 
-            // ¿Ya recargamos para este build en esta sesión?
+            if (remoto === local) return;
+
+            // Guarda extra anti-bucle (por si localStorage falla)
             var yaRecargado = null;
             try { yaRecargado = sessionStorage.getItem(CLAVE_SESION); } catch (e) {}
             if (yaRecargado === remoto) {
-                // El HTML sigue viejo aunque recargamos: alguien olvidó
-                // subir <meta name="sara-build">. No entramos en bucle.
-                console.warn("[version] version.json=" + remoto +
-                             " pero la página dice " + local +
-                             ". Actualiza el meta sara-build en el HTML.");
+                guardarBuildLocal(remoto);
+                console.warn("[version] ya se recargó para " + remoto +
+                             "; se actualiza el registro sin volver a recargar.");
                 return;
             }
 
-            // Si la pestaña está oculta, esperamos a que se vea
             if (document.visibilityState === "hidden") {
                 console.log("[version] build nuevo detectado; se recargará al volver a la pestaña.");
                 return;
@@ -127,71 +136,24 @@
     }
 
     // ---------------------------------------------------------
-    //  ¿La página vino de la caché del navegador?
+    //  ¿Esta carga vino de la caché del navegador?
     // ---------------------------------------------------------
     function vinoDeCache() {
         try {
             var nav = performance.getEntriesByType("navigation")[0];
-            if (nav) {
-                // transferSize 0 y decodedBodySize > 0 => servida de caché
-                if (nav.transferSize === 0 && nav.decodedBodySize > 0) return true;
-            }
+            if (nav && nav.transferSize === 0 && nav.decodedBodySize > 0) return true;
         } catch (e) {}
         return false;
     }
 
     // ---------------------------------------------------------
-    //  Arranque
-    // ---------------------------------------------------------
-    function iniciar() {
-        // Service Worker siempre activo (network-first)
-        registrarSW();
-
-        // Primera comprobación: casi inmediata, pero sin bloquear el render
-        setTimeout(comprobar, 1500);
-
-        // Si esta carga salió de la caché, revalidamos ya
-        if (vinoDeCache()) {
-            console.log("[version] la página se sirvió de la caché; revalidando…");
-            setTimeout(comprobar, 300);
-        }
-
-        // Revisión periódica
-        temporizador = setInterval(function () {
-            if (document.visibilityState === "visible") comprobar();
-        }, INTERVALO_MS);
-
-        // Al volver a la pestaña: comprobar de inmediato
-        document.addEventListener("visibilitychange", function () {
-            if (document.visibilityState === "visible") {
-                comprobar();
-                // Y pedir al service worker que busque versión nueva
-                pedirActualizacionSW();
-            }
-        });
-
-        // Al recuperar conexión
-        window.addEventListener("online", comprobar);
-
-        // Al salir de la bfcache (atrás/adelante)
-        window.addEventListener("pageshow", function (ev) {
-            if (ev.persisted) comprobar();
-        });
-
-        // Al recuperar el foco de la ventana
-        window.addEventListener("focus", comprobar);
-    }
-
-    // ---------------------------------------------------------
-    //  Registrar el Service Worker SIEMPRE (no solo cuando el
-    //  usuario acepta notificaciones). Es lo que activa la
-    //  estrategia network-first para HTML/JS/CSS en todos los
-    //  navegadores, incluso si nunca conceden permiso de push.
+    //  Service Worker: se registra SIEMPRE (network-first)
     // ---------------------------------------------------------
     function registrarSW() {
         try {
             if (!("serviceWorker" in navigator)) return;
-            navigator.serviceWorker.register("./firebase-messaging-sw.js", { scope: "./" })
+            navigator.serviceWorker
+                .register("./firebase-messaging-sw.js", { scope: "./" })
                 .then(function (reg) {
                     if (reg && typeof reg.update === "function") reg.update().catch(function () {});
                 })
@@ -210,12 +172,49 @@
         } catch (e) {}
     }
 
+    // ---------------------------------------------------------
+    //  Arranque
+    // ---------------------------------------------------------
+    function iniciar() {
+        registrarSW();
+
+        setTimeout(comprobar, 1500);
+
+        if (vinoDeCache()) {
+            console.log("[version] la página se sirvió de la caché; revalidando…");
+            setTimeout(comprobar, 300);
+        }
+
+        setInterval(function () {
+            if (document.visibilityState === "visible") comprobar();
+        }, INTERVALO_MS);
+
+        document.addEventListener("visibilitychange", function () {
+            if (document.visibilityState === "visible") {
+                comprobar();
+                pedirActualizacionSW();
+            }
+        });
+
+        window.addEventListener("online", comprobar);
+
+        window.addEventListener("pageshow", function (ev) {
+            if (ev.persisted) comprobar();
+        });
+
+        window.addEventListener("focus", comprobar);
+    }
+
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", iniciar);
     } else {
         iniciar();
     }
 
-    // Expuesto para depurar desde la consola
-    window.__saraVersion = { comprobar: comprobar, build: buildDeLaPagina };
+    // Para depurar desde la consola
+    window.__saraVersion = {
+        comprobar: comprobar,
+        build: buildLocal,
+        olvidar: function () { try { localStorage.removeItem(CLAVE_LOCAL); } catch (e) {} }
+    };
 })();
