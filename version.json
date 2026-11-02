@@ -1,0 +1,4 @@
+{
+  "build": "20261101-1",
+  "nota": "Sube este número en cada despliegue. Las páginas abiertas se recargan solas al detectarlo."
+}

@@ -2,14 +2,16 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="sara-build" content="20261101-1">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🔔 Panel de Alertas — Antamina</title>
-<link rel="stylesheet" href="notifications.css">
-<link rel="stylesheet" href="css/admin.css">
-<link rel="stylesheet" href="css/alerts.css">
-<link rel="stylesheet" href="css/panico.css">
-<link rel="manifest" href="./manifest.webmanifest">
-<meta name="theme-color" content="#1a1a2e">
+<link rel="stylesheet" href="notifications.css?v=20261101-1">
+<link rel="stylesheet" href="css/admin.css?v=20261101-1">
+<link rel="stylesheet" href="css/alerts.css?v=20261101-1">
+<link rel="stylesheet" href="css/panico.css?v=20261101-1">
 <style>
 /* ============================================================
    Panel de Alertas — estilos (prefijo "pa-")
@@ -514,13 +516,10 @@
         </div>
     </div>
 </div>
-<script>
-window.__APP_CONFIG__ = {
-    coleccion: "mensajes_strikeguard"
-};
-</script>
-<script type="module" src="js/admin.js"></script>
-<script type="module" src="js/panico-admin.js"></script>
+
+<script src="./js/version-check.js?v=20261101-1"></script>
+<script type="module" src="js/admin.js?v=20261101-1"></script>
+<script type="module" src="js/panico-admin.js?v=20261101-1"></script>
 
 <!-- Script para el botón Keraunos Manual -->
 <script>
@@ -528,16 +527,6 @@ document.getElementById("btn-keraunos-manual")?.addEventListener("click", () => 
     window.location.href = "./adminkeraunos.html";
 });
 </script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').then((reg) => {
-      console.log('SW registrado:', reg.scope);
-    }).catch((err) => {
-      console.warn('SW no registrado:', err);
-    });
-  });
-}
-</script>
+
 </body>
 </html>
