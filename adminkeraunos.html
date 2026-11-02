@@ -202,8 +202,6 @@
 <div class="admin-container admin-panel-wide" id="panel-container" style="display:none; flex-direction: column;">
 
     <div class="admin-header">
-        <h1><span class="icon">🔔</span> Editor estado.json</h1>
-        <p>Configura el nivel y la duración de cada zona. Envía alertas al instante.</p>
         <div class="pa-modo-badge">⚙️ MODO MANUAL KERAUNOS</div>
 
         <div class="pa-header-actions">
@@ -251,24 +249,6 @@
     <!-- ============================================================
          SECCIÓN GITHUB (Token Visible) - Opcional
          ============================================================ -->
-    <section class="pa-gh-section">
-        <div class="pa-gh-titulo">🐙 PUBLICAR EN GITHUB (PAT) - Opcional</div>
-
-        <div class="form-group">
-            <label for="gh-token">🔑 GitHub PAT (Personal Access Token)</label>
-            <div class="pa-gh-input-wrap">
-                <input type="password" id="gh-token" placeholder="Pega tu token aquí (ghp_...)" autocomplete="off">
-                <button type="button" class="pa-gh-toggle-ojo" id="gh-toggle-ojo" aria-label="Mostrar/ocultar token">👁️</button>
-            </div>
-            <small style="display:block;margin-top:6px;color:rgba(255,255,255,0.5);font-size:11px;">
-                Usar solo si quieres actualizar el archivo estado.json en GitHub.
-            </small>
-        </div>
-
-        <div class="pa-gh-status" id="pa-gh-status"></div>
-    </section>
-
-    <button type="button" class="pa-btn-publicar" id="pa-btn-publicar">🚀 PUBLICAR EN GITHUB</button>
 
     <div class="status-bar" id="status-bar"></div>
 </div>
@@ -900,7 +880,7 @@ async function onClickLiberarZonaKeraunos(zonaId, nombreCorto, shortKey) {
 function inicializarPanel() {
     document.getElementById("pa-btn-reset-global").addEventListener("click", resetearTodoGlobal);
     document.getElementById("pa-btn-enviar-firestore").addEventListener("click", enviarAlertaFirestore);
-    document.getElementById("pa-btn-publicar").addEventListener("click", subirAGitHub);
+    //document.getElementById("pa-btn-publicar").addEventListener("click", subirAGitHub);
     
     document.getElementById("btn-volver-admin").addEventListener("click", () => window.location.href = "./admin.html");
 
