@@ -677,7 +677,7 @@ function renderAlertasActivas() {
     }
 
     paAALista.querySelectorAll(".pa-aa-btn-liberar").forEach(btn => {
-        btn.addEventListener("click", () => onClickLiberarZona(btn.dataset.distrito));
+        btn.addEventListener("click", () => onClick(btn.dataset.distrito));
     });
 
     paBtnLiberarTodas.style.display = items.length >= 1 ? "" : "none";
@@ -754,14 +754,22 @@ function onClickLiberarZona(distrito) {
         await liberarZona(distrito);
     });
 }
-
 async function liberarZona(distrito) {
     try {
+        const info = estado.alertasActivas.get(distrito);
+        const timestampInicio = info?.timestampInicio || null;
+
         await enviarMensajePush(
             `✅ Alerta finalizada — ${distrito}`,
             `La alerta meteorológica en ${distrito} ha finalizado.`,
-            { tipo: "alerta-resuelta", distrito }
+            {
+                tipo: "alerta-resuelta",
+                distrito,
+                origen: "manual",
+                ...(timestampInicio ? { timestampInicio } : {})
+            }
         );
+
         mostrarToast("🛑 Liberada", `${distrito} liberada.`, "info", true);
         mostrarEstado(`✓ ${distrito} liberada.`, "success");
         setTimeout(() => recalcularModo().catch(() => {}), 1000);
