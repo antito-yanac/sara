@@ -91,17 +91,23 @@ export async function enviarMensajePush(titulo, cuerpo, datosAlerta = null) {
     const docData = { titulo, cuerpo, fecha: serverTimestamp() };
 
     if (datosAlerta) {
-        if (datosAlerta.tipo !== "alerta-resuelta") {
+        const esResuelta = datosAlerta.tipo === "alerta-resuelta";
+
+        if (!esResuelta) {
             if (!datosAlerta.duracionMin || datosAlerta.duracionMin <= 0) {
                 datosAlerta.duracionMin = 15;
             }
+            // Solo las alertas NUEVAS reciben timestampInicio = ahora
+            datosAlerta.timestampInicio = Date.now();
         }
-        datosAlerta.timestampInicio = Date.now();
+        // Para alerta-resuelta: NO sobrescribir timestampInicio.
+        // Si viene, se respeta; si no viene, se deja sin definir.
+
         Object.assign(docData, datosAlerta);
     }
 
     await addDoc(ref, docData);
-    console.log(`[mensajes] Enviado a colección: ${coleccionNombre}`);
+    console.log(`[mensajes] Enviado a ${coleccionNombre}:`, docData.tipo || "mensaje");
 }
 
 function escucharModo() {
