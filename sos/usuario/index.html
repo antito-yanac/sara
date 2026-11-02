@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOS - Informante</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #fff; text-align: center; padding: 20px; margin: 0; }
+    .sos-btn {
+      width: 200px; height: 200px; border-radius: 50%; background: #d32f2f; color: white;
+      font-size: 40px; font-weight: bold; border: 8px solid #b71c1c;
+      box-shadow: 0 0 30px rgba(255,0,0,0.6); margin: 40px auto; display: block;
+      cursor: pointer; user-select: none; transition: transform 0.1s;
+    }
+    .sos-btn:active { transform: scale(0.95); }
+    .sos-btn:disabled { background: #555; border-color: #333; box-shadow: none; cursor: not-allowed; }
+    #status { font-size: 18px; padding: 20px; background: #222; border-radius: 10px; min-height: 50px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Botón de Emergencia</h2>
+  <button id="btnSOS" class="sos-btn" disabled>Esperando GPS...</button>
+  <div id="status">Obteniendo ubicación...</div>
+
+  <script type="module" src="./usuario.js"></script>
+</body>
+</html>
