@@ -59,6 +59,24 @@
 }
 .pa-btn-reset-zona:hover { background: #e74c3c; color: #fff; }
 
+/* ✅ NUEVO: Botón liberar zona (envía alerta-resuelta a Firestore) */
+.pa-btn-liberar-zona {
+    background: rgba(231,76,60,0.2);
+    border: 1px solid #e74c3c;
+    color: #ffb3a7;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.15s;
+    font-family: inherit;
+}
+.pa-btn-liberar-zona:hover {
+    background: #e74c3c;
+    color: #fff;
+}
+
 .pa-na-row2 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .pa-pill-group { display: flex; gap: 6px; flex: 1; min-width: 0; }
 .pa-pill {
@@ -498,6 +516,7 @@ function renderZonas() {
                 </button>
                 <div class="pa-na-nombre">Zona ${shortKey} - ${escapeHtml(z.nombreCorto)}</div>
                 <button type="button" class="pa-btn-reset-zona" data-id="${z.id}" title="Resetear a Verde">🔄 Reset</button>
+                <button type="button" class="pa-btn-liberar-zona" data-id="${z.id}" title="Liberar y notificar">🛑 Liberar</button>
             </div>
             <div class="pa-na-row2">
                 <div class="pa-pill-group">
@@ -527,6 +546,10 @@ function renderZonas() {
             renderZonas(); actualizarResumen();
             escribirStatus(`🔄 Zona ${shortKey} reseteada a Verde.`);
         });
+       // ✅ NUEVO: listener del botón Liberar
+       card.querySelector(".pa-btn-liberar-zona").addEventListener("click", () => {
+       onClickLiberarZonaKeraunos(z.id, z.nombreCorto, shortKey);
+       });
 
         card.querySelectorAll(".pa-pill").forEach(btn => {
             btn.addEventListener("click", () => {
@@ -841,6 +864,49 @@ async function subirAGitHub() {
 // ------------------------------------------------------------
 //  Inicialización del Panel (se llama tras el login)
 // ------------------------------------------------------------
+// ✅ NUEVA FUNCIÓN: liberar zona → Firestore → index.html la pinta verde
+async function onClickLiberarZonaKeraunos(zonaId, nombreCorto, shortKey) {
+    const ZONAS_DEF = [
+        { id: "campamento", nombreCorto: "Campamento Yanacancha", zona: "Zona 1 - Campamentos" },
+        { id: "oficinas",   nombreCorto: "Oficinas Mina",         zona: "Zona 2 - Oficinas Mina" },
+        { id: "tucush",     nombreCorto: "Tucush",                zona: "Zona 3 - Tucush" },
+        { id: "tajo",       nombreCorto: "Tajo",                  zona: "Zona 4 - Tajo" }
+    ];
+
+    const zdef = ZONAS_DEF.find(z => z.id === zonaId);
+    if (!zdef) return;
+
+    confirmar(
+        "🛑 Liberar zona",
+        `<div>Vas a liberar en <strong>index.html</strong>:</div>` +
+        `<div style="margin:10px 0;font-size:15px;"><strong>${escapeHtml(nombreCorto)}</strong> (${escapeHtml(zdef.zona)})</div>` +
+        `<div style="margin-top:12px;opacity:0.75;">Se enviará un <code>alerta-resuelta</code> a Firestore.</div>`,
+        async () => {
+            try {
+                await enviarMensajePush(
+                    `✅ Zona liberada — ${zdef.zona}`,
+                    `La zona ${zdef.zona} ha sido liberada manualmente.`,
+                    {
+                        tipo: "alerta-resuelta",
+                        distrito: zdef.zona,
+                        origen: "manual"
+                    }
+                );
+
+                NIVELES_ACTIVABLES.forEach(n => borrador[zonaId][n].activo = false);
+                renderZonas();
+                actualizarResumen();
+
+                mostrarToastLocal("🛑 Zona liberada", `${zdef.zona} → verde en index.html.`, "exito");
+                escribirStatus(`✅ ${zdef.zona} liberada.`, "ok");
+            } catch (e) {
+                console.error("Error liberando zona:", e);
+                mostrarToastLocal("❌ Error", "No se pudo liberar la zona.", "error");
+                escribirStatus(`❌ Error liberando: ${e.message || e}`, "err");
+            }
+        }
+    );
+}
 function inicializarPanel() {
     document.getElementById("pa-btn-reset-global").addEventListener("click", resetearTodoGlobal);
     document.getElementById("pa-btn-enviar-firestore").addEventListener("click", enviarAlertaFirestore);
