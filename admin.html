@@ -448,8 +448,18 @@
                 ⚙️ Keraunos Manual
             </button>
         </div>
-    </div>
-
+        <!-- botones de paginas -->
+         <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; border: 1px solid #444;">
+          <h3 style="margin-top:0; color:#fff; font-size:14px;">⚙️ Enrutador Público</h3>
+          <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Define a dónde irán los usuarios que escaneen el QR.</p>
+          <div style="display:flex; gap:10px;">
+              <button id="btn-ruta-index" class="btn btn-enviar" style="flex:1;">🌐 Forzar INDEX</button>
+              <button id="btn-ruta-strike" class="btn btn-enviar" style="flex:1; background:#e67e22;">🛡️ Forzar STRIKEGUARD</button>
+          </div>
+          <div id="ruta-status" style="font-size:12px; text-align:center; margin-top:10px; color:#2ecc71;"></div>
+      </div>
+      </div>
+    <!-- fin boton paginas -->
     <!-- Sección: Alertas activas -->
     <section class="pa-aa-section" id="pa-aa-section" style="display:none;">
         <div class="pa-aa-titulo">🚨 ALERTAS ACTIVAS <span id="pa-aa-count">(0)</span></div>
