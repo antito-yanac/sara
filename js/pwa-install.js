@@ -141,7 +141,7 @@ export function initPWAInstall() {
             // Ocultar el botón después de 30s si el usuario lo ignora
             setTimeout(() => {
                 if (btn.style.display !== "none") btn.style.display = "none";
-            }, 30000);
+            }, 3000);
         }
     });
 
@@ -157,6 +157,9 @@ export function initPWAInstall() {
         if (!deferredPrompt && btn && btn.style.display === "none" && !isDesktop) {
             console.log("[PWA] No hay evento nativo. Mostrando botón manual (iOS/otros).");
             btn.style.display = "flex";
+            setTimeout(() => {
+                if (btn.style.display !== "none") btn.style.display = "none";
+            }, 3000);
         }
     }, 3000); // Esperar 3 segundos por si el evento nativo llega tarde
 }
