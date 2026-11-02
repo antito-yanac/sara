@@ -1,6 +1,8 @@
 {
   "name": "SARA Antamina",
   "short_name": "SARA",
+  "id": "/sara/",
+  "scope": "/sara/",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#1a1a2e",
