@@ -565,8 +565,10 @@ function limpiarFormulario() {
 // ======================================================
 function escucharAlertasActivas() {
     try {
-        const db = getFirestore(obtenerApp());
-        const ref = collection(db, "mensajes_push");
+        //const db = getFirestore(obtenerApp());
+        //const ref = collection(db, "mensajes_push");
+        const coleccionNombre = (window.__APP_CONFIG__ || {}).coleccion || "mensajes_strikeguard";
+        const ref = collection(db, coleccionNombre);
         const q = query(ref, orderBy("fecha", "desc"), limit(50));
 
         onSnapshot(q, (snap) => {
