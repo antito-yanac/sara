@@ -781,6 +781,7 @@ async function liberarZona(distrito) {
 // ======================================================
 // NUEVO: Reset por zona (escribe alerta-resuelta en Firestore)
 // ======================================================
+// js/admin.js — líneas ~651-692
 function onClickResetZona(distrito) {
     abrirModal({
         icon: "🔄",
@@ -792,9 +793,24 @@ function onClickResetZona(distrito) {
         textoAceptar: "🔄 RESET"
     }, async (aceptar) => {
         if (!aceptar) return;
-        // Reutilizamos liberarZona() que ya escribe alerta-resuelta en Firestore
-        await liberarZona(distrito);
-        // También limpiamos el estado local del formulario
+
+        if (!estado.alertasActivas.has(distrito)) {
+            // No hay alerta activa en el panel: forzar alerta-resuelta
+            try {
+                await enviarMensajePush(
+                    `✅ Zona reseteada — ${distrito}`,
+                    `La zona ${distrito} ha sido reseteada a verde.`,
+                    { tipo: "alerta-resuelta", distrito, origen: "manual" }
+                );
+                mostrarToast("🔄 Reseteada", `${distrito} → verde.`, "info", true);
+            } catch (e) {
+                console.error("Error reseteando zona:", e);
+                mostrarToast("❌ Error", "No se pudo resetear la zona.", "alerta", true);
+            }
+        } else {
+            await liberarZona(distrito);
+        }
+
         if (estado.config[distrito]) {
             estado.config[distrito].activa = false;
             aplicarEstadoVisual();
@@ -826,14 +842,23 @@ function onClickLiberarTodas() {
     });
 }
 
+// js/admin.js — líneas ~707-740
 async function liberarTodas(zonas) {
     let ok = 0, err = 0;
     for (const distrito of zonas) {
         try {
+            const info = estado.alertasActivas.get(distrito);
+            const timestampInicio = info?.timestampInicio || null;
+
             await enviarMensajePush(
                 `✅ Alerta finalizada — ${distrito}`,
                 `La alerta meteorológica en ${distrito} ha finalizado.`,
-                { tipo: "alerta-resuelta", distrito }
+                {
+                    tipo: "alerta-resuelta",
+                    distrito,
+                    origen: "manual",
+                    ...(timestampInicio ? { timestampInicio } : {})
+                }
             );
             ok++;
         } catch (e) {
