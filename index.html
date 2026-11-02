@@ -148,6 +148,11 @@ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <!-- =========================================================
      MÓDULOS PRINCIPALES
      ========================================================= -->
+      <!-- Guardián de redirección -->
+<script type="module">
+    import { verificarRuta } from "./js/router-config.js";
+    verificarRuta("index");
+</script>
 <script src="./js/keraunos-config.js"></script>
 
 <!-- 1. App principal (Mapa y lógica) -->
