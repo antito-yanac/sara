@@ -77,11 +77,29 @@ self.addEventListener("notificationclick", (event) => {
 const CACHE = "sara-v2";
 const CACHE_PREFIJO = "sara-";
 
-// IMPORTANTE: sube este valor junto con version.json y el <meta sara-build>.
+// El build se lee de `version.json` (único punto de cambio del sitio).
 // Se usa para "romper" la caché del CDN de GitHub Pages (Fastly) añadiendo
 // un parámetro único a cada petición de HTML/JS/CSS. Sin esto, Fastly puede
 // devolver un app.js viejo hasta 10 minutos aunque el navegador no lo cachee.
-const BUILD_SW = "20261101-1";
+let __buildMemo = { valor: null, ts: 0 };
+
+async function obtenerBuild() {
+    const ahora = Date.now();
+    // Memo de 30 s para no pedir version.json en cada petición
+    if (__buildMemo.valor && (ahora - __buildMemo.ts) < 30000) {
+        return __buildMemo.valor;
+    }
+    try {
+        const res = await fetch("./version.json?t=" + ahora, { cache: "no-store" });
+        if (!res.ok) return __buildMemo.valor;
+        const j = await res.json();
+        const b = j && j.build ? String(j.build).trim() : null;
+        __buildMemo = { valor: b, ts: ahora };
+        return b;
+    } catch (e) {
+        return __buildMemo.valor;
+    }
+}
 
 // Rutas que NUNCA deben servirse de caché (siempre red)
 const SIEMPRE_RED = ["/version.json"];
@@ -161,7 +179,9 @@ self.addEventListener("fetch", (event) => {
             const cache = await caches.open(CACHE);
             try {
                 const u = new URL(req.url);
-                u.searchParams.set("_sw", BUILD_SW);
+                const build = await obtenerBuild();
+                if (build) u.searchParams.set("_sw", build);
+                else u.searchParams.set("_sw", String(Date.now()));
                 const res = await fetch(u.toString(), {
                     cache: "no-store",
                     credentials: "same-origin"
