@@ -279,7 +279,7 @@
 import { enviarMensajePush } from "./js/mensajes.js";
 import { inicializarFirebase } from "./js/notifications.js";
 import { iniciarSesion, cerrarSesion, observarSesion, traducirErrorAuth } from "./js/auth.js";
-
+import { invalidateSize } from "./js/map.js";
 // ------------------------------------------------------------
 //  Referencias DOM (Login)
 // ------------------------------------------------------------
@@ -668,6 +668,7 @@ async function cargarEstado() {
         dot.className = "pa-dot pa-err"; txt.textContent = "estado.json no encontrado — inicia desde VERDE";
     }
     renderZonas(); actualizarResumen();
+   setTimeout(invalidateSize, 300);
 }
 
 // ------------------------------------------------------------
@@ -882,6 +883,7 @@ function inicializarPanel() {
     document.getElementById("pa-btn-enviar-firestore").addEventListener("click", enviarAlertaFirestore);
     
     document.getElementById("btn-volver-admin").addEventListener("click", () => window.location.href = "./admin.html");
+   setTimeout(invalidateSize, 300);
     cargarEstado();
 }
 </script>
