@@ -52,11 +52,7 @@
 }
 
 /* Botón resetear zona individual */
-.pa-btn-reset-zona {
-    background: rgba(231,76,60,0.15); border: 1px solid #e74c3c;
-    color: #ffb3a7; padding: 4px 10px; border-radius: 6px;
-    font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.15s; font-family: inherit;
-}
+
 .pa-btn-reset-zona:hover { background: #e74c3c; color: #fff; }
 
 /* ✅ NUEVO: Botón liberar zona (envía alerta-resuelta a Firestore) */
@@ -515,7 +511,6 @@ function renderZonas() {
                     ${nivelActivo !== "VERDE" ? "✓" : ""}
                 </button>
                 <div class="pa-na-nombre">Zona ${shortKey} - ${escapeHtml(z.nombreCorto)}</div>
-                <button type="button" class="pa-btn-reset-zona" data-id="${z.id}" title="Resetear a Verde">🔄 Reset</button>
                 <button type="button" class="pa-btn-liberar-zona" data-id="${z.id}" title="Liberar y notificar">🛑 Liberar</button>
             </div>
             <div class="pa-na-row2">
@@ -540,12 +535,7 @@ function renderZonas() {
             else borrador[z.id].AMARILLA.activo = true;
             renderZonas(); actualizarResumen();
         });
-
-        card.querySelector(".pa-btn-reset-zona").addEventListener("click", () => {
-            NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = false);
-            renderZonas(); actualizarResumen();
-            escribirStatus(`🔄 Zona ${shortKey} reseteada a Verde.`);
-        });
+       
        // ✅ NUEVO: listener del botón Liberar
        card.querySelector(".pa-btn-liberar-zona").addEventListener("click", () => {
        onClickLiberarZonaKeraunos(z.id, z.nombreCorto, shortKey);
