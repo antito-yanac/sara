@@ -17,7 +17,7 @@ import { iniciarSesion, cerrarSesion, observarSesion, traducirErrorAuth } from "
 import { NIVELES_ALERTA, calcularNivelEfectivo } from "./alertas.js";
 import { iniciarEstadoCliente } from "./estado-cliente.js";
 import { getFirestore, collection, query, orderBy, limit, onSnapshot,
-         doc, setDoc, serverTimestamp }
+         doc, setDoc, serverTimestamp } 
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 import { obtenerFirestore } from "./firebase-app.js";
 const db = obtenerFirestore();
@@ -213,6 +213,41 @@ async function initPanel() {
         estado.intervalModo = setInterval(actualizarBadgeModo, 2000);
 
         estado.panelListo = true;
+        // Iniciar lógica del enrutador en el panel
+function initEnrutador() {
+    const btnIndex = document.getElementById("btn-ruta-index");
+    const btnStrike = document.getElementById("btn-ruta-strike");
+    const status = document.getElementById("ruta-status");
+
+    if (!btnIndex || !btnStrike) return; // Si no está en la página, salir
+
+    const db = obtenerFirestore();
+    const docRef = doc(db, "sistema", "config_pagina");
+
+    // Escuchar cuál está activo
+    onSnapshot(docRef, (snap) => {
+        if (snap.exists()) {
+            const vista = snap.data().vista;
+            if (vista === "strikeguard") {
+                status.textContent = "🛡️ QR redirige a StrikeGuard";
+                status.style.color = "#e67e22";
+            } else {
+                status.textContent = "🌐 QR redirige a Index";
+                status.style.color = "#3498db";
+            }
+        }
+    });
+
+    // Cambiar a Index
+    btnIndex.addEventListener("click", async () => {
+        await setDoc(docRef, { vista: "index" }, { merge: true });
+    });
+
+    // Cambiar a StrikeGuard
+    btnStrike.addEventListener("click", async () => {
+        await setDoc(docRef, { vista: "strikeguard" }, { merge: true });
+    });
+}
     } catch (error) {
         console.error("Error iniciando panel:", error);
         mostrarEstado("Panel listo (sin Firebase).", "");
@@ -1017,44 +1052,4 @@ function cssEscape(txt) {
     return String(txt || "").replace(/([^\w-])/g, "\\$1");
 }
 //ultima parte
-import { setDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
-import { obtenerFirestore } from "./firebase-app.js";
 
-// Iniciar lógica del enrutador en el panel
-function initEnrutador() {
-    const btnIndex = document.getElementById("btn-ruta-index");
-    const btnStrike = document.getElementById("btn-ruta-strike");
-    const status = document.getElementById("ruta-status");
-
-    if (!btnIndex || !btnStrike) return; // Si no está en la página, salir
-
-    const db = obtenerFirestore();
-    const docRef = doc(db, "sistema", "config_pagina");
-
-    // Escuchar cuál está activo
-    onSnapshot(docRef, (snap) => {
-        if (snap.exists()) {
-            const vista = snap.data().vista;
-            if (vista === "strikeguard") {
-                status.textContent = "🛡️ QR redirige a StrikeGuard";
-                status.style.color = "#e67e22";
-            } else {
-                status.textContent = "🌐 QR redirige a Index";
-                status.style.color = "#3498db";
-            }
-        }
-    });
-
-    // Cambiar a Index
-    btnIndex.addEventListener("click", async () => {
-        await setDoc(docRef, { vista: "index" }, { merge: true });
-    });
-
-    // Cambiar a StrikeGuard
-    btnStrike.addEventListener("click", async () => {
-        await setDoc(docRef, { vista: "strikeguard" }, { merge: true });
-    });
-}
-
-// Ejecutar cuando el panel cargue
-// (Asegúrate de llamar a initEnrutador() dentro de tu función initPanel() existente)
