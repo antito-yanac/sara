@@ -109,6 +109,7 @@ function mostrarModalConfirmacion(encolada) {
         : "Tu alerta fue enviada, te contactaremos.";
 
     modal.hidden = false;
+    modal.style.display = "flex";   // ✅ fuerza a mostrarlo
 
     if (encolada || !alertaActualId) {
         if (cancelWrap) cancelWrap.hidden = true;
@@ -133,7 +134,10 @@ function mostrarModalConfirmacion(encolada) {
 
 function cerrarModal() {
     const m = document.getElementById("sos-modal");
-    if (m) m.hidden = true;
+    if (m) {
+        m.hidden = true;
+        m.style.display = "none";     // ✅ fuerza ocultar aunque el CSS tenga display: flex
+    }
     if (cancelTimer) { clearInterval(cancelTimer); cancelTimer = null; }
 }
 
