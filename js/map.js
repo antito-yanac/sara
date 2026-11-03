@@ -340,7 +340,7 @@ export function crearMapa(idDiv) {
     map = L.map(idDiv, { zoomControl: false });
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-        icono = L.divIcon({
+        iconoTu = L.divIcon({
         className: "",
         html: `
             <div style="position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;">
@@ -428,7 +428,7 @@ function mostrarMiUbicacion() {
             }).addTo(map);
 
             markerUbicacion = L.marker([lat, lng], {
-                icon: iconoTu, zIndexOffset: 1000
+                icon: , zIndexOffset: 1000
             }).addTo(map);
 
             markerUbicacion.bindPopup(
