@@ -635,12 +635,12 @@ function verMapaAlerta() {
         o?.classList.remove("al-visible");
         o?.classList.remove("al-libre");
         
-        // Llamar directamente a la función del mapa
+        // ✅ Corregido con el nombre real de la función
         import("./map.js").then(mod => {
-            if (mod && typeof mod.mostrarUbicacion === "function") {
-                mod.mostrarUbicacion();
+            if (mod && typeof mod.mostrarMiUbicacion === "function") {
+                mod.mostrarMiUbicacion();
             }
-        }).catch(() => {});
+        }).catch((e) => console.error(e));
         
     } catch (e) { 
         console.error("Error al abrir el mapa:", e); 
