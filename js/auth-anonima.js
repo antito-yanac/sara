@@ -19,7 +19,7 @@ import {
     onAuthStateChanged,
     setPersistence,
     browserLocalPersistence
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
 
 // Aseguramos persistencia local (la sesión sobrevive al cerrar)
 setPersistence(auth, browserLocalPersistence).catch(() => { });
@@ -32,7 +32,7 @@ setPersistence(auth, browserLocalPersistence).catch(() => { });
 export function asegurarSesionAnonima() {
     return new Promise((resolve, reject) => {
         const unsub = onAuthStateChanged(auth, async (user) => {
-            unsub(); // solo nos interesa el primer estado
+            unsub();
             if (user) { resolve(user); return; }
             try {
                 const cred = await signInAnonymously(auth);
