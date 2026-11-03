@@ -18,6 +18,9 @@ async function init() {
     // 1) Sesión anónima
     try { await asegurarSesionAnonima(); }
     catch (e) { console.error("sos-ui: no se pudo iniciar sesión anónima:", e); return; }
+    // --- NUEVA LÍNEA: Asegurar que el modal esté oculto al arrancar ---
+    const modalEl = document.getElementById("sos-modal");
+    if (modalEl) modalEl.hidden = true;
 
     // 2) ¿Ya está registrado? Solo mostrar el form si NO lo está.
     const usuario = await leerUsuarioActual();
