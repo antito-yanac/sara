@@ -405,7 +405,7 @@ function engancharBotonUbicacion() {
 // ======================================================
 // MOSTRAR MI UBICACIÓN
 // ======================================================
-function mostrarMiUbicacion() {
+export function mostrarMiUbicacion() {
     const btn = document.getElementById("btn-ubicacion");
     if (!navigator.geolocation) { alert("Tu navegador no soporta geolocalización."); return; }
     if (btn) btn.classList.add("buscar");
