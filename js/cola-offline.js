@@ -1,25 +1,9 @@
 // js/cola-offline.js
 // ============================================================
 // Cola de alertas pendientes en IndexedDB cuando no hay red.
-// Al recuperar la conexión, se vacía y se envían a Firestore.
+// v2: sin imports de Firebase (este módulo NO los necesita).
 // ============================================================
-import { obtenerAuth, obtenerFirestore } from "./firebase-app.js";
-import { COLECCIONES } from "./firebase-config.js";
 
-const auth = obtenerAuth();
-const db = obtenerFirestore();
-
-import { obtenerDeviceId } from "./device-id.js";
-import { leerUsuarioActual } from "./registro-usuario.js";
-import { encolarAlerta, listarPendientes, eliminarPendiente } from "./cola-offline.js";
-
-// ✅ MISMA versión
-import {
-    collection, addDoc, doc, updateDoc,
-    serverTimestamp, Timestamp
-} from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
-
-//=============================================================================
 const DB_NAME    = "sara_offline";
 const DB_VERSION = 1;
 const STORE      = "alertas_pendientes";
@@ -56,23 +40,12 @@ async function conStore(modo, fn) {
     });
 }
 
-/**
- * Encola una alerta para enviarla cuando vuelva la conexión.
- * @param {object} payload - El mismo objeto que enviarías a Firestore.
- */
 export async function encolarAlerta(payload) {
     await conStore("readwrite", (store) => {
-        store.add({
-            payload,
-            encoladaEn: Date.now()
-        });
+        store.add({ payload, encoladaEn: Date.now() });
     });
 }
 
-/**
- * Devuelve todas las alertas pendientes.
- * @returns {Promise<Array<{id, payload, encoladaEn}>>}
- */
 export async function listarPendientes() {
     return new Promise(async (resolve, reject) => {
         try {
@@ -86,18 +59,12 @@ export async function listarPendientes() {
     });
 }
 
-/**
- * Elimina una alerta de la cola por id.
- */
 export async function eliminarPendiente(id) {
     await conStore("readwrite", (store) => {
         store.delete(id);
     });
 }
 
-/**
- * Cuenta cuántas alertas pendientes hay.
- */
 export async function contarPendientes() {
     const items = await listarPendientes();
     return items.length;
