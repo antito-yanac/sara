@@ -445,7 +445,7 @@ function pintarBannerDeZona(zona, opts = {}) {
     if (el) el.textContent = formatearTiempo(tiempoRestanteZona(zona));
 
     actualizarTimestampBarra(zona.timestampInicio);
-    if (!opts.noReabrir) //setTimeout(() => document.getElementById("al-btn-cerrar")?.focus(), 800);
+    if (!opts.noReabrir) {}//setTimeout(() => document.getElementById("al-btn-cerrar")?.focus(), 800);
 }
 
 function cerrarBannerActual() {
@@ -634,14 +634,21 @@ function verMapaAlerta() {
         const o = document.getElementById("al-overlay");
         o?.classList.remove("al-visible");
         o?.classList.remove("al-libre");
-        // 2. Simular el clic en el botón de ubicación del mapa
+        
+        // Simular el clic en el botón de ubicación del mapa
         const btnUbicacion = document.getElementById("btn-ubicacion");
         if (btnUbicacion) {
             btnUbicacion.click();
         } else {
-            // Si el botón no existe por alguna razón, solo hace scroll al mapa
-        setTimeout(() => { const mapEl = document.getElementById("map"); if (mapEl) mapEl.scrollIntoView({ behavior: "smooth", block: "center" }); }, 150);
-    } } catch (e) { console.error("Error al abrir el mapa:", e);  }
+            // Si el botón no existe, solo hace scroll al mapa
+            setTimeout(() => { 
+                const mapEl = document.getElementById("map"); 
+                if (mapEl) mapEl.scrollIntoView({ behavior: "smooth", block: "center" }); 
+            }, 150);
+        }
+    } catch (e) { 
+        console.error("Error al abrir el mapa:", e); 
+    }
 }
 
 function abrirBannerDeNuevo() {
