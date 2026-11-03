@@ -8,7 +8,9 @@
 //  - Vacía la cola al recuperar conexión.
 // ============================================================
 
-import { auth, db, COLECCIONES } from "./firebase-config.js";
+//import { auth, db, COLECCIONES } from "./firebase-config.js";
+import { auth, db } from "./firebase-app.js";
+import { COLECCIONES } from "./firebase-config.js";
 import { obtenerDeviceId } from "./device-id.js";
 import { leerUsuarioActual } from "./registro-usuario.js";
 import {
