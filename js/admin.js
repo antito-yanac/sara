@@ -1105,7 +1105,7 @@ document.addEventListener("click", async (e) => {
         // Importamos addDoc dinámicamente
         const { addDoc } = await import("https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js");
         
-        const currentAuth = getAuth(getApp());
+       const currentAuth = getAuth(obtenerApp());
 
         await addDoc(collection(db, "mensajes_globales"), {
             titulo: titulo,
