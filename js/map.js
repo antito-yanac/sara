@@ -28,9 +28,9 @@ const ZONAS_OCULTAS_MANUAL = ["Zona 4 - Tajo"];
 
 function esZonaOcultaManual(nombreZona) {
     if (APP_CONFIG.modo !== "manual") return false;
-    if (!nombreZona) rern false;
+    if (!nombreZona) return false;
     const n = String(nombreZona).toLowerCase();
-    rern ZONAS_OCULTAS_MANUAL.some(oc =>
+    return ZONAS_OCULTAS_MANUAL.some(oc =>
         oc.toLowerCase() === n ||
         n.includes(oc.toLowerCase()) ||
         oc.toLowerCase().includes(n)
@@ -50,7 +50,7 @@ const COLORES_NIVEL = {
 };
 
 function colorDeNivel(nivelKey) {
-    rern COLORES_NIVEL[nivelKey] || COLORES_NIVEL.roja;
+    return COLORES_NIVEL[nivelKey] || COLORES_NIVEL.roja;
 }
 
 const poligonosActivos = new Map();
@@ -61,15 +61,15 @@ let _estiloGlowInyectado = false;
 // Carga de zonas
 // ======================================================
 async function cargarZonas() {
-    if (zonasData) rern zonasData;
+    if (zonasData) return zonasData;
     try {
         const resp = await fetch(APP_CONFIG.zonasFile);
         zonasData = await resp.json();
         console.log(`[map] zonas cargadas desde ${APP_CONFIG.zonasFile}:`, zonasData.zonas?.length || 0);
-        rern zonasData;
+        return zonasData;
     } catch (e) {
         console.warn(`map.js: no se pudo cargar ${APP_CONFIG.zonasFile}`, e);
-        rern null;
+        return null;
     }
 }
 
@@ -77,7 +77,7 @@ async function cargarZonas() {
 // Glow pulsante
 // ======================================================
 function inyectarEstiloGlow() {
-    if (_estiloGlowInyectado) rern;
+    if (_estiloGlowInyectado) return;
     _estiloGlowInyectado = true;
 
     const style = document.createElement("style");
@@ -124,7 +124,7 @@ function inyectarEstiloGlow() {
 function aplicarGlowPulsante(poligono, nivelKey) {
     try {
         const el = poligono.getElement();
-        if (!el) rern;
+        if (!el) return;
         const color = colorDeNivel(nivelKey);
         el.classList.remove("al-zona-sin-glow");
         el.classList.add("al-zona-glow");
@@ -137,7 +137,7 @@ function aplicarGlowPulsante(poligono, nivelKey) {
 function quitarGlow(poligono) {
     try {
         const el = poligono.getElement();
-        if (!el) rern;
+        if (!el) return;
         el.classList.remove("al-zona-glow");
         el.classList.add("al-zona-sin-glow");
         el.style.color = "";
@@ -148,7 +148,7 @@ function quitarGlow(poligono) {
 // ILUMINAR DISTRITO
 // ======================================================
 export function iluminarDistrito(lat, lng, nivelKey = "roja") {
-    if (!map) rern null;
+    if (!map) return null;
 
     const color = colorDeNivel(nivelKey);
 
@@ -194,7 +194,7 @@ export function iluminarDistrito(lat, lng, nivelKey = "roja") {
 
     map.flyTo([lat, lng], 12, { duration: 1.4 });
 
-    rern {
+    return {
         map, nucleo, rayoMarker, pulsoMarker, intervalParpadeo,
         detener() {
             clearInterval(intervalParpadeo);
@@ -209,7 +209,7 @@ export function iluminarDistrito(lat, lng, nivelKey = "roja") {
 // ILUMINAR ZONA DESDE GEOJSON
 // ======================================================
 export async function iluminarDistritoZona(nombreZona, nivelKey = "roja") {
-    if (!map) rern null;
+    if (!map) return null;
 
     const color = colorDeNivel(nivelKey);
     let puntoEncontrado = null;
@@ -222,9 +222,9 @@ export async function iluminarDistritoZona(nombreZona, nivelKey = "roja") {
 
     if (geoLayer) {
         geoLayer.eachLayer(layer => {
-            if (puntoEncontrado) rern;
+            if (puntoEncontrado) return;
             const f = layer.feare;
-            if (!f) rern;
+            if (!f) return;
             if (f.geometry && f.geometry.type === "Point") {
                 const nombre = (f.properties?.Name || "").toLowerCase();
                 if (nombre.includes(nombreBusqueda) || nombreBusqueda.includes(nombre)) {
@@ -260,7 +260,7 @@ export async function iluminarDistritoZona(nombreZona, nivelKey = "roja") {
 
     if (!puntoEncontrado) {
         console.warn("map.js: no se encontró punto para la zona:", nombreZona);
-        rern null;
+        return null;
     }
 
     const lat = puntoEncontrado.lat;
@@ -318,7 +318,7 @@ export async function iluminarDistritoZona(nombreZona, nivelKey = "roja") {
 
     map.flyTo([lat, lng], 12, { duration: 1.4 });
 
-    rern {
+    return {
         map, circulo, circuloMedio, nucleo, rayoMarker, pulsoMarker,
         puntoEncontrado, intervalParpadeo,
         detener() {
