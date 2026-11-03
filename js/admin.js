@@ -17,12 +17,15 @@ import { iniciarSesion, cerrarSesion, observarSesion, traducirErrorAuth } from "
 import { NIVELES_ALERTA, calcularNivelEfectivo } from "./alertas.js";
 import { iniciarEstadoCliente } from "./estado-cliente.js";
 import { getFirestore, collection, query, orderBy, limit, onSnapshot,
-         doc, setDoc, serverTimestamp } 
+         doc, setDoc, serverTimestamp, addDoc } 
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+
+import { getAuth } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
+
 //import { obtenerFirestore } from "./firebase-app.js";
 import { obtenerFirestore, obtenerApp } from "./firebase-app.js";
 const db = obtenerFirestore();
-
+const auth = getAuth(obtenerApp()); 
 // ======================================================
 // ZONAS OFICIALES
 // ======================================================
