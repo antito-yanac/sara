@@ -323,6 +323,8 @@ if (!document.getElementById("sos-wrap")) {
 
     btn.addEventListener("click", abrirModal);
     document.getElementById("panico-btn-cerrar").addEventListener("click", cerrarModal);
+    //intensionado borrar
+    document.getElementById("sos-modal-close").addEventListener("click", cerrarModal);
     document.getElementById("panico-overlay").addEventListener("click", (e) => {
         if (e.target.id === "panico-overlay") cerrarModal();
     });
