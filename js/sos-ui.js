@@ -74,25 +74,7 @@ async function init() {
             // ⚠️ Exigir registro antes de disparar
             const usuarioActual = await leerUsuarioActual();
             if (!usuarioActual) {
-                if (card) card.hidden = false;
-                    // 👇 CAMBIO: Lógica de la burbuja llamativa
-                const burbujaExistente = document.getElementById("burbuja-no-registrado");
-                if (!burbujaExistente) {
-                    const burbuja = document.createElement("div");
-                    burbuja.id = "burbuja-no-registrado";
-                    burbuja.className = "burbuja-alerta";
-                    burbuja.innerHTML = "¡No registrado!<br><span style='font-size:11px'>Completa tus datos primero.</span>";
-                    card.appendChild(burbuja);
-
-                    // Animación para que aparezca
-                    setTimeout(() => burbuja.classList.add("burbuja-visible"), 10);
-
-                    // Desaparecer después de 6 segundos
-                    setTimeout(() => {
-                        burbuja.classList.remove("burbuja-visible");
-                        setTimeout(() => burbuja.remove(), 300);
-                    }, 6000);
-                }
+                if (card) card.hidden = false; 
                 return;
             }
 
@@ -111,8 +93,8 @@ async function init() {
 
             alertaActualId = res.alertId || null;
             mostrarModalConfirmacion(res.encolada);
-        });
-    }
+        }); // <-- Cierra el addEventListener
+    } // <-- Cierra el if (btnSos)
 
     // 6) Modal: cancelar
     const btnCancel = document.getElementById("sos-cancel-btn");
