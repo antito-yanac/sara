@@ -9,8 +9,13 @@
 // ============================================================
 
 //import { auth, db, COLECCIONES } from "./firebase-config.js";
-import { auth, db } from "./firebase-app.js";
+import { obtenerAuth, obtenerFirestore } from "./firebase-app.js";
 import { COLECCIONES } from "./firebase-config.js";
+
+// Inicializamos las referencias AQUÍ:
+const auth = obtenerAuth();
+const db = obtenerFirestore();
+
 import { obtenerDeviceId } from "./device-id.js";
 import { leerUsuarioActual } from "./registro-usuario.js";
 import {
