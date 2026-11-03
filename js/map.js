@@ -284,9 +284,9 @@ export async function iluminarDistritoZona(nombreZona, nivelKey = "roja") {
     const rayoIcon = L.divIcon({
         className: "al-mapa-rayo",
         html: `<svg class="al-mapa-rayo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                 <polygon points="58,5 30,52 48,52 38,95 72,42 52,42 62,5"
-                          fill="#ffeb3b" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
-               </svg>`,
+              <polygon points="58,5 30,52 48,52 38,95 72,42 52,42 62,5"
+               fill="#ff3333" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
+            </svg>`,
         iconSize: [50, 50], iconAnchor: [25, 25]
     });
     const rayoMarker = L.marker([lat, lng], {
@@ -345,8 +345,8 @@ export function crearMapa(idDiv) {
         html: `
             <div style="position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                 <!-- Icono de Persona (SVG) en color Azul -->
-                <svg viewBox="0 0 24 24" width="32" height="32" style="fill: #4285f4; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                <svg viewBox="0 0 24 24" width="32" height="32" style="fill: #e53935; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
+                    <path d="M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm-2 7-2 6 2 1-1 6h2l1-5 1 5h2l-1-6 2-1-2-6h-4z"/>
                 </svg>
                 <!-- Texto Tú con fondo semitransparente para que se lea bien -->
                 <div style="color: #fff; font-family: sans-serif; font-size: 11px; font-weight: 800; text-shadow: 1px 1px 3px #000; margin-top: -4px;">
