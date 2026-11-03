@@ -238,6 +238,10 @@ if (!document.getElementById("sos-wrap")) {
           <button type="submit" class="sos-btn-primario">
             Guardar y continuar
           </button>
+          <!-- NUEVO BOTÓN CANCELAR -->
+          <button type="button" id="sos-btn-cancelar-registro" class="sos-btn-secundario" style="margin-top: 8px;">
+            Cancelar
+          </button>
         </form>
       </div>
 
