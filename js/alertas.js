@@ -139,7 +139,6 @@ function asegurarEstructuraDOM() {
             <div class="al-botones">
                 <button class="al-btn al-btn-primario" id="al-btn-mapa">📍 Ver mapa</button>
                 <button class="al-btn al-btn-secundario" id="al-btn-seguridad">🛡️ Medidas de seguridad</button>
-                <button class="al-btn al-btn-cerrar" id="al-btn-cerrar">Entendido</button>
             </div>
             <div class="al-cola-indicador" id="al-cola-indicador" style="display:none;"></div>
         </div>
@@ -154,6 +153,7 @@ function asegurarEstructuraDOM() {
 
     document.getElementById("al-btn-cerrar").addEventListener("click", () => cerrarBannerActual());
     document.getElementById("al-btn-mapa").addEventListener("click", () => verMapaAlerta());
+    document.getElementById("al-icono-big").addEventListener("click", () => verMapaAlerta());
     document.getElementById("al-btn-seguridad").addEventListener("click", () => mostrarModalSeguridad());
     document.getElementById("al-modal-cerrar").addEventListener("click", () => cerrarModalSeguridad());
     document.getElementById("al-modal-seguridad").addEventListener("click", (e) => { if (e.target.id === "al-modal-seguridad") cerrarModalSeguridad(); });
@@ -634,6 +634,12 @@ function verMapaAlerta() {
         const o = document.getElementById("al-overlay");
         o?.classList.remove("al-visible");
         o?.classList.remove("al-libre");
+        // 2. Simular el clic en el botón de ubicación del mapa
+        const btnUbicacion = document.getElementById("btn-ubicacion");
+        if (btnUbicacion) {
+            btnUbicacion.click();
+        } else {
+            // Si el botón no existe por alguna razón, solo hace scroll al mapa
         setTimeout(() => { const mapEl = document.getElementById("map"); if (mapEl) mapEl.scrollIntoView({ behavior: "smooth", block: "center" }); }, 150);
     } catch (e) { }
 }
