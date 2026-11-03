@@ -424,8 +424,6 @@ function mostrarMiUbicacion() {
 
             markerUbicacion.bindPopup(
                 `<b>📍 Tu ubicación</b><br>` +
-                `Lat: ${lat.toFixed(6)}<br>` +
-                `Lng: ${lng.toFixed(6)}<br>` +
                 `Precisión: ±${Math.round(accuracy)} m`
             ).openPopup();
 
