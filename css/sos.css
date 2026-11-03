@@ -7,7 +7,7 @@
   position: fixed; 
   /* AJUSTE AQUÍ: bottom: 24px; es la base. El botón viejo mide ~50px de alto + margen. 
      Ajusta el "100px" si quieres que esté más arriba o más abajo. */
-  bottom: 100px; 
+  bottom: 150px; 
   right: 24px;
   width: 96px; height: 96px; border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, #ff5a5a, #c40000);
