@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - SARA</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        /* CSS Integrado para evitar dependencias externas */
+        :root {
+            --bg: #121212;
+            --panel: #1e1e1e;
+            --border: #333;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --rojo: #e74c3c;
+            --verde: #2ecc71;
+            --azul: #3498db;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- LOGIN --- */
+        #login-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .login-box {
+            background: var(--panel);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            width: 300px;
+            text-align: center;
+        }
+        .login-box h2 { margin-top: 0; color: var(--azul); }
+        .login-box input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #2a2a2a;
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        .login-box button {
+            width: 100%;
+            padding: 10px;
+            background: var(--azul);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .login-box button:hover { background: #2980b9; }
+        #login-error { color: var(--rojo); font-size: 13px; margin-top: 10px; display: none; }
+
+        /* --- LAYOUT PRINCIPAL --- */
+        #app-screen {
+            display: none; /* Se muestra al loguearse */
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+
+        /* --- SIDEBAR (Usuarios) --- */
+        #sidebar {
+            width: 320px;
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: var(--panel);
+            z-index: 10;
+        }
+        .sidebar-header h3 { margin: 0; font-size: 16px; }
+        .btn-logout {
+            background: transparent;
+            color: var(--rojo);
+            border: 1px solid var(--rojo);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .user-card {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+        .user-card.inactivo { opacity: 0.5; }
+        .user-card strong { display: block; font-size: 14px; margin-bottom: 4px; }
+        .user-card span { display: block; color: var(--text-muted); margin-bottom: 2px; }
+        .user-card .btn-toggle {
+            margin-top: 8px;
+            background: var(--border);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .user-card .btn-toggle:hover { background: #444; }
+
+        /* --- MAPA Y ALERTAS --- */
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        #map { width: 100%; height: 100%; z-index: 1; }
+
+        /* Panel flotante de alertas */
+        #alertas-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 350px;
+            max-height: calc(100vh - 30px);
+            overflow-y: auto;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none; /* Para que el mapa sea clickeable fuera de las tarjetas */
+        }
+        .alerta-card {
+            background: var(--panel);
+            border-left: 4px solid var(--rojo);
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            pointer-events: auto;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        
+        .alerta-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+        .alerta-header h4 { margin: 0; color: var(--rojo); font-size: 14px; }
+        .alerta-time { font-size: 11px; color: var(--text-muted); }
+        .alerta-data { font-size: 13px; margin-bottom: 8px; line-height: 1.5; }
+        .alerta-data b { color: #fff; }
+        
+        .alerta-actions { display: flex; gap: 8px; margin-top: 10px; }
+        .alerta-actions button {
+            flex: 1;
+            padding: 6px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .btn-atender { background: var(--verde); color: #000; }
+        .btn-ubicar { background: var(--azul); color: #fff; }
+        
+        .empty-state {
+            background: var(--panel);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            color: var(--text-muted);
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PANTALLA DE LOGIN -->
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>🔐 Admin Panel</h2>
+            <p style="font-size: 13px; color: #888;">Ingresa tus credenciales</p>
+            <input type="email" id="login-email" placeholder="Correo electrónico" autocomplete="username">
+            <input type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password">
+            <button id="btn-login">Ingresar</button>
+            <div id="login-error"></div>
+        </div>
+    </div>
+
+    <!-- PANTALLA PRINCIPAL (oculta hasta loguearse) -->
+    <div id="app-screen">
+        
+        <!-- SIDEBAR IZQUIERDO (Usuarios) -->
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <h3>👥 Usuarios</h3>
+                <button class="btn-logout" id="btn-logout">Salir</button>
+            </div>
+            <div id="usuarios-lista">
+                <!-- Aquí se inyectan los usuarios -->
+            </div>
+        </aside>
+
+        <!-- MAPA Y ALERTAS -->
+        <main id="main-content">
+            <div id="map"></div>
+            
+            <div id="alertas-container">
+                <!-- Aquí se inyectan las alertas -->
+                <div class="empty-state" id="empty-alertas">No hay alertas pendientes</div>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Módulo Lógico -->
+    <script type="module" src="./js/admin-panel.js"></script>
+</body>
+</html>
