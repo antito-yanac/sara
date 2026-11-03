@@ -10,6 +10,7 @@
 import { asegurarSesionAnonima } from "./auth-anonima.js";
 import { registrarUsuario, leerUsuarioActual } from "./registro-usuario.js";
 import { dispararPanico, cancelarAlerta, vaciarColaOffline } from "./boton-panico.js";
+import { escucharMensajesGlobales } from "./mensajes-globales.js";
 
 let alertaActualId = null;
 let cancelTimer = null;
@@ -38,7 +39,7 @@ async function init() {
 
     // 3) Vaciar cola offline
     vaciarColaOffline().catch(() => {});
-
+    escucharMensajesGlobales();
     // 4) Form de registro
     const formReg = document.getElementById("sos-form-registro");
     if (formReg) {
