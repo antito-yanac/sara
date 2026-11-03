@@ -641,7 +641,7 @@ function verMapaAlerta() {
         } else {
             // Si el botón no existe por alguna razón, solo hace scroll al mapa
         setTimeout(() => { const mapEl = document.getElementById("map"); if (mapEl) mapEl.scrollIntoView({ behavior: "smooth", block: "center" }); }, 150);
-    } catch (e) { }
+    } } catch (e) { console.error("Error al abrir el mapa:", e);  }
 }
 
 function abrirBannerDeNuevo() {
