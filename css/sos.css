@@ -60,3 +60,13 @@
   font-family: system-ui, sans-serif; text-align: center; color: #111;
 }
 .sos-modal-content h3 { margin: 0 0 8px; }
+
+/* INICIO: BLOQUE TEMPORAL DE OCULTAMIENTO */
+
+#sos-btn,
+#sos-modal,
+#sos-registro-card {
+    display: none !important;
+}
+
+/* FIN: BLOQUE TEMPORAL DE OCULTAMIENTO */
