@@ -26,6 +26,15 @@ async function init() {
     const usuario = await leerUsuarioActual();
     const card = document.getElementById("sos-registro-card");
     if (card) card.hidden = true;
+        // 👇 NUEVO: Llamar a la función que controla la burbuja
+        actualizarBurbuja(!!usuario);
+    // 👇 NUEVO: Evento para el botón Cancelar del registro
+    const btnCancelarReg = document.getElementById("sos-btn-cancelar-registro");
+    if (btnCancelarReg) {
+        btnCancelarReg.addEventListener("click", () => {
+            if (card) card.hidden = true; // Oculta el formulario, la burbuja sigue ahí
+        });
+    }
 
     // 3) Vaciar cola offline
     vaciarColaOffline().catch(() => {});
@@ -52,6 +61,7 @@ async function init() {
                 return;
             }
             if (card) card.hidden = true;
+            actualizarBurbuja(true);
         });
     }
 
@@ -161,5 +171,26 @@ function cerrarModal() {
     }
     if (cancelTimer) { clearInterval(cancelTimer); cancelTimer = null; }
 }
+function actualizarBurbuja(estaRegistrado) {
+    const btnSos = document.getElementById("sos-btn");
+    if (!btnSos) return;
 
+    // Remover burbuja si ya existe
+    let burbuja = document.getElementById("burbuja-no-registrado");
+    if (burbuja) burbuja.remove();
+
+    // Si no está registrado, creamos y mostramos la burbuja sobre el botón
+    if (!estaRegistrado) {
+        burbuja = document.createElement("div");
+        burbuja.id = "burbuja-no-registrado";
+        burbuja.className = "burbuja-alerta";
+        burbuja.innerHTML = "¡No registrado!<br><span style='font-size:11px'>Presiona aquí para registrarte.</span>";
+        
+        // Insertamos la burbuja DENTRO del botón para que se posicione relativo a él
+        btnSos.appendChild(burbuja);
+
+        // Animación de entrada
+        setTimeout(() => burbuja.classList.add("burbuja-visible"), 10);
+    }
+}
 init();
