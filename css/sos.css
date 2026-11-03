@@ -18,6 +18,7 @@
   animation: sos-pulse 1.6s infinite;
   transition: transform .1s ease;
   z-index: 9999; /* Asegura que esté por encima */
+  overflow: visible !important;
 }
 .sos-btn:active { transform: scale(0.96); }
 .sos-btn.estado-enviado {
@@ -54,7 +55,18 @@
   font-weight: 700; cursor: pointer; font-size: 14px;
 }
 .sos-btn-primario { background: #c40000; color: #fff; margin-top: 8px; }
-.sos-btn-secundario { background: #eee; color: #111; margin-top: 8px; }
+/* Estilo para el botón cancelar */
+.sos-btn-secundario {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    background: #ddd;
+    color: #333;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 14px;
+}
 
 [hidden] {
     display: none !important;
@@ -70,31 +82,36 @@
 }
 .sos-modal-content h3 { margin: 0 0 8px; }
 /* Estilo de la burbuja "No registrado" */
+/* Estilo de la burbuja "No registrado" */
 .burbuja-alerta {
     position: absolute;
-    top: -55px; /* Flota arriba de la tarjeta */
-    right: 10px;
-    background: #e74c3c; /* Rojo llamativo */
+    bottom: 100%; /* Se posiciona ENCIMA del botón */
+    right: 50%;   /* Centrado respecto al botón */
+    transform: translateX(50%) translateY(10px) scale(0.9);
+    margin-bottom: 12px; /* Separación entre la burbuja y el botón */
+    
+    background: #e74c3c;
     color: white;
     padding: 10px 14px;
     border-radius: 12px;
     font-size: 13px;
     font-weight: bold;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.5);
     z-index: 10000;
     opacity: 0;
-    transform: translateY(10px) scale(0.9);
     transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    pointer-events: none; /* Para que no bloquee clics */
+    pointer-events: none; /* No bloquea los clics */
+    white-space: nowrap;
 }
 
-/* El piquito de la burbuja apuntando hacia abajo */
+/* El piquito de la burbuja apuntando hacia abajo (al botón) */
 .burbuja-alerta::after {
     content: '';
     position: absolute;
     bottom: -8px;
-    right: 20px; /* Alineado con el ícono SOS */
+    right: 50%;
+    transform: translateX(50%);
     border-width: 8px 8px 0;
     border-style: solid;
     border-color: #e74c3c transparent transparent transparent;
@@ -103,7 +120,7 @@
 /* Animación al aparecer */
 .burbuja-alerta.burbuja-visible {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateX(50%) translateY(0) scale(1);
 }
 
 /* INICIO: BLOQUE TEMPORAL DE OCULTAMIENTO */
