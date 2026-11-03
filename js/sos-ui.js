@@ -25,7 +25,7 @@ async function init() {
     // 2) ¿Ya está registrado? Solo mostrar el form si NO lo está.
     const usuario = await leerUsuarioActual();
     const card = document.getElementById("sos-registro-card");
-    if (card) card.hidden = !!usuario;
+    if (card) card.hidden = true;
 
     // 3) Vaciar cola offline
     vaciarColaOffline().catch(() => {});
@@ -65,6 +65,24 @@ async function init() {
             const usuarioActual = await leerUsuarioActual();
             if (!usuarioActual) {
                 if (card) card.hidden = false;
+                    // 👇 CAMBIO: Lógica de la burbuja llamativa
+                const burbujaExistente = document.getElementById("burbuja-no-registrado");
+                if (!burbujaExistente) {
+                    const burbuja = document.createElement("div");
+                    burbuja.id = "burbuja-no-registrado";
+                    burbuja.className = "burbuja-alerta";
+                    burbuja.innerHTML = "¡No registrado!<br><span style='font-size:11px'>Completa tus datos primero.</span>";
+                    card.appendChild(burbuja);
+
+                    // Animación para que aparezca
+                    setTimeout(() => burbuja.classList.add("burbuja-visible"), 10);
+
+                    // Desaparecer después de 6 segundos
+                    setTimeout(() => {
+                        burbuja.classList.remove("burbuja-visible");
+                        setTimeout(() => burbuja.remove(), 300);
+                    }, 6000);
+                }
                 return;
             }
 
