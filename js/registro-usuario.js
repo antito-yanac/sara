@@ -18,8 +18,9 @@ import {
     doc,
     getDoc,
     runTransaction,
+    updateDoc,
     serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
 const ESTADO_USUARIO_KEY = "sara_usuario_registrado"; // bandera local
 
