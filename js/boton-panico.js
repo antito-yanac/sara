@@ -85,7 +85,16 @@ export async function dispararPanico() {
     if (!usuario) return { ok: false, error: "Debes registrarte antes de usar el botón SOS." };
     if (usuario.data.estado !== "activo") return { ok: false, error: "Tu cuenta está inactiva. Contacta al administrador." };
 
-    const ubicacion = await obtenerUbicacion(10_000);
+    //const ubicacion = await obtenerUbicacion(10_000);
+    const ubicacion = await obtenerUbicacion(15_000);
+    // 👇 NUEVO: Validar que el GPS haya funcionado. Si no, detenemos el envío.
+    if (ubicacion.lat === null || ubicacion.lng === null) {
+        return { 
+            ok: false, 
+            error: "📍 No se pudo obtener tu ubicación.\n\nPor favor, activa el GPS de tu celular y acepta los permisos de ubicación en el navegador para poder enviar la alerta." 
+        };
+    }
+    
     const payload = construirPayload(usuario, ubicacion);
 
     if (navigator.onLine) {
