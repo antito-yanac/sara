@@ -69,6 +69,42 @@
   font-family: system-ui, sans-serif; text-align: center; color: #111;
 }
 .sos-modal-content h3 { margin: 0 0 8px; }
+/* Estilo de la burbuja "No registrado" */
+.burbuja-alerta {
+    position: absolute;
+    top: -55px; /* Flota arriba de la tarjeta */
+    right: 10px;
+    background: #e74c3c; /* Rojo llamativo */
+    color: white;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+    z-index: 10000;
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none; /* Para que no bloquee clics */
+}
+
+/* El piquito de la burbuja apuntando hacia abajo */
+.burbuja-alerta::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    right: 20px; /* Alineado con el ícono SOS */
+    border-width: 8px 8px 0;
+    border-style: solid;
+    border-color: #e74c3c transparent transparent transparent;
+}
+
+/* Animación al aparecer */
+.burbuja-alerta.burbuja-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
 
 /* INICIO: BLOQUE TEMPORAL DE OCULTAMIENTO */
 
