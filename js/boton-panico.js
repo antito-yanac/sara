@@ -18,19 +18,16 @@ const db = obtenerFirestore();
 
 import { obtenerDeviceId } from "./device-id.js";
 import { leerUsuarioActual } from "./registro-usuario.js";
+import { encolarAlerta, listarPendientes, eliminarPendiente } from "./cola-offline.js";
 import {
     encolarAlerta,
     listarPendientes,
     eliminarPendiente
 } from "./cola-offline.js";
 import {
-    collection,
-    addDoc,
-    doc,
-    updateDoc,
-    serverTimestamp,
-    Timestamp
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    collection, addDoc, doc, updateDoc,
+    serverTimestamp, Timestamp
+} from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
 const VENTANA_CANCELACION_MS = 30_000;
 
