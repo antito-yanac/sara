@@ -5,7 +5,8 @@
 // que las reglas de Firestore puedan verificar.
 // ============================================================
 
-import { auth } from "./firebase-config.js";
+//import { auth } from "./firebase-config.js";
+import { auth } from "./firebase-app.js";
 import {
     signInAnonymously,
     onAuthStateChanged,
