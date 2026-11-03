@@ -635,17 +635,13 @@ function verMapaAlerta() {
         o?.classList.remove("al-visible");
         o?.classList.remove("al-libre");
         
-        // Simular el clic en el botón de ubicación del mapa
-        const btnUbicacion = document.getElementById("btn-ubicacion");
-        if (btnUbicacion) {
-            btnUbicacion.click();
-        } else {
-            // Si el botón no existe, solo hace scroll al mapa
-            setTimeout(() => { 
-                const mapEl = document.getElementById("map"); 
-                if (mapEl) mapEl.scrollIntoView({ behavior: "smooth", block: "center" }); 
-            }, 150);
-        }
+        // Llamar directamente a la función del mapa
+        import("./map.js").then(mod => {
+            if (mod && typeof mod.mostrarUbicacion === "function") {
+                mod.mostrarUbicacion();
+            }
+        }).catch(() => {});
+        
     } catch (e) { 
         console.error("Error al abrir el mapa:", e); 
     }
