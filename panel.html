@@ -13,7 +13,7 @@
 
 <style>
 :root {
-  --bg: #eef2f6;
+  --bg: #243b35;
   --navy: #101d2a;
   --navy2: #192b3d;
   --orange: #ed8b21;
@@ -33,7 +33,8 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background: var(--bg);
+  background: linear-gradient(135deg, #243b35 0%, #304b40 50%, #20372f 100%);
+  background-attachment: fixed;
   color: var(--text);
   min-height: 100vh;
 }
@@ -490,6 +491,27 @@ footer strong {
     justify-content: center;
     text-align: center;
   }
+}
+/* DETALLE VISUAL DEL FONDO */
+.container {
+  position: relative;
+  z-index: 1;
+}
+
+.welcome,
+.stat-card,
+.module,
+.info-card {
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.13);
+}
+
+.module {
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+
+.module:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.22);
 }
 </style>
 </head>
