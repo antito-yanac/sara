@@ -3,7 +3,23 @@
 // Cola de alertas pendientes en IndexedDB cuando no hay red.
 // Al recuperar la conexión, se vacía y se envían a Firestore.
 // ============================================================
+import { obtenerAuth, obtenerFirestore } from "./firebase-app.js";
+import { COLECCIONES } from "./firebase-config.js";
 
+const auth = obtenerAuth();
+const db = obtenerFirestore();
+
+import { obtenerDeviceId } from "./device-id.js";
+import { leerUsuarioActual } from "./registro-usuario.js";
+import { encolarAlerta, listarPendientes, eliminarPendiente } from "./cola-offline.js";
+
+// ✅ MISMA versión
+import {
+    collection, addDoc, doc, updateDoc,
+    serverTimestamp, Timestamp
+} from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+
+//=============================================================================
 const DB_NAME    = "sara_offline";
 const DB_VERSION = 1;
 const STORE      = "alertas_pendientes";
