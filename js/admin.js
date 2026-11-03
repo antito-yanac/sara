@@ -1069,3 +1069,66 @@ function initEnrutador() {
         }
     });
 }
+// ======================================================
+// Enviar Mensaje Global (A todos los usuarios)
+// ======================================================
+document.addEventListener("click", async (e) => {
+    // Verificamos si el clic fue exactamente en el botón
+    const btn = e.target.closest("#btn-enviar-global");
+    if (!btn) return;
+
+    // Evitar doble clic
+    if (btn.disabled) return;
+
+    console.log("✅ Botón de mensaje global presionado");
+
+    const tituloEl = document.getElementById("titulo");
+    const cuerpoEl = document.getElementById("cuerpo");
+    
+    if (!tituloEl || !cuerpoEl) return;
+
+    const titulo = tituloEl.value.trim();
+    const cuerpo = cuerpoEl.value.trim();
+
+    if (!titulo || !cuerpo) {
+        mostrarToast("⚠️ Campos vacíos", "Escribe un título y un mensaje antes de enviar.", "alerta", true);
+        return;
+    }
+
+    btn.disabled = true;
+    const textoOriginal = btn.textContent;
+    btn.textContent = "⏳ Enviando...";
+
+    try {
+        console.log("Intentando guardar en Firestore...");
+        
+        // Importamos addDoc dinámicamente
+        const { addDoc } = await import("https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js");
+        
+        const currentAuth = getAuth(getApp());
+
+        await addDoc(collection(db, "mensajes_globales"), {
+            titulo: titulo,
+            cuerpo: cuerpo,
+            fecha: serverTimestamp(),
+            autor: currentAuth.currentUser?.email || "Admin"
+        });
+
+        console.log("¡Guardado con éxito!");
+        mostrarToast("✅ Mensaje enviado", "El mensaje llegará a todos los usuarios.", "exito", true);
+        mostrarEstado("✅ Mensaje global enviado", "success");
+        
+        tituloEl.value = "";
+        cuerpoEl.value = "";
+        const charCounter = document.getElementById("char-counter");
+        if (charCounter) charCounter.textContent = "0 / 500";
+        
+    } catch (error) {
+        console.error("❌ ERROR AL ENVIAR MENSAJE:", error);
+        mostrarToast("❌ Error", "No se pudo enviar: " + error.message, "alerta", true);
+        mostrarEstado("Error: " + error.message, "error");
+    } finally {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+    }
+});
