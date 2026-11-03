@@ -428,7 +428,7 @@ function mostrarMiUbicacion() {
             }).addTo(map);
 
             markerUbicacion = L.marker([lat, lng], {
-                icon: , zIndexOffset: 1000
+                icon: iconoTu, zIndexOffset: 1000
             }).addTo(map);
 
             markerUbicacion.bindPopup(
