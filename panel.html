@@ -1,0 +1,802 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101d2a">
+<title>SARA | Centro de Control de Emergencias Mineras</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<style>
+:root {
+  --bg: #eef2f6;
+  --navy: #101d2a;
+  --navy2: #192b3d;
+  --orange: #ed8b21;
+  --blue: #2474b9;
+  --green: #159b68;
+  --red: #d94a42;
+  --text: #263747;
+  --muted: #81909e;
+  --white: #fff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* BARRA SUPERIOR */
+
+.topbar {
+  background: var(--navy);
+  min-height: 76px;
+  padding: 12px 5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  color: white;
+  box-shadow: 0 4px 20px #0002;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.brand-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--orange);
+  display: grid;
+  place-items: center;
+  font-size: 23px;
+}
+
+.brand h2 {
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.brand small {
+  display: block;
+  color: #a9b9c8;
+  font-size: 9px;
+  margin-top: 4px;
+  letter-spacing: 1.5px;
+}
+
+.top-info {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  font-size: 12px;
+}
+
+.live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #66e4a9;
+  font-weight: 700;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  background: #2ed18c;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #2ed18c;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  50% { opacity: .35; }
+}
+
+/* CONTENIDO */
+
+.container {
+  width: 92%;
+  max-width: 1450px;
+  margin: 28px auto;
+}
+
+.welcome {
+  background: linear-gradient(115deg, #14283b, #263e53);
+  border-radius: 17px;
+  color: white;
+  padding: 34px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 25px #10203018;
+}
+
+.welcome::after {
+  content: "\f0f9";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  position: absolute;
+  right: 55px;
+  top: 5px;
+  font-size: 150px;
+  color: #ffffff09;
+}
+
+.welcome-label {
+  color: #f5aa50;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+.welcome h1 {
+  font-size: clamp(25px, 4vw, 36px);
+  font-weight: 900;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.welcome p {
+  color: #b8c7d5;
+  font-size: 13px;
+  line-height: 1.7;
+  max-width: 600px;
+  position: relative;
+  z-index: 1;
+}
+
+.welcome-bottom {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  position: relative;
+  z-index: 1;
+}
+
+.status {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  background: #ffffff12;
+  border: 1px solid #ffffff20;
+  padding: 9px 14px;
+  border-radius: 30px;
+  font-size: 11px;
+  color: #75e8ae;
+  font-weight: 700;
+}
+
+/* INDICADORES */
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 28px 0 16px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.section-title i {
+  color: var(--orange);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 17px;
+}
+
+.stat-card {
+  background: white;
+  padding: 21px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid #e6ebef;
+  box-shadow: 0 3px 12px #14283b08;
+}
+
+.stat-icon {
+  width: 49px;
+  height: 49px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+}
+
+.stat-card h3 {
+  font-size: 25px;
+  font-weight: 900;
+}
+
+.stat-card p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.orange { background: #fff0dd; color: #d9821c; }
+.blue { background: #e3f0ff; color: #2878bd; }
+.green { background: #e0f7eb; color: #159b68; }
+.red { background: #ffebeb; color: #d94a42; }
+
+/* MÓDULOS */
+
+.modules {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.module {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  border: 1px solid #e4eaf0;
+  box-shadow: 0 5px 18px #14283b08;
+  transition: .25s;
+  position: relative;
+  overflow: hidden;
+}
+
+.module:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 25px #14283b15;
+}
+
+.module::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 4px;
+  top: 0;
+  left: 0;
+  background: var(--module-color);
+}
+
+.module-icon {
+  width: 61px;
+  height: 61px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  color: white;
+  background: var(--module-color);
+  margin-bottom: 19px;
+}
+
+.module h3 {
+  font-size: 19px;
+  font-weight: 900;
+  margin-bottom: 9px;
+}
+
+.module p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  min-height: 42px;
+}
+
+.module-button {
+  margin-top: 22px;
+  width: 100%;
+  padding: 13px;
+  border-radius: 8px;
+  border: none;
+  background: var(--module-color);
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: .2s;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.module-button:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 5px 13px #0002;
+}
+
+/* INFORMACIÓN INFERIOR */
+
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 18px;
+  margin-top: 25px;
+}
+
+.info-card {
+  background: white;
+  padding: 22px;
+  border-radius: 13px;
+  border: 1px solid #e4eaf0;
+}
+
+.info-card h3 {
+  font-size: 13px;
+  margin-bottom: 16px;
+  font-weight: 800;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf0f3;
+  font-size: 11px;
+  gap: 10px;
+}
+
+.info-row:last-child {
+  border: none;
+}
+
+.tag {
+  padding: 6px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 9px;
+}
+
+.tag-green {
+  background: #e1f7eb;
+  color: #159b68;
+}
+
+.tag-orange {
+  background: #fff0dc;
+  color: #ce7916;
+}
+
+.access-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 15px 0;
+  font-size: 11px;
+  color: #536473;
+}
+
+.access-item i {
+  color: var(--green);
+}
+
+/* PIE */
+
+footer {
+  margin-top: 30px;
+  padding: 20px 5%;
+  background: var(--navy);
+  color: #9cabb9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+  flex-wrap: wrap;
+}
+
+footer strong {
+  color: white;
+}
+
+/* RESPONSIVE */
+
+@media(max-width: 900px) {
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .modules {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media(max-width: 600px) {
+  .topbar {
+    padding: 12px 4%;
+  }
+  .top-info {
+    gap: 8px;
+    font-size: 10px;
+  }
+  .top-info .date {
+    display: none;
+  }
+  .brand h2 {
+    font-size: 15px;
+  }
+  .brand small {
+    font-size: 7px;
+  }
+  .container {
+    width: 93%;
+    margin: 17px auto;
+  }
+  .welcome {
+    padding: 24px 19px;
+  }
+  .welcome::after {
+    right: 10px;
+    font-size: 95px;
+  }
+  .welcome p {
+    font-size: 11px;
+  }
+  .stats {
+    gap: 9px;
+  }
+  .stat-card {
+    padding: 13px 10px;
+    gap: 9px;
+  }
+  .stat-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
+  }
+  .stat-card h3 {
+    font-size: 21px;
+  }
+  .stat-card p {
+    font-size: 9px;
+  }
+  .modules {
+    grid-template-columns: 1fr;
+    gap: 13px;
+  }
+  .module {
+    padding: 20px;
+  }
+  .module p {
+    min-height: auto;
+  }
+  .bottom-grid {
+    grid-template-columns: 1fr;
+  }
+  footer {
+    justify-content: center;
+    text-align: center;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- CABECERA -->
+<header class="topbar">
+
+  <div class="brand">
+    <div class="brand-logo">
+      <i class="fa-solid fa-shield-halved"></i>
+    </div>
+
+    <div>
+      <h2>SARA <span style="color:#ed8b21">|</span> MINERÍA</h2>
+      <small>CENTRO DE OPERACIONES Y RESCATE</small>
+    </div>
+  </div>
+
+  <div class="top-info">
+    <div class="live">
+      <span class="dot"></span>
+      SISTEMA ACTIVO
+    </div>
+
+    <div class="date">
+      <i class="fa-regular fa-clock"></i>
+      <span id="clock">--:--:--</span>
+    </div>
+  </div>
+
+</header>
+
+<main class="container">
+
+  <!-- BIENVENIDA -->
+  <section class="welcome">
+
+    <div class="welcome-label">
+      SISTEMA INTEGRAL DE EMERGENCIAS
+    </div>
+
+    <h1>Centro de Control de Emergencias</h1>
+
+    <p>
+      Plataforma de administración, coordinación y respuesta
+      ante situaciones de emergencia en operaciones mineras.
+      Gestiona usuarios, unidades de rescate y solicitudes
+      de ayuda desde un solo entorno de control.
+    </p>
+
+    <div class="welcome-bottom">
+      <div class="status">
+        <i class="fa-solid fa-circle-check"></i>
+        CENTRAL OPERATIVA
+      </div>
+
+      <div style="font-size:11px;color:#b8c7d5">
+        <i class="fa-regular fa-calendar"></i>
+        <span id="today">--</span>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- INDICADORES -->
+  <h3 class="section-title">
+    <i class="fa-solid fa-chart-line"></i>
+    RESUMEN OPERATIVO
+  </h3>
+
+  <section class="stats">
+
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <div>
+        <h3>02</h3>
+        <p>Alertas registradas</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="fa-solid fa-truck-medical"></i>
+      </div>
+      <div>
+        <h3>08</h3>
+        <p>Unidades registradas</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="fa-solid fa-users"></i>
+      </div>
+      <div>
+        <h3>24</h3>
+        <p>Usuarios registrados</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon red">
+        <i class="fa-solid fa-bell"></i>
+      </div>
+      <div>
+        <h3>01</h3>
+        <p>Solicitudes pendientes</p>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- MODULOS -->
+  <h3 class="section-title">
+    <i class="fa-solid fa-grip"></i>
+    ADMINISTRACIÓN DEL SISTEMA
+  </h3>
+
+  <section class="modules">
+
+    <!-- USUARIO -->
+    <article class="module" style="--module-color:#2474b9">
+
+      <div class="module-icon">
+        <i class="fa-solid fa-user-shield"></i>
+      </div>
+
+      <h3>GESTIÓN DE USUARIOS</h3>
+
+      <p>
+        Administración del personal, registro de usuarios,
+        identificación y control de accesos al sistema
+        de emergencias.
+      </p>
+
+      <a href="https://antito-yanac.github.io/sara/sos/usuario/"
+         class="module-button">
+        <i class="fa-solid fa-users"></i>
+        INGRESAR A USUARIOS
+        <i class="fa-solid fa-arrow-right"></i>
+      </a>
+
+    </article>
+
+    <!-- PANEL -->
+    <article class="module" style="--module-color:#d98520">
+
+      <div class="module-icon">
+        <i class="fa-solid fa-tower-broadcast"></i>
+      </div>
+
+      <h3>CONTROL DE EMERGENCIAS</h3>
+
+      <p>
+        Centralización de alertas, solicitudes de ayuda,
+        seguimiento de incidentes y coordinación
+        de las operaciones de rescate.
+      </p>
+
+      <a href="https://antito-yanac.github.io/sara/sos/panel/"
+         class="module-button">
+        <i class="fa-solid fa-desktop"></i>
+        INGRESAR AL PANEL
+        <i class="fa-solid fa-arrow-right"></i>
+      </a>
+
+    </article>
+
+    <!-- UNIDADES -->
+    <article class="module" style="--module-color:#159b68">
+
+      <div class="module-icon">
+        <i class="fa-solid fa-truck-medical"></i>
+      </div>
+
+      <h3>GESTIÓN DE UNIDADES</h3>
+
+      <p>
+        Administración de ambulancias, vehículos
+        de rescate, brigadas de emergencia y
+        disponibilidad de unidades operativas.
+      </p>
+
+      <a href="https://antito-yanac.github.io/sara/sos/unidad/"
+         class="module-button">
+        <i class="fa-solid fa-truck"></i>
+        INGRESAR A UNIDADES
+        <i class="fa-solid fa-arrow-right"></i>
+      </a>
+
+    </article>
+
+  </section>
+
+  <!-- INFORMACIÓN -->
+  <section class="bottom-grid">
+
+    <div class="info-card">
+
+      <h3>
+        <i class="fa-solid fa-satellite-dish"
+           style="color:#ed8b21"></i>
+        CENTRO DE OPERACIONES
+      </h3>
+
+      <div class="info-row">
+        <span>Estado del sistema</span>
+        <span class="tag tag-green">OPERATIVO</span>
+      </div>
+
+      <div class="info-row">
+        <span>Gestión de usuarios</span>
+        <span class="tag tag-green">DISPONIBLE</span>
+      </div>
+
+      <div class="info-row">
+        <span>Gestión de unidades</span>
+        <span class="tag tag-green">DISPONIBLE</span>
+      </div>
+
+      <div class="info-row">
+        <span>Central de emergencias</span>
+        <span class="tag tag-green">DISPONIBLE</span>
+      </div>
+
+    </div>
+
+    <div class="info-card">
+
+      <h3>
+        <i class="fa-solid fa-shield-heart"
+           style="color:#ed8b21"></i>
+        SEGURIDAD Y RESPUESTA
+      </h3>
+
+      <div class="access-item">
+        <i class="fa-solid fa-circle-check"></i>
+        Control y administración de personal.
+      </div>
+
+      <div class="access-item">
+        <i class="fa-solid fa-circle-check"></i>
+        Coordinación de unidades de emergencia.
+      </div>
+
+      <div class="access-item">
+        <i class="fa-solid fa-circle-check"></i>
+        Atención de solicitudes de auxilio.
+      </div>
+
+      <div class="access-item">
+        <i class="fa-solid fa-circle-check"></i>
+        Gestión centralizada de operaciones.
+      </div>
+
+    </div>
+
+  </section>
+
+</main>
+
+<!-- PIE -->
+<footer>
+
+  <div>
+    <strong>SARA MINERÍA</strong>
+    | Sistema de Atención y Respuesta ante Emergencias
+  </div>
+
+  <div>
+    CENTRO DE CONTROL © <span id="year"></span>
+  </div>
+
+</footer>
+
+<script>
+
+// RELOJ EN TIEMPO REAL
+function updateClock() {
+
+  const now = new Date();
+
+  document.getElementById("clock").textContent =
+    now.toLocaleTimeString("es-PE", {
+      hour12: false
+    });
+
+  document.getElementById("today").textContent =
+    now.toLocaleDateString("es-PE", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    });
+
+  document.getElementById("year").textContent =
+    now.getFullYear();
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+
+</script>
+
+</body>
+</html>
