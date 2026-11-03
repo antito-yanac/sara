@@ -340,13 +340,22 @@ export function crearMapa(idDiv) {
     map = L.map(idDiv, { zoomControl: false });
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    iconoTu = L.divIcon({
+        iconoTu = L.divIcon({
         className: "",
-        html: '<div style="position:relative;text-align:center;">' +
-                '<div class="marker-tu"></div>' +
-                '<div class="etiqueta-tu">Tú</div>' +
-              '</div>',
-        iconSize: [22, 22], iconAnchor: [11, 11]
+        html: `
+            <div style="position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <!-- Icono de Persona (SVG) en color Azul -->
+                <svg viewBox="0 0 24 24" width="32" height="32" style="fill: #4285f4; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+                <!-- Texto Tú con fondo semitransparente para que se lea bien -->
+                <div style="color: #fff; font-family: sans-serif; font-size: 11px; font-weight: 800; text-shadow: 1px 1px 3px #000; margin-top: -4px;">
+                    Tú
+                </div>
+            </div>
+        `,
+        iconSize: [32, 42], // Ancho y alto del conjunto (icono + texto)
+        iconAnchor: [16, 32] // El punto exacto (la "cabeza" de la persona) que marca la coordenada
     });
 
     L.tileLayer(
