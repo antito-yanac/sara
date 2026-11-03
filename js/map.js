@@ -349,7 +349,7 @@ export function crearMapa(idDiv) {
                     <path d="M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm-2 7-2 6 2 1-1 6h2l1-5 1 5h2l-1-6 2-1-2-6h-4z"/>
                 </svg>
                 <!-- Texto Tú con fondo semitransparente para que se lea bien -->
-                <div style="color: #fff; font-family: sans-serif; font-size: 12px; font-weight: 800; text-shadow: 1px 1px 3px #000; margin-top: -4px;">
+                <div style="color: #fff; background: #e53935; font-family: sans-serif; font-size: 12px; font-weight: 900; text-shadow: 1px 1px 2px #000; padding: 3px 9px; border-radius: 10px; margin-top: -4px; border: 1px solid #fff;">
                     Tú
                 </div>
             </div>
