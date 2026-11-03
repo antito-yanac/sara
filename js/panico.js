@@ -323,8 +323,7 @@ if (!document.getElementById("sos-wrap")) {
 
     btn.addEventListener("click", abrirModal);
     document.getElementById("panico-btn-cerrar").addEventListener("click", cerrarModal);
-    //intensionado borrar
-    document.getElementById("sos-modal-close").addEventListener("click", cerrarModal);
+    
     document.getElementById("panico-overlay").addEventListener("click", (e) => {
         if (e.target.id === "panico-overlay") cerrarModal();
     });
@@ -342,7 +341,21 @@ if (!document.getElementById("sos-wrap")) {
     });
 }
 
-function abrirModal() {
+//==============
+async function abrirModal() {
+    // ⚠️ Verificar registro antes de abrir el modal de pánico
+    try {
+        const { leerUsuarioActual } = await import("./registro-usuario.js");
+        const u = await leerUsuarioActual();
+        if (!u) {
+            const card = document.getElementById("sos-registro-card");
+            if (card) card.hidden = false;
+            return;
+        }
+    } catch (e) {
+        console.warn("panico: no se pudo verificar registro:", e);
+    }
+
     inyectarEstructura();
     document.getElementById("panico-overlay").classList.add("panico-visible");
     modalAbierto = true;
