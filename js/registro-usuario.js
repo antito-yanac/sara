@@ -5,7 +5,9 @@
 // Firestore con transacción para evitar DNIs duplicados.
 // ============================================================
 
-import { auth, db, COLECCIONES } from "./firebase-config.js";
+//import { auth, db, COLECCIONES } from "./firebase-config.js";
+import { auth, db } from "./firebase-app.js";
+import { COLECCIONES } from "./firebase-config.js";
 import { obtenerDeviceId, detectarEquipo } from "./device-id.js";
 import {
     doc,
