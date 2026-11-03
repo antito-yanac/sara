@@ -50,6 +50,9 @@
 .sos-btn-primario { background: #c40000; color: #fff; margin-top: 8px; }
 .sos-btn-secundario { background: #eee; color: #111; margin-top: 8px; }
 
+[hidden] {
+    display: none !important;
+}
 /* Modal de confirmación */
 .sos-modal {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5);
