@@ -151,7 +151,7 @@ function asegurarEstructuraDOM() {
     cont.innerHTML = html;
     while (cont.firstChild) document.body.appendChild(cont.firstChild);
 
-    document.getElementById("al-btn-cerrar").addEventListener("click", () => cerrarBannerActual());
+    //document.getElementById("al-btn-cerrar").addEventListener("click", () => cerrarBannerActual());
     document.getElementById("al-btn-mapa").addEventListener("click", () => verMapaAlerta());
     document.getElementById("al-icono-big").addEventListener("click", () => verMapaAlerta());
     document.getElementById("al-btn-seguridad").addEventListener("click", () => mostrarModalSeguridad());
@@ -445,7 +445,7 @@ function pintarBannerDeZona(zona, opts = {}) {
     if (el) el.textContent = formatearTiempo(tiempoRestanteZona(zona));
 
     actualizarTimestampBarra(zona.timestampInicio);
-    if (!opts.noReabrir) setTimeout(() => document.getElementById("al-btn-cerrar")?.focus(), 800);
+    if (!opts.noReabrir) //setTimeout(() => document.getElementById("al-btn-cerrar")?.focus(), 800);
 }
 
 function cerrarBannerActual() {
@@ -625,7 +625,7 @@ export function mostrarAlertaLibre(forzar = false) {
         abrirOverlayLibre();
         mostrarBarraTarjetaLibre();
 
-        setTimeout(() => document.getElementById("al-btn-cerrar")?.focus(), 1000);
+        //setTimeout(() => document.getElementById("al-btn-cerrar")?.focus(), 1000);
     } catch (e) { console.error("alertas.js: error al mostrar alerta libre", e); }
 }
 
