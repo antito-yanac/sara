@@ -167,8 +167,8 @@ function actualizarBurbuja(estaRegistrado) {
         burbuja = document.createElement("div");
         burbuja.id = "burbuja-no-registrado";
         burbuja.className = "burbuja-alerta";
-        burbuja.innerHTML = "¡Registrase!<br><span style='font-size:09px'>?.</span>";
-        
+        burbuja.innerHTML = "¡Registrese!";
+        //burbuja.innerHTML = "¡Registrase!<br><span style='font-size:09px'>?.</span>";
         // Insertamos la burbuja DENTRO del botón para que se posicione relativo a él
         btnSos.appendChild(burbuja);
 
