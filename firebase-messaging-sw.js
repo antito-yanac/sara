@@ -1,30 +1,9 @@
-// firebase-messaging-sw.js
-//
-// Service Worker ÚNICO del sitio. Hace DOS cosas:
-//
-//  1) FIREBASE CLOUD MESSAGING (push en segundo plano). Igual que antes.
-//
-//  2) ESTRATEGIA DE CACHÉ "NETWORK-FIRST" (nuevo).
-//     GitHub Pages sirve todo con `cache-control: max-age=600`, así que
-//     el navegador puede reutilizar HTML/JS viejos hasta 10 minutos (y
-//     más, si la pestaña lleva horas abierta). Un Service Worker que
-//     intercepta las peticiones y las pide a la red con `cache:"no-store"`
-//     SALTA esa caché por completo: cada carga trae el archivo real.
-//
-//     - Navegación (HTML) y scripts/estilos => RED primero, sin caché.
-//       Si la red falla, se usa la copia guardada (modo offline).
-//     - Imágenes/fuentes => caché primero (no cambian y son pesadas).
-//     - Cualquier petición a otro dominio (Firestore, gstatic, Leaflet,
-//       MapTiler…) NO se toca: pasa directa a la red.
-//
-//  Debe estar en la RAÍZ del sitio (mismo nivel que index.html) para
-//  tener alcance sobre todo el dominio.
-
+// firebase-messaging-sw.js (MODO EXTREMO)
 importScripts("https://www.gstatic.com/firebasejs/12.17.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/12.17.0/firebase-messaging-compat.js");
 
 // ============================================================
-//  FIREBASE MESSAGING
+//  FIREBASE MESSAGING (Notificaciones Push)
 // ============================================================
 const firebaseConfig = {
     apiKey: "AIzaSyDc5EUjoE5HjkVWnTGJwWSDraszijxBz1E",
@@ -72,55 +51,36 @@ self.addEventListener("notificationclick", (event) => {
 });
 
 // ============================================================
-//  CACHÉ: NETWORK-FIRST
+//  CACHÉ MODO EXTREMO: Limpieza total y red prioritaria
 // ============================================================
-const CACHE = "sara-v2";
+// El nombre de la caché cambia cada vez que se instala este archivo, forzando la limpieza.
+const CACHE_VERSION = "sara-extreme-" + Date.now();
 const CACHE_PREFIJO = "sara-";
 
-// El build se lee de `version.json` (único punto de cambio del sitio).
-// Se usa para "romper" la caché del CDN de GitHub Pages (Fastly) añadiendo
-// un parámetro único a cada petición de HTML/JS/CSS. Sin esto, Fastly puede
-// devolver un app.js viejo hasta 10 minutos aunque el navegador no lo cachee.
-let __buildMemo = { valor: null, ts: 0 };
-
-async function obtenerBuild() {
-    const ahora = Date.now();
-    // Memo de 30 s para no pedir version.json en cada petición
-    if (__buildMemo.valor && (ahora - __buildMemo.ts) < 30000) {
-        return __buildMemo.valor;
-    }
-    try {
-        const res = await fetch("./version.json?t=" + ahora, { cache: "no-store" });
-        if (!res.ok) return __buildMemo.valor;
-        const j = await res.json();
-        const b = j && j.build ? String(j.build).trim() : null;
-        __buildMemo = { valor: b, ts: ahora };
-        return b;
-    } catch (e) {
-        return __buildMemo.valor;
-    }
-}
-
-// Rutas que NUNCA deben servirse de caché (siempre red)
-const SIEMPRE_RED = ["/version.json"];
-
+// 1. Forzar activación inmediata sin esperar a que cierren la app
 self.addEventListener("install", () => {
-    // Toma el control cuanto antes: no esperar a cerrar pestañas
     self.skipWaiting();
 });
 
+// 2. Al activarse, borrar TODAS las cachés antiguas y tomar el control
 self.addEventListener("activate", (event) => {
     event.waitUntil((async () => {
         const nombres = await caches.keys();
         await Promise.all(
-            nombres
-                .filter((n) => n.startsWith(CACHE_PREFIJO) && n !== CACHE)
-                .map((n) => caches.delete(n))
+            nombres.map((n) => {
+                // Si no es la versión actual, la borramos sin piedad
+                if (n !== CACHE_VERSION) {
+                    console.log("[SW] Borrando caché antigua:", n);
+                    return caches.delete(n);
+                }
+            })
         );
+        // Tomar el control de todas las pestañas abiertas inmediatamente
         await self.clients.claim();
     })());
 });
 
+// 3. Mensaje para forzar recarga desde el cliente
 self.addEventListener("message", (event) => {
     const d = event.data;
     if (d === "SKIP_WAITING" || (d && d.type === "SKIP_WAITING")) {
@@ -133,75 +93,46 @@ function esMismoOrigen(url) {
     catch (e) { return false; }
 }
 
-function debeSerRedPrimero(request) {
-    const dest = request.destination;
-    return dest === "document" || dest === "script" || dest === "style" ||
-           dest === "worker" || dest === "manifest" || dest === "";
-}
-
+// 4. Intercepción de peticiones: SIEMPRE RED (Network First Absoluto)
 self.addEventListener("fetch", (event) => {
     const req = event.request;
 
-    // Solo GET y solo mismo origen. Firestore/gstatic/CDN pasan directo.
+    // Solo GET, mismo origen y sin rangos (para evitar conflictos)
     if (req.method !== "GET") return;
     if (!esMismoOrigen(req.url)) return;
-    if (req.headers.get("range")) return;   // descargas parciales
+    if (req.headers.get("range")) return;
 
     const url = new URL(req.url);
 
-    // version.json: siempre red, jamás caché
-    if (SIEMPRE_RED.some((p) => url.pathname.endsWith(p))) {
+    // version.json: intocable, siempre red pura y dura
+    if (url.pathname.endsWith("/version.json")) {
         event.respondWith(fetch(req, { cache: "no-store" }));
         return;
     }
 
-    // Imágenes/fuentes: caché primero (rendimiento)
-    if (req.destination === "image" || req.destination === "font") {
-        event.respondWith((async () => {
-            const cache = await caches.open(CACHE);
-            const hit = await cache.match(req);
-            if (hit) return hit;
-            try {
-                const res = await fetch(req);
-                if (res && res.ok) cache.put(req, res.clone()).catch(() => {});
-                return res;
-            } catch (e) {
-                return hit || Response.error();
-            }
-        })());
-        return;
-    }
-
-    // HTML, JS, CSS, JSON: RED PRIMERO, sin caché HTTP y con "cache-buster"
-    // de CDN (parámetro _sw=BUILD). Esto obliga a Fastly a ir al origen.
-    if (debeSerRedPrimero(req)) {
-        event.respondWith((async () => {
-            const cache = await caches.open(CACHE);
-            try {
-                const u = new URL(req.url);
-                const build = await obtenerBuild();
-                if (build) u.searchParams.set("_sw", build);
-                else u.searchParams.set("_sw", String(Date.now()));
-                const res = await fetch(u.toString(), {
-                    cache: "no-store",
-                    credentials: "same-origin"
-                });
-                if (res && res.ok) cache.put(req, res.clone()).catch(() => {});
-                return res;
-            } catch (e) {
-                const hit = await cache.match(req, { ignoreSearch: true });
-                if (hit) return hit;
-                throw e;
-            }
-        })());
-        return;
-    }
-
-    // Resto: red con respaldo de caché
+    // Para HTML, JS, CSS, JSON e Imágenes:
+    // Intentamos SIEMPRE traer del servidor con un "cache-buster" (rompe-caché)
     event.respondWith((async () => {
-        try { return await fetch(req); }
-        catch (e) {
-            const cache = await caches.open(CACHE);
+        try {
+            // Añadimos un parámetro único para burlar el CDN de GitHub Pages (Fastly)
+            const u = new URL(req.url);
+            u.searchParams.set("_ext", Date.now());
+
+            const res = await fetch(u.toString(), {
+                cache: "no-store", // Obliga al navegador a no usar su caché local
+                credentials: "same-origin"
+            });
+
+            // Si el servidor responde bien, guardamos una copia por si se cae el internet
+            if (res && res.ok) {
+                const cache = await caches.open(CACHE_VERSION);
+                cache.put(req, res.clone()).catch(() => {});
+            }
+            return res;
+        } catch (e) {
+            // Si no hay internet (offline), usamos la última copia guardada
+            console.warn("[SW] Fallo de red, buscando en caché offline...", req.url);
+            const cache = await caches.open(CACHE_VERSION);
             const hit = await cache.match(req, { ignoreSearch: true });
             if (hit) return hit;
             throw e;
