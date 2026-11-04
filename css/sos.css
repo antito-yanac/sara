@@ -92,9 +92,9 @@
     
     background: #e74c3c;
     color: white;
-    padding: 10px 14px;
-    border-radius: 12px;
-    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    font-size: 10px;
     font-weight: bold;
     text-align: center;
     box-shadow: 0 4px 12px rgba(231, 76, 60, 0.5);
@@ -112,7 +112,7 @@
     bottom: -8px;
     right: 50%;
     transform: translateX(50%);
-    border-width: 8px 8px 0;
+    border-width: 6px 6px 0;
     border-style: solid;
     border-color: #e74c3c transparent transparent transparent;
 }
@@ -121,6 +121,11 @@
 .burbuja-alerta.burbuja-visible {
     opacity: 1;
     transform: translateX(50%) translateY(0) scale(1);
+}
+.burbuja-alerta span {
+    font-size: 9px !important; /* 👈 Hace que el subtítulo sea más pequeño */
+    display: block;
+    margin-top: 2px;
 }
 
 /* INICIO: BLOQUE TEMPORAL DE OCULTAMIENTO */
