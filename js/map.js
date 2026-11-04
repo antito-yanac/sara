@@ -407,69 +407,93 @@ function engancharBotonUbicacion() {
 // ======================================================
 export function mostrarMiUbicacion() {
     const btn = document.getElementById("btn-ubicacion");
-    if (!navigator.geolocation) { alert("Tu navegador no soporta geolocalización."); return; }
+    if (!navigator.geolocation) { 
+        alert("Tu navegador no soporta geolocalización."); 
+        return; 
+    }
+    
     if (btn) btn.classList.add("buscar");
 
-    const options = { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 };
+    // Función que maneja el error de forma inteligente
+    const manejarError = (error) => {
+        if (btn) btn.classList.remove("buscar");
+        
+        // Si falló por tiempo agotado, intentamos de nuevo con menor precisión (más rápido)
+        if (error.code === error.TIMEOUT) {
+            console.warn("GPS de alta precisión falló, reintentando con baja precisión...");
+            intentarUbicacion(false);
+            return;
+        }
 
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            if (btn) btn.classList.remove("buscar");
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            const accuracy = pos.coords.accuracy;
+        let mensaje = "No se pudo obtener tu ubicación.\n\n";
+        switch (error.code) {
+            case error.PERMISSION_DENIED:    mensaje += "⛔ Permiso denegado. Debes activar la ubicación para este sitio en los ajustes de tu navegador."; break;
+            case error.POSITION_UNAVAILABLE: mensaje += "📡 Posición no disponible. Asegúrate de tener el GPS encendido."; break;
+            case error.TIMEOUT:              mensaje += "⏱️ Tiempo agotado. Intenta salir a un espacio abierto."; break;
+            default:                         mensaje += "Error: " + error.message;
+        }
+        alert(mensaje);
+    };
 
-            if (markerUbicacion) map.removeLayer(markerUbicacion);
-            if (circleAccuracy) map.removeLayer(circleAccuracy);
+    const intentarUbicacion = (altaPrecision) => {
+        const options = { 
+            enableHighAccuracy: altaPrecision, 
+            timeout: altaPrecision ? 15000 : 10000, // 15s en alta, 10s en baja
+            maximumAge: 60000 // Acepta una ubicación de hace 1 minuto si existe
+        };
 
-            circleAccuracy = L.circle([lat, lng], {
-                radius: accuracy, color: "#00c853", weight: 1.5,
-                opacity: 0.4, fillColor: "#00c853", fillOpacity: 0.12
-            }).addTo(map);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                if (btn) btn.classList.remove("buscar");
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const accuracy = pos.coords.accuracy;
 
-            markerUbicacion = L.marker([lat, lng], {
-                icon: iconoTu, zIndexOffset: 1000
-            }).addTo(map);
+                if (markerUbicacion) map.removeLayer(markerUbicacion);
+                if (circleAccuracy) map.removeLayer(circleAccuracy);
 
-            markerUbicacion.bindPopup(
-                `<b>📍 Tu ubicación</b><br>` +
-                `Precisión: ±${Math.round(accuracy)} m`
-            ).openPopup();
+                circleAccuracy = L.circle([lat, lng], {
+                    radius: accuracy, color: "#00c853", weight: 1.5,
+                    opacity: 0.4, fillColor: "#00c853", fillOpacity: 0.12
+                }).addTo(map);
 
-            let zoomLevel = 16;
-            if (accuracy > 100) zoomLevel = 14;
-            if (accuracy > 500) zoomLevel = 12;
+                markerUbicacion = L.marker([lat, lng], {
+                    icon: iconoTu, zIndexOffset: 1000
+                }).addTo(map);
 
-            map.flyTo([lat, lng], zoomLevel, { duration: 1.2 });
+                markerUbicacion.bindPopup(
+                    `<b>📍 Tu ubicación</b><br>` +
+                    `Precisión: ±${Math.round(accuracy)} m`
+                ).openPopup();
 
-            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-            watchId = navigator.geolocation.watchPosition(
-                (pos2) => {
-                    if (markerUbicacion) {
-                        markerUbicacion.setLatLng([pos2.coords.latitude, pos2.coords.longitude]);
-                    }
-                    if (circleAccuracy) {
-                        circleAccuracy.setLatLng([pos2.coords.latitude, pos2.coords.longitude]);
-                        circleAccuracy.setRadius(pos2.coords.accuracy);
-                    }
-                },
-                () => {},
-                { enableHighAccuracy: true, maximumAge: 5000 }
-            );
-        },
-        (error) => {
-            if (btn) btn.classList.remove("buscar");
-            let mensaje = "No se pudo obtener tu ubicación.\n\n";
-            switch (error.code) {
-                case error.PERMISSION_DENIED:    mensaje += "⛔ Permiso denegado."; break;
-                case error.POSITION_UNAVAILABLE: mensaje += "📡 Posición no disponible."; break;
-                case error.TIMEOUT:              mensaje += "⏱️ Tiempo agotado."; break;
-                default:                         mensaje += "Error: " + error.message;
-            }
-            alert(mensaje);
-        },
-        options
-    );
+                let zoomLevel = 16;
+                if (accuracy > 100) zoomLevel = 14;
+                if (accuracy > 500) zoomLevel = 12;
+
+                map.flyTo([lat, lng], zoomLevel, { duration: 1.2 });
+
+                if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+                watchId = navigator.geolocation.watchPosition(
+                    (pos2) => {
+                        if (markerUbicacion) {
+                            markerUbicacion.setLatLng([pos2.coords.latitude, pos2.coords.longitude]);
+                        }
+                        if (circleAccuracy) {
+                            circleAccuracy.setLatLng([pos2.coords.latitude, pos2.coords.longitude]);
+                            circleAccuracy.setRadius(pos2.coords.accuracy);
+                        }
+                    },
+                    () => {}, // Ignorar errores del watch
+                    { enableHighAccuracy: true, maximumAge: 5000 }
+                );
+            },
+            manejarError,
+            options
+        );
+    };
+
+    // Iniciamos primero con alta precisión (GPS)
+    intentarUbicacion(true);
 }
 
 // ======================================================
