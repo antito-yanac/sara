@@ -160,5 +160,31 @@ async function consultarEstadoAlerta() {
 configurarBotonConsulta();
 
 //======================================================
+//======================================================
+// AUTO-ACTUALIZACIÓN EXTREMA (cada 5 segundos)
+//======================================================
+if ('serviceWorker' in navigator) {
+    setInterval(async () => {
+        // Solo si hay internet
+        if (!navigator.onLine) return;
 
+        try {
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (!registration) return;
+
+            // Buscar actualización en el servidor
+            await registration.update();
+
+            // Si hay un SW nuevo esperando, forzar la recarga
+            if (registration.waiting) {
+                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                window.location.reload();
+            }
+        } catch (e) {
+            console.warn("Error buscando actualización SW:", e);
+        }
+    }, 5000); // 5000 ms = 5 segundos
+}
+
+//======================================================
 iniciar();
