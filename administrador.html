@@ -3,207 +3,428 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#121212">
     <title>Panel de Administración - SARA</title>
-    
+
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
     <style>
-        /* CSS Integrado para evitar dependencias externas */
         :root {
+            color-scheme: dark;
             --bg: #121212;
             --panel: #1e1e1e;
             --border: #333;
             --text: #e0e0e0;
-            --text-muted: #888;
+            --text-muted: #aaa;
             --rojo: #e74c3c;
             --verde: #2ecc71;
             --azul: #3498db;
         }
 
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html,
         body {
+            width: 100%;
+            min-width: 0;
+            height: 100%;
             margin: 0;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow: hidden;
             background-color: var(--bg);
             color: var(--text);
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
+            font-family: "Segoe UI", system-ui, sans-serif;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        button {
+            touch-action: manipulation;
         }
 
         /* --- LOGIN --- */
         #login-screen {
             position: fixed;
             inset: 0;
-            background: var(--bg);
+            z-index: 9999;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
+            padding: 16px;
+            background: var(--bg);
         }
+
         .login-box {
-            background: var(--panel);
-            padding: 30px;
-            border-radius: 12px;
+            width: min(360px, 100%);
+            padding: clamp(20px, 6vw, 30px);
             border: 1px solid var(--border);
-            width: 300px;
+            border-radius: 12px;
+            background: var(--panel);
             text-align: center;
         }
-        .login-box h2 { margin-top: 0; color: var(--azul); }
+
+        .login-box h2 {
+            margin-top: 0;
+            color: var(--azul);
+        }
+
         .login-box input {
             width: 100%;
-            padding: 10px;
+            min-height: 44px;
             margin: 10px 0;
-            background: #2a2a2a;
+            padding: 10px 12px;
             border: 1px solid var(--border);
-            color: white;
             border-radius: 6px;
-            box-sizing: border-box;
+            background: #2a2a2a;
+            color: #fff;
         }
+
         .login-box button {
             width: 100%;
-            padding: 10px;
-            background: var(--azul);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
+            min-height: 44px;
             margin-top: 10px;
+            padding: 10px;
+            border: 0;
+            border-radius: 6px;
+            background: var(--azul);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
         }
-        .login-box button:hover { background: #2980b9; }
-        #login-error { color: var(--rojo); font-size: 13px; margin-top: 10px; display: none; }
+
+        .login-box button:hover {
+            background: #2980b9;
+        }
+
+        .login-box button:focus-visible,
+        .login-box input:focus-visible,
+        button:focus-visible {
+            outline: 2px solid #8ecfff;
+            outline-offset: 2px;
+        }
+
+        #login-error {
+            display: none;
+            margin-top: 10px;
+            color: var(--rojo);
+            font-size: 13px;
+        }
 
         /* --- LAYOUT PRINCIPAL --- */
         #app-screen {
-            display: none; /* Se muestra al loguearse */
+            /* El módulo de login puede mostrarlo cambiando su display a flex. */
+            display: none;
             width: 100%;
-            height: 100%;
-            display: flex;
+            height: 100vh;
+            height: 100dvh;
+            min-width: 0;
+            min-height: 0;
         }
 
         /* --- SIDEBAR (Usuarios) --- */
         #sidebar {
-            width: 320px;
-            background: var(--panel);
-            border-right: 1px solid var(--border);
             display: flex;
+            flex: 0 0 320px;
             flex-direction: column;
-            overflow-y: auto;
-        }
-        .sidebar-header {
-            padding: 15px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
+            width: 320px;
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+            border-right: 1px solid var(--border);
             background: var(--panel);
-            z-index: 10;
         }
-        .sidebar-header h3 { margin: 0; font-size: 16px; }
+
+        .sidebar-header {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 15px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel);
+        }
+
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
         .btn-logout {
+            min-height: 40px;
+            padding: 6px 12px;
+            border: 1px solid var(--rojo);
+            border-radius: 6px;
             background: transparent;
             color: var(--rojo);
-            border: 1px solid var(--rojo);
-            padding: 4px 8px;
-            border-radius: 4px;
+            font-size: 13px;
             cursor: pointer;
-            font-size: 12px;
         }
+
+        #usuarios-lista {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: auto;
+            overscroll-behavior: contain;
+        }
+
         .user-card {
             padding: 12px;
             border-bottom: 1px solid var(--border);
             font-size: 13px;
         }
-        .user-card.inactivo { opacity: 0.5; }
-        .user-card strong { display: block; font-size: 14px; margin-bottom: 4px; }
-        .user-card span { display: block; color: var(--text-muted); margin-bottom: 2px; }
-        .user-card .btn-toggle {
-            margin-top: 8px;
-            background: var(--border);
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
+
+        .user-card.inactivo {
+            opacity: 0.6;
         }
-        .user-card .btn-toggle:hover { background: #444; }
+
+        .user-card strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .user-card span {
+            display: block;
+            margin-bottom: 2px;
+            color: var(--text-muted);
+        }
+
+        .user-card .btn-toggle {
+            width: 100%;
+            min-height: 40px;
+            margin-top: 8px;
+            padding: 7px 10px;
+            border: 0;
+            border-radius: 5px;
+            background: var(--border);
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .user-card .btn-toggle:hover {
+            background: #444;
+        }
 
         /* --- MAPA Y ALERTAS --- */
         #main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
             position: relative;
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0;
         }
-        #map { width: 100%; height: 100%; z-index: 1; }
 
-        /* Panel flotante de alertas */
+        #map {
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            z-index: 1;
+        }
+
         #alertas-container {
             position: absolute;
             top: 15px;
             right: 15px;
-            width: 350px;
-            max-height: calc(100vh - 30px);
-            overflow-y: auto;
             z-index: 1000;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            pointer-events: none; /* Para que el mapa sea clickeable fuera de las tarjetas */
+            width: min(350px, calc(100% - 30px));
+            max-height: calc(100dvh - 30px);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            pointer-events: none;
         }
+
         .alerta-card {
-            background: var(--panel);
+            padding: 12px;
             border-left: 4px solid var(--rojo);
             border-radius: 8px;
-            padding: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            background: var(--panel);
+            box-shadow: 0 4px 12px rgb(0 0 0 / 50%);
             pointer-events: auto;
             animation: slideIn 0.3s ease;
         }
-        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
         .alerta-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
+            gap: 8px;
             margin-bottom: 8px;
-            border-bottom: 1px solid var(--border);
             padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
         }
-        .alerta-header h4 { margin: 0; color: var(--rojo); font-size: 14px; }
-        .alerta-time { font-size: 11px; color: var(--text-muted); }
-        .alerta-data { font-size: 13px; margin-bottom: 8px; line-height: 1.5; }
-        .alerta-data b { color: #fff; }
-        
-        .alerta-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+        .alerta-header h4 {
+            margin: 0;
+            color: var(--rojo);
+            font-size: 14px;
+        }
+
+        .alerta-time {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .alerta-data {
+            margin-bottom: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        .alerta-data b {
+            color: #fff;
+        }
+
+        .alerta-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
         .alerta-actions button {
-            flex: 1;
-            padding: 6px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
+            flex: 1 1 0;
+            min-height: 40px;
+            padding: 7px;
+            border: 0;
+            border-radius: 5px;
             font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
         }
-        .btn-atender { background: var(--verde); color: #000; }
-        .btn-ubicar { background: var(--azul); color: #fff; }
-        
+
+        .btn-atender {
+            background: var(--verde);
+            color: #000;
+        }
+
+        .btn-ubicar {
+            background: var(--azul);
+            color: #fff;
+        }
+
         .empty-state {
-            background: var(--panel);
             padding: 20px;
             border-radius: 8px;
-            text-align: center;
+            background: var(--panel);
             color: var(--text-muted);
+            text-align: center;
             pointer-events: auto;
+        }
+
+        /* Tablets: reservar espacio para el mapa sin comprimir los controles. */
+        @media (max-width: 900px) {
+            #sidebar {
+                flex-basis: clamp(230px, 30vw, 280px);
+                width: clamp(230px, 30vw, 280px);
+            }
+
+            #alertas-container {
+                width: min(320px, calc(100% - 24px));
+                top: 12px;
+                right: 12px;
+                max-height: calc(100dvh - 24px);
+            }
+        }
+
+        /* Móviles en vertical: usuarios arriba y mapa ocupando el espacio restante. */
+        @media (max-width: 640px) {
+            #app-screen {
+                flex-direction: column;
+            }
+
+            #sidebar {
+                flex: 0 0 clamp(150px, 31dvh, 235px);
+                width: 100%;
+                height: clamp(150px, 31dvh, 235px);
+                border-right: 0;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .sidebar-header {
+                padding: 10px 12px;
+            }
+
+            #main-content {
+                flex: 1 1 0;
+            }
+
+            #alertas-container {
+                top: 8px;
+                right: 8px;
+                left: 8px;
+                width: auto;
+                max-height: min(38dvh, 250px);
+                gap: 8px;
+            }
+
+            .alerta-card {
+                padding: 10px;
+            }
+
+            .alerta-data {
+                font-size: 12px;
+            }
+        }
+
+        /* En móvil horizontal, el diseño lateral aprovecha mejor la poca altura. */
+        @media (max-width: 760px) and (orientation: landscape) and (max-height: 520px) {
+            #app-screen {
+                flex-direction: row;
+            }
+
+            #sidebar {
+                flex: 0 0 clamp(180px, 30vw, 235px);
+                width: clamp(180px, 30vw, 235px);
+                height: 100%;
+                border-right: 1px solid var(--border);
+                border-bottom: 0;
+            }
+
+            #alertas-container {
+                top: 8px;
+                right: 8px;
+                left: auto;
+                width: min(290px, 45%);
+                max-height: calc(100dvh - 16px);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+            }
         }
     </style>
 </head>
 <body>
-
     <!-- PANTALLA DE LOGIN -->
     <div id="login-screen">
         <div class="login-box">
@@ -218,7 +439,6 @@
 
     <!-- PANTALLA PRINCIPAL (oculta hasta loguearse) -->
     <div id="app-screen">
-        
         <!-- SIDEBAR IZQUIERDO (Usuarios) -->
         <aside id="sidebar">
             <div class="sidebar-header">
@@ -233,18 +453,16 @@
         <!-- MAPA Y ALERTAS -->
         <main id="main-content">
             <div id="map"></div>
-            
             <div id="alertas-container">
                 <!-- Aquí se inyectan las alertas -->
                 <div class="empty-state" id="empty-alertas">No hay alertas pendientes</div>
             </div>
         </main>
-
     </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
+
     <!-- Módulo Lógico -->
     <script type="module" src="./js/admin-panel.js"></script>
 </body>
