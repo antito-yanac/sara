@@ -12,7 +12,7 @@
 // ============================================================
 
 import { obtenerAuth, obtenerFirestore } from "./firebase-app.js";
-import { asegurarSesionAnonima } from "./auth-anonima.js";
+import { registrarConEmail, ingresarConEmail, salirSesion, escucharSesion } from "./auth-anonima.js";
 import {
     doc, getDoc, getDocs, setDoc, updateDoc, addDoc, collection,
     onSnapshot, query, where, limit, serverTimestamp
@@ -34,6 +34,7 @@ const db = obtenerFirestore();
 
 let uid = null;
 let unidad = null;   // { id, ...datos }
+let flujoRegistro = false;   // evita que el listener de sesión interfiera al crear la cuenta
 let unsubUnidad = null, unsubSOS = null, unsubAsig = null, gpsTimer = null;
 const app = document.getElementById("amb-app");
 
@@ -54,20 +55,24 @@ function haceMin(ts) {
 /* ---------------- arranque ---------------- */
 
 init();
-async function init() {
+function init() {
+    escucharSesion((user) => manejarSesion(user));
+}
+
+async function manejarSesion(user) {
+    if (!user) { uid = null; unidad = null; limpiarTodo(); renderLogin(); return; }
+    if (user.isAnonymous) { await salirSesion(); return; }   // sesión anónima vieja: fuera
+    if (user.uid === uid) return;   // ya cargado
+    limpiarTodo();
+    uid = user.uid;
     try {
-        const user = await asegurarSesionAnonima();
-        uid = user.uid;
-        const guardado = localStorage.getItem(LS_UNIDAD);
-        if (guardado) {
-            const snap = await getDoc(doc(db, COL_AMB, guardado));
-            if (snap.exists()) {
-                unidad = { id: snap.id, ...snap.data() };
-                if (unidad.authUid !== uid) { unidad = null; localStorage.removeItem(LS_UNIDAD); }
-                    else { resolverAccesoAmb(); return; }
-            }
+        const snap = await getDoc(doc(db, COL_AMB, uid));   // ID del documento = authUid
+        if (snap.exists()) {
+            unidad = { id: snap.id, ...snap.data() };
+            resolverAccesoAmb();
+        } else {
+            renderRegistro();
         }
-        renderRegistro();
     } catch (e) {
         app.innerHTML = `<div class="rec-card">Error de conexión: ${esc(e.message)}</div>`;
     }
@@ -94,7 +99,41 @@ function limpiarTodo() {
     
     if (gpsTimer) { clearInterval(gpsTimer); gpsTimer = null; }
 }
+/* ---- 1a. LOGIN (email + contraseña) ---- */
 
+function renderLogin(msg = "") {
+    app.innerHTML = `
+        <h1 class="rec-titulo">🔐 Acceso — Unidad de Ambulancia</h1>
+        <p class="rec-subtitulo">Ingresa con el correo y contraseña de tu unidad registrada.</p>
+        <form class="rec-card" id="form-login">
+            <div class="rec-campo"><label>Correo electrónico *</label><input id="l-email" type="email" required autocomplete="username"></div>
+            <div class="rec-campo"><label>Contraseña *</label><input id="l-pass" type="password" required autocomplete="current-password"></div>
+            ${msg ? `<div class="rec-card rec-sos" style="padding:8px 12px;margin-bottom:10px">${esc(msg)}</div>` : ""}
+            <button class="rec-btn grande" type="submit">Ingresar</button>
+            <p class="rec-subtitulo" style="text-align:center;margin:12px 0 0">¿No tienes cuenta? <a href="#" id="link-registro" style="color:var(--rec-azul)">Regístrate aquí</a></p>
+        </form>
+    `;
+    document.getElementById("link-registro").addEventListener("click", (e) => { e.preventDefault(); renderRegistro(); });
+    document.getElementById("form-login").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const email = document.getElementById("l-email").value.trim();
+        const pass = document.getElementById("l-pass").value;
+        const btn = ev.target.querySelector("button[type=submit]");
+        btn.disabled = true; btn.textContent = "Verificando…";
+        try {
+            await ingresarConEmail(email, pass);
+        } catch (e2) {
+            const errores = {
+                "auth/invalid-credential": "Correo o contraseña incorrectos.",
+                "auth/user-not-found": "No existe una cuenta con ese correo.",
+                "auth/wrong-password": "Contraseña incorrecta.",
+                "auth/too-many-requests": "Demasiados intentos. Espera un momento e intenta otra vez.",
+                "auth/network-request-failed": "Sin conexión. Verifica tu red e intenta de nuevo."
+            };
+            renderLogin(errores[e2.code] || "No se pudo ingresar: " + e2.message);
+        }
+    });
+}
 /* ---------------- 1. REGISTRO DE UNIDAD ---------------- */
 
 function renderRegistro() {
@@ -102,6 +141,10 @@ function renderRegistro() {
         <h1 class="rec-titulo">🚑 Registro de Ambulancia</h1>
         <p class="rec-subtitulo">SARA · La unidad quedará pendiente hasta ser validada por el administrador.</p>
         <form class="rec-card" id="form-amb">
+            <div class="rec-fila2">
+                <div class="rec-campo"><label>Correo electrónico *</label><input id="a-email" type="email" required autocomplete="username"></div>
+                <div class="rec-campo"><label>Contraseña * (mín. 6)</label><input id="a-pass" type="password" minlength="6" required autocomplete="new-password"></div>
+            </div>
             <div class="rec-fila2">
                 <div class="rec-campo"><label>Código interno *</label><input id="a-codigo" required placeholder="Ej: AMB-01"></div>
                 <div class="rec-campo"><label>Placa *</label><input id="a-placa" required></div>
@@ -137,8 +180,12 @@ async function registrar(ev) {
     const btn = ev.target.querySelector("button[type=submit]");
     btn.disabled = true; btn.textContent = "Enviando…";
     try {
+        flujoRegistro = true;
+        const user = await registrarConEmail(v("a-email"), v("a-pass"));
+        uid = user.uid;
         await setDoc(doc(db, COL_AMB, uid), {   // ID del documento = authUid
             authUid: uid,                       // vínculo tripulación-unidad
+            email: v("a-email"),
             codigo: v("a-codigo"),
             placa: v("a-placa"),
             tipo: v("a-tipo"),
@@ -156,10 +203,16 @@ async function registrar(ev) {
             gpsTs: null,
             fechaMs: Date.now()
         });
-        localStorage.setItem(LS_UNIDAD, uid);
         unidad = { id: uid, estado: "pendiente", estadoDoc: "pendiente" };
         renderEspera();
+        flujoRegistro = false;
     } catch (e) {
+        flujoRegistro = false;
+        if (e.code === "auth/email-already-in-use") {
+            alert("Ese correo ya tiene una cuenta. Inicia sesión.");
+            renderLogin();
+            return;
+        }
         alert("No se pudo registrar: " + e.message);
         btn.disabled = false; btn.textContent = "Registrar unidad";
     }
@@ -240,8 +293,9 @@ function renderPanel() {
                 <span class="lbl">Contacto:</span> ${esc(unidad.contacto)}<br>
                 <span class="lbl">Personal:</span> ${esc(unidad.personal || "—")} ·
                 <span class="lbl">Capacidad:</span> ${esc(unidad.capacidad || "—")}<br>
-                <span class="lbl">Último GPS:</span> ${haceMin(unidad.gpsTs)}
+            <span class="lbl">Último GPS:</span> ${haceMin(unidad.gpsTs)}
             </div>
+            <button id="btn-salir" class="rec-btn gris" style="margin-top:10px;width:100%">Cerrar sesión</button>
         </div>
 
         <h2 class="rec-titulo" style="font-size:16px">🆘 Emergencias pendientes</h2>
@@ -256,8 +310,10 @@ function renderPanel() {
         try {
             await updateDoc(doc(db, COL_AMB, unidad.id), { estado: e.target.value, fechaMs: Date.now() });
             unidad.estado = e.target.value;
-        } catch (err) { alert("No se pudo cambiar el estado: " + err.message); }
+    } catch (err) { alert("No se pudo cambiar el estado: " + err.message); }
     });
+    document.getElementById("btn-salir").addEventListener("click", () => salirSesion());
+    document.getElementById("btn-salir").addEventListener("click", () => salirSesion());
 
     initMapaAmb();
     escucharUnidad();
