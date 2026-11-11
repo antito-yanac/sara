@@ -187,11 +187,12 @@ function escucharAlertas() {
         // Limpiar contenedores (para actualizaciones en vivo)
         // NOTA: Podríamos optimizar para no repintar todo, pero para un admin está bien.
         
-        // 1. Filtrar solo las que no están atendidas ni canceladas
+        // 1. Rojas (pendiente) + verdes (atendida) se muestran.
+        //    Solo desaparecen las finalizadas o canceladas.
         const alertasPendientes = [];
         snap.forEach(doc => {
             const data = doc.data();
-            if (data.estado === "pendiente") {
+            if (data.estado !== "finalizada" && data.estado !== "cancelada") {
                 alertasPendientes.push({ id: doc.id, ...data });
             }
         });
@@ -217,8 +218,9 @@ function escucharAlertas() {
 }
 
 function renderizarAlerta(a) {
+    const atendida = a.estado === "atendida";
     const card = document.createElement("div");
-    card.className = "alerta-card";
+    card.className = atendida ? "alerta-card alerta-atendida" : "alerta-card";
     
     // Formatear hora
     let horaStr = "Desconocida";
@@ -245,7 +247,12 @@ function renderizarAlerta(a) {
         </div>
         <div class="alerta-actions">
             <button class="btn-ubicar" ${!hayUbicacion ? 'disabled' : ''}>📍 Ver</button>
-            <button class="btn-atender" data-id="${a.id}">✓ Atender</button>
+            ${atendida ? `
+                <button class="btn-atender" disabled>✓ Atendido</button>
+                <button class="btn-finalizar" data-id="${a.id}">✔ Finalizar SOS</button>
+            ` : `
+                <button class="btn-atender" data-id="${a.id}">✓ Atender</button>
+            `}
         </div>
     `;
 
@@ -278,7 +285,22 @@ function renderizarAlerta(a) {
             btn.textContent = "✓ Atender";
         }
     });
-
+    card.querySelector(".btn-finalizar")?.addEventListener("click", async (e) => {
+        const btn = e.target;
+        btn.disabled = true;
+        btn.textContent = "...";
+        try {
+            await updateDoc(doc(db, COLECCIONES.PANIC_ALERTS, a.id), {
+                estado: "finalizada",
+                finalizadaPor: ADMIN_EMAIL,
+                finalizadaEn: serverTimestamp()
+            });
+        } catch (error) {
+            alert("Error al finalizar: " + error.message);
+            btn.disabled = false;
+            btn.textContent = "✔ Finalizar SOS";
+        }
+    });
     contenedorAlertas.appendChild(card);
 }
 
@@ -287,10 +309,11 @@ function ponerMarcadorEnMapa(a) {
     const lng = a.ubicacion?.lng;
     if (lat == null || lng == null) return;
 
-    // Icono rojo personalizado para la alerta
+    // Rojo = pendiente, verde = atendida
+    const color = (a.estado === "atendida") ? "#27ae60" : "#e74c3c";
     const icon = L.divIcon({
         className: 'custom-div-icon',
-        html: `<div style="background-color:#e74c3c;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(0,0,0,0.5);animation:pulse 1.5s infinite;"></div>
+        html: `<div style="background-color:${color};width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(0,0,0,0.5);animation:pulse 1.5s infinite;"></div>
                <style>@keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); } }</style>`,
         iconSize: [20, 20],
         iconAnchor: [10, 10]
