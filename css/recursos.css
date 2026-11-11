@@ -264,3 +264,14 @@ body.rec-body {
 @media (max-width: 560px) { .rec-selects { grid-template-columns: 1fr; } }
 
 .rec-vacio { padding: 18px; text-align: center; color: var(--rec-muted); font-size: 13px; }
+/* ---------- Mapa Leaflet (v1.1) ---------- */
+.rec-mapa {
+    height: 300px;
+    border-radius: 12px;
+    border: 1px solid var(--rec-borde);
+    margin-bottom: 14px;
+    z-index: 0;
+}
+.rec-mapa .leaflet-popup-content-wrapper,
+.rec-mapa .leaflet-popup-tip { background: var(--rec-panel); color: var(--rec-texto); }
+.rec-mapa a { color: var(--rec-azul); }
