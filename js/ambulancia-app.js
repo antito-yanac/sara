@@ -14,7 +14,7 @@
 import { obtenerAuth, obtenerFirestore } from "./firebase-app.js";
 import { asegurarSesionAnonima } from "./auth-anonima.js";
 import {
-    doc, getDoc, setDoc, updateDoc, addDoc, collection,
+    doc, getDoc, getDocs, setDoc, updateDoc, addDoc, collection,
     onSnapshot, query, where, limit, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
@@ -34,7 +34,7 @@ const db = obtenerFirestore();
 
 let uid = null;
 let unidad = null;   // { id, ...datos }
-let unsubUnidad = null, unsubAsig = null, gpsTimer = null;
+let unsubUnidad = null, unsubSOS = null, unsubAsig = null, gpsTimer = null;
 const app = document.getElementById("amb-app");
 
 /* ---------------- utilidades ---------------- */
@@ -90,7 +90,9 @@ function escucharUnidad() {
 
 function limpiarTodo() {
     if (unsubUnidad) { unsubUnidad(); unsubUnidad = null; }
+    if (unsubSOS) { unsubSOS(); unsubSOS = null; }
     if (unsubAsig) { unsubAsig(); unsubAsig = null; }
+    
     if (gpsTimer) { clearInterval(gpsTimer); gpsTimer = null; }
 }
 
@@ -136,7 +138,7 @@ async function registrar(ev) {
     const btn = ev.target.querySelector("button[type=submit]");
     btn.disabled = true; btn.textContent = "Enviando…";
     try {
-        const ref = await addDoc(collection(db, COL_AMB), {
+        await setDoc(doc(db, COL_AMB, uid), {   // ID del documento = authUid
             authUid: uid,                       // vínculo tripulación-unidad
             codigo: v("a-codigo"),
             placa: v("a-placa"),
@@ -155,8 +157,8 @@ async function registrar(ev) {
             gpsTs: null,
             fechaMs: Date.now()
         });
-        localStorage.setItem(LS_UNIDAD, ref.id);
-        unidad = { id: ref.id, estado: "pendiente", estadoDoc: "pendiente" };
+        localStorage.setItem(LS_UNIDAD, uid);
+        unidad = { id: uid, estado: "pendiente", estadoDoc: "pendiente" };
         renderEspera();
     } catch (e) {
         alert("No se pudo registrar: " + e.message);
@@ -200,6 +202,10 @@ function renderPanel() {
             </div>
         </div>
 
+        <h2 class="rec-titulo" style="font-size:16px">🆘 Emergencias pendientes</h2>
+        <div id="amb-sos"><div class="rec-card rec-vacio">Cargando…</div></div>
+        <h2 class="rec-titulo" style="font-size:16px">🗺️ Mapa de emergencias</h2>
+        <div id="amb-mapa" class="rec-mapa"></div>
         <h2 class="rec-titulo" style="font-size:16px">📋 Asignaciones de la unidad</h2>
         <div id="amb-asig"><div class="rec-card rec-vacio">Sin asignaciones activas</div></div>
     `;
@@ -211,10 +217,12 @@ function renderPanel() {
         } catch (err) { alert("No se pudo cambiar el estado: " + err.message); }
     });
 
+    initMapaAmb();
     escucharUnidad();
     publicarGPS();
     gpsTimer = setInterval(publicarGPS, 2 * 60 * 1000);
     escucharAsignaciones();
+    escucharSOSAmb();
 }
 
 function publicarGPS() {
@@ -232,6 +240,7 @@ function publicarGPS() {
                 fechaMs: Date.now()
             });
             unidad.gpsTs = Date.now();
+            unidad.ubicacion = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         } catch { /* offline o sin permiso: reintenta en 2 min */ }
     }, () => { }, { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 });
 }
@@ -299,8 +308,141 @@ async function avanzar(id, nuevoEstado) {
             campos.resultado = document.getElementById("amb-resultado")?.value || "Atendido en sitio";
             await updateDoc(doc(db, COL_AMB, unidad.id), { estado: "Disponible en base", fechaMs: Date.now() });
         }
-        await updateDoc(doc(db, COL_ASIG, id), campos);
+    await updateDoc(doc(db, COL_ASIG, id), campos);
+        if (nuevoEstado === "finalizada") {
+            const asig = await getDoc(doc(db, COL_ASIG, id));
+            const emgId = asig.exists() ? asig.data().emergenciaId : null;
+            if (emgId) await updateDoc(doc(db, "panic_alerts", emgId), {
+                estado: "finalizada",
+                finalizadaPor: `Ambulancia: ${unidad.codigo}`,
+                finalizadaEn: serverTimestamp()
+            });
+        }
     } catch (e) {
         alert("No se pudo actualizar: " + e.message);
     }
+}
+/* ---- SOS pendientes + mapa (v1.1) ---- */
+
+function escucharSOSAmb() {
+    if (unsubSOS) unsubSOS();
+    const q = query(collection(db, "panic_alerts"), where("estado", "==", "pendiente"), limit(30));
+    unsubSOS = onSnapshot(q, (snap) => {
+        const cont = document.getElementById("amb-sos");
+        if (!cont) return;
+        const pendientes = [];
+        snap.forEach(d => pendientes.push({ id: d.id, ...d.data() }));
+        if (pendientes.length === 0) {
+            cont.innerHTML = `<div class="rec-card rec-vacio">No hay emergencias pendientes</div>`;
+            actualizarMapaAmb([]);
+            return;
+        }
+        cont.innerHTML = pendientes.map(sosAmbCardHTML).join("");
+        actualizarMapaAmb(pendientes);
+        cont.querySelectorAll("[data-tomar]").forEach(b =>
+            b.addEventListener("click", () => tomarEmergenciaAmb(b.dataset.tomar)));
+    }, (err) => console.warn("ambulancia: error escuchando SOS", err));
+}
+
+function sosAmbCardHTML(s) {
+    const hay = s.ubicacion && typeof s.ubicacion.lat === "number";
+    return `
+        <div class="rec-card rec-sos rec-datos">
+            <b>🆘 ${esc(s.nombre || "Usuario registrado")}</b> · <span class="lbl">hora:</span> ${hora(s.fechaMs)}<br>
+            <span class="lbl">Empresa:</span> ${esc(s.empresa || "—")} ·
+            <span class="lbl">Celular:</span> ${esc(s.celular || "—")}<br>
+            <span class="lbl">Ubicación:</span> ${hay ? `${s.ubicacion.lat.toFixed(5)}, ${s.ubicacion.lng.toFixed(5)} (±${Math.round(s.ubicacion.precision || 0)}m)` : "no disponible"}
+            <div class="rec-acciones">
+                ${hay ? `<a class="rec-btn" style="text-decoration:none;text-align:center" target="_blank" href="https://www.google.com/maps?q=${s.ubicacion.lat},${s.ubicacion.lng}">📍 Ver mapa</a>` : ""}
+                <button class="rec-btn rojo" data-tomar="${s.id}">🆘 Salir en auxilio</button>
+            </div>
+        </div>
+    `;
+}
+
+async function tomarEmergenciaAmb(emergenciaId) {
+    if (!(unidad.estado || "").startsWith("Disponible")) {
+        return alert("Tu unidad no está Disponible. Cambia el estado operativo primero.");
+    }
+    try {
+        const q = query(collection(db, "asignaciones_sos"), where("emergenciaId", "==", emergenciaId));
+        const ya = await getDocs(q);
+        const activa = ya.docs.map(d => ({ id: d.id, ...d.data() }))
+            .find(a => ["asignada", "aceptada", "en_camino", "en_lugar"].includes(a.estado));
+
+        if (activa && activa.ambulanciaId) return alert("Otra unidad ya tomó esta emergencia.");
+
+        const sosDoc = await getDoc(doc(db, "panic_alerts", emergenciaId));
+        if (!sosDoc.exists()) return alert("La emergencia ya no existe.");
+        const sos = sosDoc.data();
+
+        if (activa) {
+            // Ya hay rescatista: la unidad se une a esa misma atención
+            await updateDoc(doc(db, "asignaciones_sos", activa.id), {
+                ambulanciaId: unidad.id,
+                ambAuthUid: uid,
+                ambulanciaCodigo: unidad.codigo,
+                estado: "aceptada",
+                aceptadaEn: serverTimestamp(),
+                fechaMs: Date.now()
+            });
+        } else {
+            await addDoc(collection(db, "asignaciones_sos"), {
+                emergenciaId,
+                nombre: sos.nombre || "Usuario registrado",
+                empresa: sos.empresa || "",
+                dni: sos.dni || "",
+                celular: sos.celular || "",
+                lat: sos.ubicacion?.lat ?? null,
+                lng: sos.ubicacion?.lng ?? null,
+                precision: sos.ubicacion?.precision ?? null,
+                rescatistaUid: null,
+                rescatistaNombre: "",
+                ambulanciaId: unidad.id,
+                ambAuthUid: uid,
+                ambulanciaCodigo: unidad.codigo,
+                estado: "aceptada",
+                aceptadaEn: serverTimestamp(),
+                fechaMs: Date.now()
+            });
+        }
+        await updateDoc(doc(db, "panic_alerts", emergenciaId), {
+            estado: "atendida",
+            atendidaPor: `Ambulancia: ${unidad.codigo}`,
+            atendidaEn: serverTimestamp()
+        });
+        await updateDoc(doc(db, COL_AMB, unidad.id), { estado: "Asignada a emergencia", fechaMs: Date.now() });
+        unidad.estado = "Asignada a emergencia";
+    } catch (e) {
+        alert("No se pudo tomar la emergencia: " + e.message);
+    }
+}
+
+let mapaAmb = null, capasAmb = null;
+
+function initMapaAmb() {
+    if (mapaAmb || typeof L === "undefined") return;
+    mapaAmb = L.map("amb-mapa").setView([-9.55, -77.04], 11);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap" }).addTo(mapaAmb);
+    capasAmb = L.layerGroup().addTo(mapaAmb);
+}
+
+function actualizarMapaAmb(pendientes) {
+    if (!mapaAmb) return;
+    capasAmb.clearLayers();
+    const puntos = [];
+    pendientes.forEach(s => {
+        if (s.ubicacion && typeof s.ubicacion.lat === "number") {
+            const icono = L.divIcon({ className: "", html: `<div style="background:#e74c3c;width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 8px rgba(0,0,0,.5)"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
+            L.marker([s.ubicacion.lat, s.ubicacion.lng], { icon: icono }).addTo(capasAmb)
+                .bindPopup(`<b>🆘 ${esc(s.nombre || "Usuario")}</b><br>${esc(s.empresa || "")} · ${hora(s.fechaMs)}<br><a target="_blank" href="https://www.google.com/maps?q=${s.ubicacion.lat},${s.ubicacion.lng}">Abrir en Google Maps</a>`);
+            puntos.push([s.ubicacion.lat, s.ubicacion.lng]);
+        }
+    });
+    if (unidad.ubicacion && typeof unidad.ubicacion.lat === "number") {
+        const yo = L.divIcon({ className: "", html: `<div style="background:#16a085;width:14px;height:14px;border-radius:50%;border:3px solid #fff"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] });
+        L.marker([unidad.ubicacion.lat, unidad.ubicacion.lng], { icon: yo }).addTo(capasAmb).bindPopup(`🚑 ${esc(unidad.codigo)}`);
+        puntos.push([unidad.ubicacion.lat, unidad.ubicacion.lng]);
+    }
+    if (puntos.length) mapaAmb.fitBounds(puntos, { padding: [30, 30], maxZoom: 15 });
 }
