@@ -138,13 +138,14 @@ function pintarRescatistas() {
                 <span style="color:var(--rec-muted)">GPS ${haceMin(r.ubicacion?.ts)}</span></td>
             <td>
                 <span class="rec-badge ${esc(r.estado)}">${esc(r.estado)}</span><br>
+                ${r.autorizadoHasta ? `<span style="color:var(--rec-muted);font-size:11px">Vence: ${new Date(r.autorizadoHasta).toLocaleDateString("es-PE")}</span><br>` : ""}
                 ${r.estado === "pendiente" ? `
                     <button class="rec-btn verde" data-res-ok="${r.id}" style="margin-top:6px">Autorizar</button>
                     <button class="rec-btn rojo" data-res-no="${r.id}" style="margin-top:6px">Rechazar</button>
-                ` : r.estado === "autorizado" ? `
+                ` : (r.estado === "autorizado" && (!r.autorizadoHasta || r.autorizadoHasta > Date.now())) ? `
                     <button class="rec-btn gris" data-res-no="${r.id}" style="margin-top:6px">Desactivar</button>
                 ` : `
-                    <button class="rec-btn verde" data-res-ok="${r.id}" style="margin-top:6px">Reactivar</button>
+                    <button class="rec-btn verde" data-res-ok="${r.id}" style="margin-top:6px">${r.estado === "autorizado" ? "Renovar" : "Reactivar"}</button>
                 `}
             </td>
         </tr>`).join("");
@@ -157,9 +158,14 @@ function pintarRescatistas() {
     cont.querySelectorAll("[data-res-no]").forEach(b => b.addEventListener("click", () => setEstadoRescatista(b.dataset.resNo, "rechazado")));
 }
 
+const VIGENCIA_MS = 14 * 24 * 60 * 60 * 1000;   // 14 días (rotación 7 día + 7 noche)
+
 async function setEstadoRescatista(id, estado) {
     try {
-        await updateDoc(doc(db, COL_RES, id), { estado, fechaMs: Date.now() });
+        const datos = { estado, fechaMs: Date.now() };
+        if (estado === "autorizado") datos.autorizadoHasta = Date.now() + VIGENCIA_MS;
+        await updateDoc(doc(db, COL_RES, id), datos);
+        
         mostrarToast("✅ Listo", `Rescatista: ${estado}.`, "exito", false);
     } catch (e) {
         mostrarToast("⚠️ Error", e.message, "alerta", true);
@@ -179,14 +185,15 @@ function pintarAmbulancias() {
             <td><span class="rec-badge ${(a.estado || "").startsWith("Disponible") ? "disponible" : (a.estado || "").startsWith("Fuera") || a.estado === "En mantenimiento" ? "fuera" : "ocupado"}">${esc(a.estado)}</span><br>
                 <span style="color:var(--rec-muted)">GPS ${haceMin(a.gpsTs)}</span></td>
             <td>
-                <span class="rec-badge ${esc(a.estadoDoc)}">${esc(a.estadoDoc)}</span><br>
+            <span class="rec-badge ${esc(a.estadoDoc)}">${esc(a.estadoDoc)}</span><br>
+                ${a.autorizadoHasta ? `<span style="color:var(--rec-muted);font-size:11px">Vence: ${new Date(a.autorizadoHasta).toLocaleDateString("es-PE")}</span><br>` : ""}
                 ${a.estadoDoc === "pendiente" ? `
                     <button class="rec-btn verde" data-amb-ok="${a.id}" style="margin-top:6px">Autorizar</button>
                     <button class="rec-btn rojo" data-amb-no="${a.id}" style="margin-top:6px">Rechazar</button>
-                ` : a.estadoDoc === "autorizado" ? `
+                ` : (a.estadoDoc === "autorizado" && (!a.autorizadoHasta || a.autorizadoHasta > Date.now())) ? `
                     <button class="rec-btn gris" data-amb-no="${a.id}" style="margin-top:6px">Suspender</button>
                 ` : `
-                    <button class="rec-btn verde" data-amb-ok="${a.id}" style="margin-top:6px">Reactivar</button>
+                    <button class="rec-btn verde" data-amb-ok="${a.id}" style="margin-top:6px">${a.estadoDoc === "autorizado" ? "Renovar" : "Reactivar"}</button>
                 `}
             </td>
         </tr>`).join("");
@@ -201,7 +208,10 @@ function pintarAmbulancias() {
 
 async function setEstadoAmbulancia(id, estadoDoc) {
     try {
-        await updateDoc(doc(db, COL_AMB, id), { estadoDoc, fechaMs: Date.now() });
+        const datos = { estadoDoc, fechaMs: Date.now() };
+        if (estadoDoc === "autorizado") datos.autorizadoHasta = Date.now() + VIGENCIA_MS;
+        await updateDoc(doc(db, COL_AMB, id), datos);
+        
         mostrarToast("✅ Listo", `Unidad: ${estadoDoc}.`, "exito", false);
     } catch (e) {
         mostrarToast("⚠️ Error", e.message, "alerta", true);
