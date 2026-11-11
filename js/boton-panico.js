@@ -20,34 +20,69 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
 const VENTANA_CANCELACION_MS = 30_000;
+//inicio agregado-----------------------------------
+const GPS_CACHE_KEY        = "keraunos_gps_cache";
+const GPS_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 
-export function obtenerUbicacion(timeoutMs = 10_000) {
+function leerGPSCache() {
+    try {
+        const raw = localStorage.getItem(GPS_CACHE_KEY);
+        if (!raw) return null;
+        const d = JSON.parse(raw);
+        if (!d || typeof d.lat !== "number" || typeof d.lng !== "number") return null;
+        if (!d.ts || (Date.now() - d.ts) > GPS_CACHE_MAX_AGE_MS) return null;
+        return d;
+    } catch { return null; }
+}
+
+function pedirPosicion(ops) {
     return new Promise((resolve) => {
-        if (!navigator.geolocation) { resolve({ lat: null, lng: null, precision: null }); return; }
+        if (!navigator.geolocation) { resolve(null); return; }
         let hecho = false;
         const timer = setTimeout(() => {
             if (hecho) return;
             hecho = true;
-            resolve({ lat: null, lng: null, precision: null });
-        }, timeoutMs);
+            resolve(null);
+        }, ops.timeout);
 
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 if (hecho) return;
                 hecho = true;
                 clearTimeout(timer);
-                resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, precision: pos.coords.accuracy ?? null });
+                resolve({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    precision: pos.coords.accuracy ?? null
+                });
             },
             () => {
                 if (hecho) return;
                 hecho = true;
                 clearTimeout(timer);
-                resolve({ lat: null, lng: null, precision: null });
+                resolve(null);
             },
-            { enableHighAccuracy: true, maximumAge: 0, timeout: timeoutMs }
+            ops
         );
     });
 }
+
+export async function obtenerUbicacion() {
+    const c = leerGPSCache();
+    if (c) return { lat: c.lat, lng: c.lng, precision: c.accuracy ?? null, fuente: "cache" };
+
+    let p = await pedirPosicion({ enableHighAccuracy: false, maximumAge: 120000, timeout: 3000 });
+    if (p) return { ...p, fuente: "red-cache" };
+
+    p = await pedirPosicion({ enableHighAccuracy: false, maximumAge: 30000, timeout: 6000 });
+    if (p) return { ...p, fuente: "red" };
+
+    p = await pedirPosicion({ enableHighAccuracy: true, maximumAge: 0, timeout: 8000 });
+    if (p) return { ...p, fuente: "gps" };
+
+    return null;
+}
+//-------------------------fin----------------------------
 
 function construirPayload(usuario, ubicacion) {
     const ahora = Date.now();
@@ -59,9 +94,12 @@ function construirPayload(usuario, ubicacion) {
         celular:  usuario.data.celular,
         empresa:  usuario.data.empresa,
         equipo:   usuario.data.equipo || "desconocido",
-        ubicacion,
+        ubicacion: ubicacion || null,
+        ubicacionEstado: ubicacion ? "ok" : "no-disponible",
+        ubicacionFuente: ubicacion?.fuente || null,
         estado: "pendiente",
         timestamp: null,
+        fechaMs: ahora,
         cancelableHasta: Timestamp.fromMillis(ahora + VENTANA_CANCELACION_MS)
     };
 }
@@ -86,15 +124,7 @@ export async function dispararPanico() {
     if (usuario.data.estado !== "activo") return { ok: false, error: "Tu cuenta está inactiva. Contacta al administrador." };
 
     //const ubicacion = await obtenerUbicacion(10_000);
-    const ubicacion = await obtenerUbicacion(15_000);
-    // 👇 NUEVO: Validar que el GPS haya funcionado. Si no, detenemos el envío.
-    if (ubicacion.lat === null || ubicacion.lng === null) {
-        return { 
-            ok: false, 
-            error: "📍 No se pudo obtener tu ubicación.\n\nPor favor, activa el GPS de tu celular y acepta los permisos de ubicación en el navegador para poder enviar la alerta." 
-        };
-    }
-    
+    const ubicacion = await obtenerUbicacion();
     const payload = construirPayload(usuario, ubicacion);
 
     if (navigator.onLine) {
