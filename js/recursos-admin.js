@@ -309,6 +309,11 @@ async function asignar() {
             asignadoPor: "central",
             fechaMs: Date.now()
         });
+        await updateDoc(doc(db, COL_SOS, s.id), {
+            estado: "atendida",
+            atendidaPor: a ? `Central: ${r.nombres} + Ambulancia ${a.codigo}` : `Central: ${r.nombres}`,
+            atendidaEn: serverTimestamp()
+        });
         mostrarToast("🚨 Asignado", `${r.nombres} atenderá la emergencia.`, "exito", false);
         sosSeleccionada = null;
     } catch (e) {
@@ -324,6 +329,14 @@ async function forzarCierre(id) {
             resultado: "Cerrado por central",
             finEn: serverTimestamp()
         });
+        const asig = asignaciones.get(id);
+        if (asig?.emergenciaId) {
+            await updateDoc(doc(db, COL_SOS, asig.emergenciaId), {
+                estado: "finalizada",
+                finalizadaPor: "Central",
+                finalizadaEn: serverTimestamp()
+            });
+        }
         mostrarToast("✅ Cerrada", "Atención finalizada por central.", "exito", false);
     } catch (e) {
         mostrarToast("⚠️ Error", e.message, "alerta", true);
