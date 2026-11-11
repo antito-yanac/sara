@@ -36,7 +36,8 @@ function crearTarjeta(doc) {
 
     const card = document.createElement("div");
     card.id = id;
-    card.className = "panico-card";
+    card.className = doc.atendida ? "panico-card panico-card-atendida" : "panico-card";
+    card.dataset.clave = doc.clave;
 
     const fechaTxt = fechaTexto(doc.fechaMs);
     const precTxt = doc.precision ? ` (±${Math.round(doc.precision)}m)` : "";
@@ -63,9 +64,14 @@ function crearTarjeta(doc) {
                 <p><strong>📍 Ubicación:</strong> no disponible${doc.sinUbicacion ? " (GPS sin señal)" : ""}</p>
             `}
         </div>
-        <div class="panico-card-acciones">
+          <div class="panico-card-acciones">
             ${mapsUrl ? `<a href="${mapsUrl}" target="_blank" class="panico-card-btn-mapa">📍 Ver en mapa</a>` : ""}
-            <button class="panico-card-btn-atender">✓ Marcar como atendido</button>
+            ${doc.atendida ? `
+                <button class="panico-card-btn-atender" disabled>✓ Atendido</button>
+                <button class="panico-card-btn-finalizar">✔ SOS finalizado</button>
+            ` : `
+                <button class="panico-card-btn-atender">✓ Marcar como atendido</button>
+            `}
         </div>
     `;
 
@@ -87,14 +93,41 @@ function crearTarjeta(doc) {
                     atendidoEn: serverTimestamp()
                 });
             }
-            mostrarToast("✅ Atendido", "La solicitud fue marcada como atendida.", "exito", false);
-            card.remove();
+           mostrarToast("✅ Atendido", "La solicitud fue marcada como atendida.", "exito", false);
+            const n = documentos.get(card.dataset.clave);
+            if (n) n.atendida = true;
+            renderizar(); // repinta la tarjeta en VERDE con el botón "SOS finalizado"
         } catch (e) {
             console.error("panico-admin: error marcando atendido", e);
             mostrarToast("⚠️ Error", "No se pudo marcar como atendido.", "alerta", true);
         }
     });
-
+card.querySelector(".panico-card-btn-finalizar")?.addEventListener("click", async () => {
+        const btn = card.querySelector(".panico-card-btn-finalizar");
+        btn.disabled = true;
+        btn.textContent = "...";
+        try {
+            const db = dbLegacy();
+            if (doc.coleccion === COLECCION_SOS) {
+                await updateDoc(doc(db, COLECCION_SOS, doc.id), {
+                    estado: "finalizada",
+                    finalizadaEn: serverTimestamp()
+                });
+            } else {
+                await updateDoc(doc(db, COLECCION_LEGADO, doc.id), {
+                    finalizado: true,
+                    finalizadaEn: serverTimestamp()
+                });
+            }
+            documentos.delete(doc.clave);
+            renderizar(); // recién aquí desaparece la tarjeta verde
+        } catch (e) {
+            console.error("panico-admin: error finalizando", e);
+            mostrarToast("⚠️ Error", "No se pudo finalizar la alerta.", "alerta", true);
+            btn.disabled = false;
+            btn.textContent = "✔ SOS finalizado";
+        }
+    });
     asegurarContenedor().appendChild(card);
 }
 
@@ -128,7 +161,8 @@ function normalizarSOS(id, d) {
         lng:        typeof ub.lng === "number" ? ub.lng : null,
         precision:  typeof ub.precision === "number" ? ub.precision : null,
         sinUbicacion: d.ubicacionEstado === "no-disponible",
-        atendida:   d.estado === "atendida" || d.estado === "cancelada",
+        atendida:   d.estado === "atendida",
+        finalizada: d.estado === "finalizada" || d.estado === "cancelada",
         fechaMs:    millisDeFecha(d)
     };
 }
@@ -145,7 +179,8 @@ function normalizarLegado(id, d) {
         lng:        typeof d.lng === "number" ? d.lng : null,
         precision:  typeof d.accuracy === "number" ? d.accuracy : null,
         sinUbicacion: false,
-        atendida:   d.atendido === true,
+         atendida:   d.atendido === true,
+        finalizada: d.finalizado === true,
         fechaMs:    millisDeFecha(d)
     };
 }
@@ -155,7 +190,7 @@ function renderizar() {
     [...contenedor.querySelectorAll(".panico-card")].forEach(el => el.remove());
 
     const vivos = [...documentos.values()]
-        .filter(d => !d.atendida)
+        .filter(d => !d.finalizada)
         .sort((a, b) => (b.fechaMs || 0) - (a.fechaMs || 0))
         .slice(0, MAX_TARJETAS);
 
@@ -175,9 +210,12 @@ function iniciarListener(coleccion, normalizar) {
                     documentos.delete(clave);
                     return;
                 }
-                const n = normalizar(cambio.doc.id, cambio.doc.data());
-                if (n.atendida) documentos.delete(clave);
-                else documentos.set(clave, n);
+                const n = normalizar(cambio.doc.id, d);
+                if (n.finalizada) {
+                    documentos.delete(clave);
+                } else {
+                    documentos.set(clave, n);
+                }
             });
             renderizar();
         }, (error) => {
