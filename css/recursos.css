@@ -275,3 +275,57 @@ body.rec-body {
 .rec-mapa .leaflet-popup-content-wrapper,
 .rec-mapa .leaflet-popup-tip { background: var(--rec-panel); color: var(--rec-texto); }
 .rec-mapa a { color: var(--rec-azul); }
+/* ---------- 🆘 Tarjeta flotante ALERTA DE PÁNICO (rescatista / ambulancia) ---------- */
+
+#alerta-flotante {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    z-index: 50000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(92vw, 350px);
+    max-height: 72vh;
+    overflow-y: auto;
+    pointer-events: none;
+}
+
+#alerta-flotante .alerta-card {
+    padding: 12px;
+    border: 1px solid var(--rec-rojo);
+    border-left: 4px solid var(--rec-rojo);
+    border-radius: 10px;
+    background: linear-gradient(135deg, #2b1210, #3d1512);
+    box-shadow: 0 6px 20px rgba(0,0,0,.55);
+    pointer-events: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    animation: alertaSlide .35s ease;
+}
+@keyframes alertaSlide {
+    from { transform: translateX(110%); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+}
+
+#alerta-flotante .alerta-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+#alerta-flotante .alerta-header h4 {
+    margin: 0;
+    font-size: 14px;
+    color: #ff8a7a;
+    letter-spacing: .3px;
+    animation: alertaPulso 1.2s ease-in-out infinite;
+}
+@keyframes alertaPulso { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+
+#alerta-flotante .alerta-time { font-size: 11px; color: var(--rec-muted); }
+#alerta-flotante .alerta-data b { color: #fff; }
+#alerta-flotante .alerta-data .lbl { color: var(--rec-muted); }
+#alerta-flotante .alerta-acciones { display: flex; gap: 8px; margin-top: 10px; }
+#alerta-flotante .alerta-acciones .rec-btn { flex: 1; text-align: center; text-decoration: none; }
