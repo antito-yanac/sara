@@ -321,6 +321,7 @@ function renderPanel() {
     publicarGPS();
     gpsTimer = setInterval(publicarGPS, 2 * 60 * 1000);
     escucharSOS();
+    escucharAlertaFlotante();   // 🆘 tarjeta flotante en tiempo real
     escucharMisAsignaciones();
 }
 
@@ -583,4 +584,60 @@ async function avanzarAsignacion(id, nuevoEstado) {
     } catch (e) {
         alert("No se pudo actualizar: " + e.message);
     }
+}
+/* ---- 🆘 Tarjeta flotante ALERTA DE PÁNICO (tiempo real, todos los autorizados) ---- */
+
+let previosAlerta = new Set();
+
+function escucharAlertaFlotante() {
+    if (window.__alertaFlotanteActiva) return;
+    window.__alertaFlotanteActiva = true;
+    const q = query(collection(db, COL_SOS), where("estado", "==", "pendiente"), limit(30));
+    onSnapshot(q, (snap) => {
+        const pendientes = [];
+        snap.forEach(d => pendientes.push({ id: d.id, ...d.data() }));
+        pintarAlertaFlotante(pendientes);
+    }, (err) => console.warn("rescatista: error tarjeta flotante", err));
+}
+
+function pintarAlertaFlotante(pendientes) {
+    let cont = document.getElementById("alerta-flotante");
+    if (!cont) {
+        cont = document.createElement("div");
+        cont.id = "alerta-flotante";
+        document.body.appendChild(cont);
+    }
+    const hayNuevos = pendientes.some(p => !previosAlerta.has(p.id));
+    previosAlerta = new Set(pendientes.map(p => p.id));
+    if (pendientes.length === 0) { cont.innerHTML = ""; return; }
+    if (hayNuevos && navigator.vibrate) navigator.vibrate([150, 80, 150]);
+
+    cont.innerHTML = pendientes.map(s => {
+        const hay = s.ubicacion && typeof s.ubicacion.lat === "number";
+        let dist = "—";
+        if (hay && perfil.ubicacion) dist = haversineKm(perfil.ubicacion, s.ubicacion).toFixed(1) + " km de ti";
+        const ms = s.fechaMs || (s.timestamp && s.timestamp.toMillis ? s.timestamp.toMillis() : null);
+        const min = ms ? Math.max(0, Math.round((Date.now() - ms) / 60000)) : null;
+        return `
+        <div class="alerta-card">
+            <div class="alerta-header">
+                <h4>🆘 ALERTA DE PÁNICO</h4>
+                <span class="alerta-time">${min === null ? "" : (min === 0 ? "ahora" : `hace ${min} min`)}</span>
+            </div>
+            <div class="alerta-data">
+                <b>${esc(s.nombre || "Usuario registrado")}</b> <span class="rec-badge pendiente">ESPERA AYUDA</span><br>
+                <span class="lbl">Empresa:</span> ${esc(s.empresa || "—")} ·
+                <span class="lbl">DNI:</span> ${esc(s.dni || "—")}<br>
+                <span class="lbl">Celular:</span> ${esc(s.celular || "—")} ·
+                <span class="lbl">Distancia:</span> ${dist}
+            </div>
+            <div class="alerta-acciones">
+                ${hay ? `<a class="rec-btn gris" target="_blank" href="https://www.google.com/maps?q=${s.ubicacion.lat},${s.ubicacion.lng}">📍 Mapa</a>` : ""}
+                <button class="rec-btn rojo" data-auxilio="${s.id}">🚑 Salir en auxilio</button>
+            </div>
+        </div>`;
+    }).join("");
+
+    cont.querySelectorAll("[data-auxilio]").forEach(b =>
+        b.addEventListener("click", () => tomarEmergencia(b.dataset.auxilio)));
 }
