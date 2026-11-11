@@ -1,4 +1,4 @@
-# antito-yanac.github.io# ⚡ SARA · Keraunos | Sistema de Alerta y Respuesta Antamina
+⚡ SARA · Keraunos | Sistema de Alerta y Respuesta Antamina
 
 > Plataforma web de vigilancia meteorológica en tiempo real y sistema de respuesta ante emergencias (SOS), diseñada para operar en entornos industriales con alta disponibilidad y precisión geoespacial.
 
