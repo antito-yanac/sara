@@ -183,8 +183,10 @@ function pintarAmbulancias() {
                 ${a.estadoDoc === "pendiente" ? `
                     <button class="rec-btn verde" data-amb-ok="${a.id}" style="margin-top:6px">Autorizar</button>
                     <button class="rec-btn rojo" data-amb-no="${a.id}" style="margin-top:6px">Rechazar</button>
-                ` : `
+                ` : a.estadoDoc === "autorizado" ? `
                     <button class="rec-btn gris" data-amb-no="${a.id}" style="margin-top:6px">Suspender</button>
+                ` : `
+                    <button class="rec-btn verde" data-amb-ok="${a.id}" style="margin-top:6px">Reactivar</button>
                 `}
             </td>
         </tr>`).join("");
