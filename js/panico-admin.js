@@ -4,15 +4,18 @@
 // v2: usa la colección privada `panico_solicitudes`.
 // ============================================================
 
-import { getFirestore, collection, query, orderBy, limit, onSnapshot,
+import { getFirestore, collection, onSnapshot,
          doc, updateDoc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
-//import { obtenerFirestore } from "./firebase-app.js";
-import { obtenerFirestore, obtenerApp } from "./firebase-app.js"; 
-const db = obtenerFirestore();
+import { obtenerFirestore, obtenerApp } from "./firebase-app.js";
 import { mostrarToast } from "./notifications.js";
 
-const COLECCION = "panico_solicitudes";
+const COLECCION_LEGADO = "panico_solicitudes"; // botón viejo (js/panico.js)
+const COLECCION_SOS    = "panic_alerts";       // botón SOS registrado (js/boton-panico.js)
+
+const MAX_TARJETAS = 30;
+const documentos = new Map();
+//------------------fin--------------------
 
 let contenedor = null;
 
@@ -27,41 +30,38 @@ function asegurarContenedor() {
     return contenedor;
 }
 
-function crearTarjeta(docId, data) {
-    const id = `panico-card-${docId}`;
+function crearTarjeta(doc) {
+    const id = `panico-card-${doc.coleccion}-${doc.id}`;
     if (document.getElementById(id)) return;
 
     const card = document.createElement("div");
     card.id = id;
     card.className = "panico-card";
 
-    let fechaTexto = "Hora desconocida";
-    if (data.fechaMs) {
-        fechaTexto = new Date(data.fechaMs).toLocaleString("es-PE");
-    } else if (data.fecha?.toMillis) {
-        fechaTexto = new Date(data.fecha.toMillis()).toLocaleString("es-PE");
-    }
-
-    const mapsUrl = (data.lat != null && data.lng != null)
-        ? `https://www.google.com/maps?q=${data.lat},${data.lng}`
+    const fechaTxt = fechaTexto(doc.fechaMs);
+    const precTxt = doc.precision ? ` (±${Math.round(doc.precision)}m)` : "";
+    const mapsUrl = (doc.lat != null && doc.lng != null)
+        ? `https://www.google.com/maps?q=${doc.lat},${doc.lng}`
         : null;
 
     card.innerHTML = `
         <div class="panico-card-header">
             <span class="panico-card-icono">🆘</span>
             <div>
-                <div class="panico-card-sub">SOLICITUD DE AYUDA</div>
-                <div class="panico-card-hora">${fechaTexto}</div>
+                <div class="panico-card-sub">SOLICITUD DE AYUDA${doc.coleccion === COLECCION_SOS ? " · SOS REGISTRADO" : ""}</div>
+                <div class="panico-card-hora">${escapeHtml(fechaTxt)}</div>
             </div>
             <button class="panico-card-cerrar" aria-label="Cerrar">×</button>
         </div>
         <div class="panico-card-body">
             <p><strong>🪪 DNI:</strong> ${escapeHtml(data.dni || "(no indicado)")}</p>
-            <p><strong>📱 Teléfono:</strong> ${escapeHtml(data.telefono || "(no indicado)")}</p>
-            <p><strong>📝 Descripción:</strong> ${escapeHtml(data.descripcion || "(sin descripción)")}</p>
-            ${data.lat != null ? `
-                <p><strong>📍 Ubicación:</strong> ${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}</p>
-            ` : ""}
+            <p><strong>📱 Teléfono:</strong> ${escapeHtml(doc.telefono)}</p>
+            <p><strong>📝 Datos:</strong> ${escapeHtml(doc.descripcion)}</p>
+            ${(doc.lat != null && doc.lng != null) ? `
+                <p><strong>📍 Ubicación:</strong> ${doc.lat.toFixed(6)}, ${doc.lng.toFixed(6)}${escapeHtml(precTxt)}</p>
+            ` : `
+                <p><strong>📍 Ubicación:</strong> no disponible${doc.sinUbicacion ? " (GPS sin señal)" : ""}</p>
+            `}
         </div>
         <div class="panico-card-acciones">
             ${mapsUrl ? `<a href="${mapsUrl}" target="_blank" class="panico-card-btn-mapa">📍 Ver en mapa</a>` : ""}
@@ -76,10 +76,17 @@ function crearTarjeta(docId, data) {
     card.querySelector(".panico-card-btn-atender").addEventListener("click", async () => {
         try {
             const db = getFirestore(obtenerApp());
-            await updateDoc(doc(db, COLECCION, docId), {
-                atendido: true,
-                atendidoEn: serverTimestamp()
-            });
+            if (doc.coleccion === COLECCION_SOS) {
+                await updateDoc(doc(db, COLECCION_SOS, doc.id), {
+                    estado: "atendida",
+                    atendidaEn: serverTimestamp()
+                });
+            } else {
+                await updateDoc(doc(db, COLECCION_LEGADO, doc.id), {
+                    atendido: true,
+                    atendidoEn: serverTimestamp()
+                });
+            }
             mostrarToast("✅ Atendido", "La solicitud fue marcada como atendida.", "exito", false);
             card.remove();
         } catch (e) {
@@ -96,37 +103,97 @@ function escapeHtml(txt) {
         .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
+function millisDeFecha(d) {
+    if (typeof d.fechaMs === "number") return d.fechaMs;
+    if (d.timestamp?.toMillis) return d.timestamp.toMillis();
+    if (d.fecha?.toMillis) return d.fecha.toMillis();
+    if (d.cancelableHasta?.toMillis) return d.cancelableHasta.toMillis();
+    return 0;
+}
 
-function iniciarListener() {
+function normalizarSOS(id, d) {
+    const ub = d.ubicacion || {};
+    const parts = [];
+    if (d.nombre)  parts.push(`👤 ${d.nombre}`);
+    if (d.empresa) parts.push(`🏢 ${d.empresa}`);
+    if (d.equipo && d.equipo !== "desconocido") parts.push(`📱 ${d.equipo}`);
+    return {
+        clave:      `${COLECCION_SOS}:${id}`,
+        coleccion:  COLECCION_SOS,
+        id,
+        dni:        d.dni || "(no indicado)",
+        telefono:   d.celular || "(no indicado)",
+        descripcion: parts.length ? parts.join(" · ") : "(usuario registrado SOS)",
+        lat:        typeof ub.lat === "number" ? ub.lat : null,
+        lng:        typeof ub.lng === "number" ? ub.lng : null,
+        precision:  typeof ub.precision === "number" ? ub.precision : null,
+        sinUbicacion: d.ubicacionEstado === "no-disponible",
+        atendida:   d.estado === "atendida" || d.estado === "cancelada",
+        fechaMs:    millisDeFecha(d)
+    };
+}
+
+function normalizarLegado(id, d) {
+    return {
+        clave:      `${COLECCION_LEGADO}:${id}`,
+        coleccion:  COLECCION_LEGADO,
+        id,
+        dni:        d.dni || "(no indicado)",
+        telefono:   d.telefono || "(no indicado)",
+        descripcion: d.descripcion || "(sin descripción)",
+        lat:        typeof d.lat === "number" ? d.lat : null,
+        lng:        typeof d.lng === "number" ? d.lng : null,
+        precision:  typeof d.accuracy === "number" ? d.accuracy : null,
+        sinUbicacion: false,
+        atendida:   d.atendido === true,
+        fechaMs:    millisDeFecha(d)
+    };
+}
+
+function renderizar() {
+    const contenedor = asegurarContenedor();
+    [...contenedor.querySelectorAll(".panico-card")].forEach(el => el.remove());
+
+    const vivos = [...documentos.values()]
+        .filter(d => !d.atendida)
+        .sort((a, b) => (b.fechaMs || 0) - (a.fechaMs || 0))
+        .slice(0, MAX_TARJETAS);
+
+    vivos.forEach(crearTarjeta);
+}
+
+function iniciarListener(coleccion, normalizar) {
     try {
         const db = getFirestore(obtenerApp());
-        const ref = collection(db, COLECCION);
-        // Traer los últimos 30, más recientes primero.
-        const q = query(ref, orderBy("fechaMs", "desc"), limit(30));
+        const ref = collection(db, coleccion);
 
-        onSnapshot(q, (snapshot) => {
-            snapshot.docs.forEach((d) => {
-                const data = d.data();
-                if (data.atendido === true) {
-                    const el = document.getElementById(`panico-card-${d.id}`);
-                    if (el) el.remove();
+        // Sin orderBy: evita índices compuestos y no excluye docs sin el campo fechaMs.
+        onSnapshot(ref, (snapshot) => {
+            snapshot.docChanges().forEach((cambio) => {
+                const clave = `${coleccion}:${cambio.doc.id}`;
+                if (cambio.type === "removed") {
+                    documentos.delete(clave);
                     return;
                 }
-                crearTarjeta(d.id, data);
+                const n = normalizar(cambio.doc.id, cambio.doc.data());
+                if (n.atendida) documentos.delete(clave);
+                else documentos.set(clave, n);
             });
+            renderizar();
         }, (error) => {
-            console.warn("panico-admin: error listener", error);
+            console.warn(`panico-admin: error listener ${coleccion}`, error);
         });
 
-        console.log("🆘 panico-admin: escuchando panico_solicitudes");
+        console.log(`🆘 panico-admin: escuchando ${coleccion}`);
     } catch (e) {
-        console.warn("panico-admin: no se pudo iniciar", e);
+        console.warn(`panico-admin: no se pudo iniciar ${coleccion}`, e);
     }
 }
 
 function init() {
     asegurarContenedor();
-    iniciarListener();
+    iniciarListener(COLECCION_SOS, normalizarSOS);
+    iniciarListener(COLECCION_LEGADO, normalizarLegado);
 }
 
 if (document.readyState === "loading") {
