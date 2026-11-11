@@ -37,7 +37,6 @@ function crearTarjeta(doc) {
     const card = document.createElement("div");
     card.id = id;
     card.className = doc.atendida ? "panico-card panico-card-atendida" : "panico-card";
-    card.dataset.clave = doc.clave;
 
     const fechaTxt = fechaTexto(doc.fechaMs);
     const precTxt = doc.precision ? ` (±${Math.round(doc.precision)}m)` : "";
@@ -93,8 +92,8 @@ function crearTarjeta(doc) {
                     atendidoEn: serverTimestamp()
                 });
             }
-           mostrarToast("✅ Atendido", "La solicitud fue marcada como atendida.", "exito", false);
-            const n = documentos.get(card.dataset.clave);
+         mostrarToast("✅ Atendido", "La solicitud fue marcada como atendida.", "exito", false);
+            const n = documentos.get(doc.clave);
             if (n) n.atendida = true;
             renderizar(); // repinta la tarjeta en VERDE con el botón "SOS finalizado"
         } catch (e) {
