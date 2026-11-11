@@ -16,6 +16,9 @@ const db = obtenerFirestore();
 
 import {
     signInAnonymously,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
     onAuthStateChanged,
     setPersistence,
     browserLocalPersistence
@@ -56,4 +59,28 @@ export async function cerrarSesionAnonima() {
  */
 export function authUidActual() {
     return auth.currentUser ? auth.currentUser.uid : null;
+}
+// ============================================================
+// v2 — Sesión con EMAIL + CONTRASEÑA (rescatistas / ambulancias)
+// La cuenta real es estable: aunque se borre el localStorage,
+// al ingresar de nuevo se recupera el MISMO uid, documento y
+// autorización. (Las funciones anónimas de index.html siguen
+// funcionando igual para el botón SOS.)
+// ============================================================
+
+export function registrarConEmail(email, password) {
+    return createUserWithEmailAndPassword(auth, email, password).then(c => c.user);
+}
+
+export function ingresarConEmail(email, password) {
+    return signInWithEmailAndPassword(auth, email, password).then(c => c.user);
+}
+
+export async function salirSesion() {
+    try { await signOut(auth); } catch (e) { }
+}
+
+/** onAuthStateChanged con callback simple. */
+export function escucharSesion(callback) {
+    return onAuthStateChanged(auth, callback);
 }
