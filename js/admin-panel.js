@@ -29,6 +29,8 @@ const db = obtenerFirestore();
 let mapa = null;
 let markersAlerta = {}; // Guardar referencias a los marcadores en el mapa
 let alertasActuales = new Set(); // Para no duplicar tarjetas
+let alertasCache = [];            // Alertas visibles (pendiente + atendida)
+let asignacionesPorEmergencia = {}; // asignaciones_sos activas por emergenciaId
 
 // Elementos del DOM
 const loginScreen = document.getElementById("login-screen");
@@ -176,62 +178,77 @@ function escucharUsuarios() {
 // 4. ESCUCHAR ALERTAS (Panel derecho + Mapa)
 // ======================================================
 function escucharAlertas() {
-    // Traer solo alertas pendientes, ordenadas por las más recientes
     const q = query(
-        collection(db, COLECCIONES.PANIC_ALERTS), 
-        orderBy("timestamp", "desc"), 
+        collection(db, COLECCIONES.PANIC_ALERTS),
+        orderBy("timestamp", "desc"),
         limit(20)
     );
 
     onSnapshot(q, (snap) => {
-        // Limpiar contenedores (para actualizaciones en vivo)
-        // NOTA: Podríamos optimizar para no repintar todo, pero para un admin está bien.
-        
-        // 1. Rojas (pendiente) + verdes (atendida) se muestran.
-        //    Solo desaparecen las finalizadas o canceladas.
-        const alertasPendientes = [];
-        snap.forEach(doc => {
-            const data = doc.data();
+        const activas = [];
+        snap.forEach(docSnap => {
+            const data = docSnap.data();
             if (data.estado !== "finalizada" && data.estado !== "cancelada") {
-                alertasPendientes.push({ id: doc.id, ...data });
+                activas.push({ id: docSnap.id, ...data });
             }
         });
+        alertasCache = activas;
+        refrescarAlertas();
+    });
 
-        // 2. Limpiar la lista de tarjetas
-        contenedorAlertas.innerHTML = "";
-        
-        // 3. Limpiar marcadores viejos del mapa
-        Object.values(markersAlerta).forEach(marker => mapa.removeLayer(marker));
-        markersAlerta = {};
-
-        if (alertasPendientes.length === 0) {
-            contenedorAlertas.innerHTML = '<div class="empty-state">No hay alertas pendientes</div>';
-            return;
-        }
-
-        // 4. Renderizar cada alerta
-        alertasPendientes.forEach(a => {
-            renderizarAlerta(a);
-            ponerMarcadorEnMapa(a);
+    // Seguimiento: quién tomó cada emergencia y en qué estado va
+    const qa = query(
+        collection(db, "asignaciones_sos"),
+        where("estado", "in", ["asignada", "aceptada", "en_camino", "en_lugar"])
+    );
+    onSnapshot(qa, (snap) => {
+        asignacionesPorEmergencia = {};
+        snap.forEach(docSnap => {
+            const a = docSnap.data();
+            asignacionesPorEmergencia[a.emergenciaId] = a;
         });
+        refrescarAlertas();
+    });
+}
+
+function refrescarAlertas() {
+    if (!mapa) return;
+    contenedorAlertas.innerHTML = "";
+    Object.values(markersAlerta).forEach(marker => mapa.removeLayer(marker));
+    markersAlerta = {};
+
+    if (alertasCache.length === 0) {
+        contenedorAlertas.innerHTML = '<div class="empty-state">No hay alertas pendientes</div>';
+        return;
+    }
+    alertasCache.forEach(a => {
+        renderizarAlerta(a);
+        ponerMarcadorEnMapa(a);
     });
 }
 
 function renderizarAlerta(a) {
-    const atendida = a.estado === "atendida";
     const card = document.createElement("div");
+    const atendida = a.estado === "atendida";
     card.className = atendida ? "alerta-card alerta-atendida" : "alerta-card";
-    
-    // Formatear hora
+
     let horaStr = "Desconocida";
     if (a.timestamp && typeof a.timestamp.toDate === "function") {
         horaStr = a.timestamp.toDate().toLocaleTimeString();
     }
 
-    // Coordenadas
     const lat = a.ubicacion?.lat;
     const lng = a.ubicacion?.lng;
     const hayUbicacion = lat != null && lng != null;
+
+    // Línea de seguimiento: quién tomó la alerta y en qué va
+    const asig = asignacionesPorEmergencia[a.id];
+    let lineaAsig = "";
+    if (asig) {
+        const paso = { asignada: "asignada", aceptada: "aceptó el SOS", en_camino: "🚑 EN CAMINO al auxilio", en_lugar: "📍 atendiendo en el lugar" }[asig.estado] || asig.estado;
+        lineaAsig = `<div style="margin:8px 0;padding:8px 10px;border-radius:8px;background:rgba(39,174,96,.12);border:1px solid #27ae60;font-size:13px">🚨 <b>${asig.rescatistaNombre || "Equipo de rescate"}</b> ${paso}` +
+            (asig.ambulanciaCodigo ? ` · Ambulancia <b>${asig.ambulanciaCodigo}</b> en auxilio` : "") + `</div>`;
+    }
 
     card.innerHTML = `
         <div class="alerta-header">
@@ -245,62 +262,47 @@ function renderizarAlerta(a) {
             <b>Empresa:</b> ${a.empresa}<br>
             <b>Ubicación:</b> ${hayUbicacion ? 'Sí' : 'No disponible'}
         </div>
+        ${lineaAsig}
         <div class="alerta-actions">
             <button class="btn-ubicar" ${!hayUbicacion ? 'disabled' : ''}>📍 Ver</button>
-            ${atendida ? `
-                <button class="btn-atender" disabled>✓ Atendido</button>
-                <button class="btn-finalizar" data-id="${a.id}">✔ Finalizar SOS</button>
-            ` : `
-                <button class="btn-atender" data-id="${a.id}">✓ Atender</button>
-            `}
+            ${atendida
+                ? `<button class="btn-finalizar" data-id="${a.id}">✔ SOS finalizado</button>`
+                : `<button class="btn-atender" data-id="${a.id}">✓ Atender</button>`}
         </div>
     `;
 
-    // Evento: Ver en el mapa
     if (hayUbicacion) {
         card.querySelector(".btn-ubicar").addEventListener("click", () => {
             mapa.flyTo([lat, lng], 16, { duration: 1.5 });
-            if (markersAlerta[a.id]) {
-                markersAlerta[a.id].openPopup();
-            }
+            if (markersAlerta[a.id]) markersAlerta[a.id].openPopup();
         });
     }
 
-    // Evento: Atender
-    card.querySelector(".btn-atender").addEventListener("click", async (e) => {
-        const btn = e.target;
-        btn.disabled = true;
-        btn.textContent = "...";
-        
-        try {
-            await updateDoc(doc(db, COLECCIONES.PANIC_ALERTS, a.id), {
-                estado: "atendida",
-                atendidaPor: ADMIN_EMAIL,
-                atendidaEn: serverTimestamp()
-            });
-            // La UI se actualizará sola gracias a onSnapshot
-        } catch (error) {
-            alert("Error al atender: " + error.message);
-            btn.disabled = false;
-            btn.textContent = "✓ Atender";
-        }
-    });
-    card.querySelector(".btn-finalizar")?.addEventListener("click", async (e) => {
+    card.querySelector(atendida ? ".btn-finalizar" : ".btn-atender").addEventListener("click", async (e) => {
         const btn = e.target;
         btn.disabled = true;
         btn.textContent = "...";
         try {
-            await updateDoc(doc(db, COLECCIONES.PANIC_ALERTS, a.id), {
-                estado: "finalizada",
-                finalizadaPor: ADMIN_EMAIL,
-                finalizadaEn: serverTimestamp()
-            });
+            if (atendida) {
+                await updateDoc(doc(db, COLECCIONES.PANIC_ALERTS, a.id), {
+                    estado: "finalizada",
+                    finalizadaPor: ADMIN_EMAIL,
+                    finalizadaEn: serverTimestamp()
+                });
+            } else {
+                await updateDoc(doc(db, COLECCIONES.PANIC_ALERTS, a.id), {
+                    estado: "atendida",
+                    atendidaPor: ADMIN_EMAIL,
+                    atendidaEn: serverTimestamp()
+                });
+            }
         } catch (error) {
-            alert("Error al finalizar: " + error.message);
+            alert("Error: " + error.message);
             btn.disabled = false;
-            btn.textContent = "✔ Finalizar SOS";
+            btn.textContent = atendida ? "✔ SOS finalizado" : "✓ Atender";
         }
     });
+
     contenedorAlertas.appendChild(card);
 }
 
