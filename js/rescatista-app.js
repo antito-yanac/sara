@@ -205,6 +205,8 @@ function renderPanel() {
         <p class="rec-subtitulo">SARA · Gestión de Emergencias</p>
 
         <div class="rec-card" id="resc-cabecera"></div>
+        <h2 class="rec-titulo" style="font-size:16px">🗺️ Mapa de emergencias</h2>
+        <div id="resc-mapa" class="rec-mapa"></div>
         <h2 class="rec-titulo" style="font-size:16px">🆘 Emergencias pendientes</h2>
         <div id="resc-sos"></div>
         <h2 class="rec-titulo" style="font-size:16px">📋 Mi asignación</h2>
@@ -212,6 +214,7 @@ function renderPanel() {
     `;
 
     pintarCabecera();
+    initMapaResc();
     escucharPerfil();          // mantiene el panel sincronizado
     publicarGPS();
     gpsTimer = setInterval(publicarGPS, 2 * 60 * 1000);
@@ -261,7 +264,35 @@ function publicarGPS() {
         } catch { /* sin permiso o offline: se reintenta en 2 min */ }
     }, () => { }, { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 });
 }
+/* ---- Mapa Leaflet ---- */
+let mapaResc = null, capasResc = null;
 
+function initMapaResc() {
+    if (mapaResc || typeof L === "undefined") return;
+    mapaResc = L.map("resc-mapa").setView([-9.55, -77.04], 11);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap" }).addTo(mapaResc);
+    capasResc = L.layerGroup().addTo(mapaResc);
+}
+
+function actualizarMapaResc(pendientes) {
+    if (!mapaResc) return;
+    capasResc.clearLayers();
+    const puntos = [];
+    pendientes.forEach(s => {
+        if (s.ubicacion && typeof s.ubicacion.lat === "number") {
+            const icono = L.divIcon({ className: "", html: `<div style="background:#e74c3c;width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 8px rgba(0,0,0,.5)"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
+            L.marker([s.ubicacion.lat, s.ubicacion.lng], { icon: icono }).addTo(capasResc)
+                .bindPopup(`<b>🆘 ${esc(s.nombre || "Usuario")}</b><br>${esc(s.empresa || "")} · ${hora(s.fechaMs)}<br><a target="_blank" href="https://www.google.com/maps?q=${s.ubicacion.lat},${s.ubicacion.lng}">Abrir en Google Maps</a>`);
+            puntos.push([s.ubicacion.lat, s.ubicacion.lng]);
+        }
+    });
+    if (perfil.ubicacion && typeof perfil.ubicacion.lat === "number") {
+        const yo = L.divIcon({ className: "", html: `<div style="background:#3498db;width:14px;height:14px;border-radius:50%;border:3px solid #fff"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] });
+        L.marker([perfil.ubicacion.lat, perfil.ubicacion.lng], { icon: yo }).addTo(capasResc).bindPopup("📍 Tu posición");
+        puntos.push([perfil.ubicacion.lat, perfil.ubicacion.lng]);
+    }
+    if (puntos.length) mapaResc.fitBounds(puntos, { padding: [30, 30], maxZoom: 15 });
+}
 /* ---- SOS pendientes ---- */
 
 function escucharSOS() {
@@ -274,9 +305,12 @@ function escucharSOS() {
         snap.forEach(d => pendientes.push({ id: d.id, ...d.data() }));
         if (pendientes.length === 0) {
             cont.innerHTML = `<div class="rec-card rec-vacio">No hay emergencias pendientes</div>`;
+            actualizarMapaResc([]);
             return;
         }
         cont.innerHTML = pendientes.map(sosCardHTML).join("");
+        actualizarMapaResc(pendientes);
+        
         cont.querySelectorAll("[data-tomar]").forEach(b =>
             b.addEventListener("click", () => tomarEmergencia(b.dataset.tomar)));
     }, (err) => console.warn("rescatista: error escuchando SOS", err));
@@ -311,35 +345,52 @@ async function tomarEmergencia(emergenciaId) {
         return alert("Tu estado no es 'Disponible'. Cámbialo antes de tomar una emergencia.");
     }
     try {
-        // ¿Ya hay alguien atendiendo esta emergencia?
         const q = query(collection(db, COL_ASIG), where("emergenciaId", "==", emergenciaId));
         const ya = await getDocs(q);
-        const activa = ya.docs.some(d => ESTADOS_ACTIVOS.includes(d.data().estado));
-        if (activa) return alert("Otro rescatista ya tomó esta emergencia.");
+        const activa = ya.docs.map(d => ({ id: d.id, ...d.data() }))
+            .find(a => ESTADOS_ACTIVOS.includes(a.estado));
 
-        // Datos del SOS (copia local para no depender de lecturas futuras)
+        if (activa && activa.rescatistaUid) return alert("Otro rescatista ya tomó esta emergencia.");
+
         const sosDoc = await getDoc(doc(db, COL_SOS, emergenciaId));
         if (!sosDoc.exists()) return alert("La emergencia ya no existe.");
         const sos = sosDoc.data();
 
-        await addDoc(collection(db, COL_ASIG), {
-            emergenciaId,
-            nombre: sos.nombre || "Usuario registrado",
-            empresa: sos.empresa || "",
-            dni: sos.dni || "",
-            celular: sos.celular || "",
-            lat: sos.ubicacion?.lat ?? null,
-            lng: sos.ubicacion?.lng ?? null,
-            precision: sos.ubicacion?.precision ?? null,
-            rescatistaUid: uid,
-            rescatistaDeviceId: deviceId,
-            rescatistaNombre: perfil.nombres,
-            ambulanciaId: null,
-            ambAuthUid: null,
-            ambulanciaCodigo: "",
-            estado: "aceptada",
-            aceptadaEn: serverTimestamp(),
-            fechaMs: Date.now()
+        if (activa) {
+            // Ya hay ambulancia en camino: te unes a esa misma atención
+            await updateDoc(doc(db, COL_ASIG, activa.id), {
+                rescatistaUid: uid,
+                rescatistaDeviceId: deviceId,
+                rescatistaNombre: perfil.nombres,
+                estado: "aceptada",
+                aceptadaEn: serverTimestamp(),
+                fechaMs: Date.now()
+            });
+        } else {
+            await addDoc(collection(db, COL_ASIG), {
+                emergenciaId,
+                nombre: sos.nombre || "Usuario registrado",
+                empresa: sos.empresa || "",
+                dni: sos.dni || "",
+                celular: sos.celular || "",
+                lat: sos.ubicacion?.lat ?? null,
+                lng: sos.ubicacion?.lng ?? null,
+                precision: sos.ubicacion?.precision ?? null,
+                rescatistaUid: uid,
+                rescatistaDeviceId: deviceId,
+                rescatistaNombre: perfil.nombres,
+                ambulanciaId: null,
+                ambAuthUid: null,
+                ambulanciaCodigo: "",
+                estado: "aceptada",
+                aceptadaEn: serverTimestamp(),
+                fechaMs: Date.now()
+            });
+        }
+        await updateDoc(doc(db, COL_SOS, emergenciaId), {
+            estado: "atendida",
+            atendidaPor: `Rescatista: ${perfil.nombres}`,
+            atendidaEn: serverTimestamp()
         });
         await updateDoc(doc(db, COL_RES, uid), { disponibilidad: "Atendiendo emergencia", fechaMs: Date.now() });
         perfil.disponibilidad = "Atendiendo emergencia";
@@ -413,7 +464,15 @@ async function avanzarAsignacion(id, nuevoEstado) {
         }
         await updateDoc(doc(db, COL_ASIG, id), campos);
         if (nuevoEstado === "finalizada") {
+            const asig = await getDoc(doc(db, COL_ASIG, id));
+            const emgId = asig.exists() ? asig.data().emergenciaId : null;
+            if (emgId) await updateDoc(doc(db, COL_SOS, emgId), {
+                estado: "finalizada",
+                finalizadaPor: `Rescatista: ${perfil.nombres}`,
+                finalizadaEn: serverTimestamp()
+            });
             await updateDoc(doc(db, COL_RES, uid), { disponibilidad: "Disponible", fechaMs: Date.now() });
+            
             perfil.disponibilidad = "Disponible";
             pintarCabecera();
         }
