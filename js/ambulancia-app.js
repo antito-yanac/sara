@@ -64,7 +64,7 @@ async function init() {
             if (snap.exists()) {
                 unidad = { id: snap.id, ...snap.data() };
                 if (unidad.authUid !== uid) { unidad = null; localStorage.removeItem(LS_UNIDAD); }
-                else if (unidad.estado === "autorizado") { renderPanel(); return; }
+                else if (unidad.estadoDoc === "autorizado") { renderPanel(); return; }
                 else { renderEspera(); return; }
             }
         }
@@ -79,9 +79,9 @@ function escucharUnidad() {
     if (unsubUnidad) unsubUnidad();
     unsubUnidad = onSnapshot(doc(db, COL_AMB, unidad.id), (s) => {
         if (!s.exists()) return;
-        const antes = unidad?.estado;
+        const antes = unidad?.estadoDoc;
         unidad = { id: s.id, ...s.data() };
-        if (unidad.estado === "autorizado" && antes !== "autorizado") {
+        if (unidad.estadoDoc === "autorizado" && antes !== "autorizado") {
             limpiarTodo();
             renderPanel();
         }
