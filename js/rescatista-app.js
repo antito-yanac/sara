@@ -75,8 +75,7 @@ async function init() {
         const snap = await getDoc(doc(db, COL_RES, uid));
         if (snap.exists()) {
             perfil = { id: snap.id, ...snap.data() };
-            if (perfil.estado === "autorizado") renderPanel();
-            else renderEspera();
+            resolverAcceso();
         } else {
             renderRegistro();
         }
@@ -90,11 +89,11 @@ function escucharPerfil() {
     if (unsubPerfil) unsubPerfil();
     unsubPerfil = onSnapshot(doc(db, COL_RES, uid), (s) => {
         if (!s.exists()) return;
-        const antes = perfil?.estado;
+    const antes = perfil?.estado;
         perfil = { id: s.id, ...s.data() };
-        if (perfil.estado === "autorizado" && antes !== "autorizado") {
+        if (perfil.estado !== antes) {
             limpiarTodo();
-            renderPanel();
+            resolverAcceso();
         }
     });
 }
@@ -196,7 +195,50 @@ function renderEspera() {
     `;
     escucharPerfil();
 }
+/* ---- 2b. ACCESO SEGÚN VIGENCIA (14 días) ---- */
 
+function resolverAcceso() {
+    if (perfil.estado === "autorizado") {
+        if (perfil.autorizadoHasta && perfil.autorizadoHasta > Date.now()) { renderPanel(); return; }
+        renderVencido(); return;
+    }
+    if (perfil.estado === "rechazado") { renderRechazado(); return; }
+    renderEspera();
+}
+
+function renderVencido() {
+    app.innerHTML = `
+        <h1 class="rec-titulo">📅 Vigencia vencida</h1>
+        <div class="rec-card rec-datos">
+            <p>Hola <b>${esc(perfil.nombres)}</b>, tu autorización venció el
+            <b>${new Date(perfil.autorizadoHasta || Date.now()).toLocaleDateString("es-PE")}</b>
+            (vigencia de 14 días por rotación 7 día + 7 noche).</p>
+            <p>Solicita la renovación; el administrador la aprueba desde el panel
+            <b>Gestión de Recursos de Emergencia</b>. Tus datos se conservan.</p>
+            <button class="rec-btn grande" id="btn-renovar">🔄 Solicitar renovación</button>
+        </div>
+    `;
+    document.getElementById("btn-renovar").addEventListener("click", async (e) => {
+        e.target.disabled = true; e.target.textContent = "Enviando…";
+        try {
+            await updateDoc(doc(db, COL_RES, uid), { estado: "pendiente", fechaMs: Date.now() });
+            renderEspera();
+        } catch (err) {
+            alert("No se pudo solicitar: " + err.message);
+            e.target.disabled = false; e.target.textContent = "🔄 Solicitar renovación";
+        }
+    });
+}
+
+function renderRechazado() {
+    app.innerHTML = `
+        <h1 class="rec-titulo">⛔ Acceso denegado</h1>
+        <div class="rec-card rec-datos">
+            <p>Tu registro fue <span class="rec-badge rechazado">RECHAZADO</span> por el administrador.</p>
+            <p>Si crees que es un error, coordina con tu supervisor o el administrador de SARA.</p>
+        </div>
+    `;
+}
 /* ---------------- 3. PANEL OPERATIVO ---------------- */
 
 function renderPanel() {
