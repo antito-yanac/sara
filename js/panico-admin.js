@@ -5,7 +5,7 @@
 // ============================================================
 
 import { getFirestore, collection, onSnapshot,
-         doc, updateDoc, serverTimestamp }
+         doc as docRef, updateDoc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 import { obtenerFirestore, obtenerApp } from "./firebase-app.js";
 import { mostrarToast } from "./notifications.js";
@@ -54,7 +54,7 @@ function crearTarjeta(doc) {
             <button class="panico-card-cerrar" aria-label="Cerrar">×</button>
         </div>
         <div class="panico-card-body">
-            <p><strong>🪪 DNI:</strong> ${escapeHtml(data.dni || "(no indicado)")}</p>
+            <p><strong>🪪 DNI:</strong> ${escapeHtml(doc.dni || "(no indicado)")}</p>
             <p><strong>📱 Teléfono:</strong> ${escapeHtml(doc.telefono)}</p>
             <p><strong>📝 Datos:</strong> ${escapeHtml(doc.descripcion)}</p>
             ${(doc.lat != null && doc.lng != null) ? `
@@ -82,12 +82,12 @@ function crearTarjeta(doc) {
         try {
             const db = getFirestore(obtenerApp());
             if (doc.coleccion === COLECCION_SOS) {
-                await updateDoc(doc(db, COLECCION_SOS, doc.id), {
+                await updateDoc(docRef(db, COLECCION_SOS, doc.id), {
                     estado: "atendida",
                     atendidaEn: serverTimestamp()
                 });
             } else {
-                await updateDoc(doc(db, COLECCION_LEGADO, doc.id), {
+                await updateDoc(docRef(db, COLECCION_LEGADO, doc.id), {
                     atendido: true,
                     atendidoEn: serverTimestamp()
                 });
@@ -106,14 +106,14 @@ card.querySelector(".panico-card-btn-finalizar")?.addEventListener("click", asyn
         btn.disabled = true;
         btn.textContent = "...";
         try {
-            const db = dbLegacy();
+         const db = getFirestore(obtenerApp());
             if (doc.coleccion === COLECCION_SOS) {
-                await updateDoc(doc(db, COLECCION_SOS, doc.id), {
+                await updateDoc(docRef(db, COLECCION_SOS, doc.id), {
                     estado: "finalizada",
                     finalizadaEn: serverTimestamp()
                 });
             } else {
-                await updateDoc(doc(db, COLECCION_LEGADO, doc.id), {
+                await updateDoc(docRef(db, COLECCION_LEGADO, doc.id), {
                     finalizado: true,
                     finalizadaEn: serverTimestamp()
                 });
@@ -142,7 +142,10 @@ function millisDeFecha(d) {
     if (d.cancelableHasta?.toMillis) return d.cancelableHasta.toMillis();
     return 0;
 }
-
+function fechaTexto(fechaMs) {
+    if (!fechaMs) return "Hora desconocida";
+    return new Date(fechaMs).toLocaleString("es-PE");
+}
 function normalizarSOS(id, d) {
     const ub = d.ubicacion || {};
     const parts = [];
@@ -209,6 +212,7 @@ function iniciarListener(coleccion, normalizar) {
                     documentos.delete(clave);
                     return;
                 }
+                const d = cambio.doc.data();
                 const n = normalizar(cambio.doc.id, d);
                 if (n.finalizada) {
                     documentos.delete(clave);
