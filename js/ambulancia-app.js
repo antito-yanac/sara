@@ -64,8 +64,7 @@ async function init() {
             if (snap.exists()) {
                 unidad = { id: snap.id, ...snap.data() };
                 if (unidad.authUid !== uid) { unidad = null; localStorage.removeItem(LS_UNIDAD); }
-                else if (unidad.estadoDoc === "autorizado") { renderPanel(); return; }
-                else { renderEspera(); return; }
+                    else { resolverAccesoAmb(); return; }
             }
         }
         renderRegistro();
@@ -79,11 +78,11 @@ function escucharUnidad() {
     if (unsubUnidad) unsubUnidad();
     unsubUnidad = onSnapshot(doc(db, COL_AMB, unidad.id), (s) => {
         if (!s.exists()) return;
-        const antes = unidad?.estadoDoc;
+    const antes = unidad?.estadoDoc;
         unidad = { id: s.id, ...s.data() };
-        if (unidad.estadoDoc === "autorizado" && antes !== "autorizado") {
+        if (unidad.estadoDoc !== antes) {
             limpiarTodo();
-            renderPanel();
+            resolverAccesoAmb();
         }
     });
 }
@@ -178,7 +177,50 @@ function renderEspera() {
     `;
     escucharUnidad();
 }
+/* ---- 2b. ACCESO SEGÚN VIGENCIA (14 días) ---- */
 
+function resolverAccesoAmb() {
+    if (unidad.estadoDoc === "autorizado") {
+        if (unidad.autorizadoHasta && unidad.autorizadoHasta > Date.now()) { renderPanel(); return; }
+        renderVencidoAmb(); return;
+    }
+    if (unidad.estadoDoc === "rechazado") { renderRechazadoAmb(); return; }
+    renderEspera();
+}
+
+function renderVencidoAmb() {
+    app.innerHTML = `
+        <h1 class="rec-titulo">📅 Vigencia vencida</h1>
+        <div class="rec-card rec-datos">
+            <p>La unidad <b>${esc(unidad.codigo)}</b> tiene la autorización vencida desde el
+            <b>${new Date(unidad.autorizadoHasta || Date.now()).toLocaleDateString("es-PE")}</b>
+            (vigencia de 14 días por rotación 7 día + 7 noche).</p>
+            <p>Solicita la renovación; el administrador la aprueba desde el panel
+            <b>Gestión de Recursos de Emergencia</b>.</p>
+            <button class="rec-btn grande" id="btn-renovar-amb">🔄 Solicitar renovación</button>
+        </div>
+    `;
+    document.getElementById("btn-renovar-amb").addEventListener("click", async (e) => {
+        e.target.disabled = true; e.target.textContent = "Enviando…";
+        try {
+            await updateDoc(doc(db, COL_AMB, unidad.id), { estadoDoc: "pendiente", fechaMs: Date.now() });
+            renderEspera();
+        } catch (err) {
+            alert("No se pudo solicitar: " + err.message);
+            e.target.disabled = false; e.target.textContent = "🔄 Solicitar renovación";
+        }
+    });
+}
+
+function renderRechazadoAmb() {
+    app.innerHTML = `
+        <h1 class="rec-titulo">⛔ Acceso denegado</h1>
+        <div class="rec-card rec-datos">
+            <p>La unidad <b>${esc(unidad.codigo)}</b> fue <span class="rec-badge rechazado">RECHAZADA</span> por el administrador.</p>
+            <p>Si crees que es un error, coordina con el administrador de SARA.</p>
+        </div>
+    `;
+}
 /* ---------------- 3. PANEL DE LA UNIDAD ---------------- */
 
 function renderPanel() {
