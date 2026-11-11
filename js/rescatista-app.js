@@ -13,7 +13,8 @@
 // ============================================================
 
 import { obtenerAuth, obtenerFirestore } from "./firebase-app.js";
-import { asegurarSesionAnonima } from "./auth-anonima.js";
+//import { asegurarSesionAnonima } from "./auth-anonima.js";
+import { registrarConEmail, ingresarConEmail, salirSesion, escucharSesion } from "./auth-anonima.js";
 import { obtenerDeviceId } from "./device-id.js";
 import {
     collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc,
@@ -39,6 +40,8 @@ let deviceId = null;
 let perfil = null;
 let unsubPerfil = null, unsubSOS = null, unsubAsig = null;
 let gpsTimer = null;
+let flujoRegistro = false;   // evita que el listener de sesión interfiera al crear la cuenta
+
 const app = document.getElementById("resc-app");
 
 /* ---------------- utilidades ---------------- */
@@ -67,11 +70,18 @@ function haceMin(ts) {
 /* ---------------- arranque ---------------- */
 
 init();
-async function init() {
+function init() {
+    escucharSesion((user) => manejarSesion(user));
+}
+
+async function manejarSesion(user) {
+    if (!user) { uid = null; perfil = null; limpiarTodo(); renderLogin(); return; }
+    if (user.isAnonymous) { await salirSesion(); return; }   // sesión anónima vieja: fuera
+    if (user.uid === uid) return;   // ya cargado
+    limpiarTodo();
+    uid = user.uid;
+    deviceId = obtenerDeviceId();
     try {
-        const user = await asegurarSesionAnonima();
-        uid = user.uid;
-        deviceId = obtenerDeviceId();
         const snap = await getDoc(doc(db, COL_RES, uid));
         if (snap.exists()) {
             perfil = { id: snap.id, ...snap.data() };
@@ -104,7 +114,42 @@ function limpiarTodo() {
     if (unsubAsig) { unsubAsig(); unsubAsig = null; }
     if (gpsTimer) { clearInterval(gpsTimer); gpsTimer = null; }
 }
+/* ---- 1a. LOGIN (email + contraseña) ---- */
 
+function renderLogin(msg = "") {
+    app.innerHTML = `
+        <h1 class="rec-titulo">🔐 Acceso — Personal de Rescate</h1>
+        <p class="rec-subtitulo">Ingresa con tu correo y contraseña registrados.</p>
+        <form class="rec-card" id="form-login">
+            <div class="rec-campo"><label>Correo electrónico *</label><input id="l-email" type="email" required autocomplete="username"></div>
+            <div class="rec-campo"><label>Contraseña *</label><input id="l-pass" type="password" required autocomplete="current-password"></div>
+            ${msg ? `<div class="rec-card rec-sos" style="padding:8px 12px;margin-bottom:10px">${esc(msg)}</div>` : ""}
+            <button class="rec-btn grande" type="submit">Ingresar</button>
+            <p class="rec-subtitulo" style="text-align:center;margin:12px 0 0">¿No tienes cuenta? <a href="#" id="link-registro" style="color:var(--rec-azul)">Regístrate aquí</a></p>
+        </form>
+    `;
+    document.getElementById("link-registro").addEventListener("click", (e) => { e.preventDefault(); renderRegistro(); });
+    document.getElementById("form-login").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const email = document.getElementById("l-email").value.trim();
+        const pass = document.getElementById("l-pass").value;
+        const btn = ev.target.querySelector("button[type=submit]");
+        btn.disabled = true; btn.textContent = "Verificando…";
+        try {
+            await ingresarConEmail(email, pass);
+            // el listener de sesión carga el panel automáticamente
+        } catch (e2) {
+            const errores = {
+                "auth/invalid-credential": "Correo o contraseña incorrectos.",
+                "auth/user-not-found": "No existe una cuenta con ese correo.",
+                "auth/wrong-password": "Contraseña incorrecta.",
+                "auth/too-many-requests": "Demasiados intentos. Espera un momento e intenta otra vez.",
+                "auth/network-request-failed": "Sin conexión. Verifica tu red e intenta de nuevo."
+            };
+            renderLogin(errores[e2.code] || "No se pudo ingresar: " + e2.message);
+        }
+    });
+}
 /* ---------------- 1. REGISTRO ---------------- */
 
 function renderRegistro() {
@@ -112,6 +157,10 @@ function renderRegistro() {
         <h1 class="rec-titulo">🚨 Registro — Personal de Rescate</h1>
         <p class="rec-subtitulo">SARA · Antamina. Tus datos serán validados por el administrador antes de activarte.</p>
         <form class="rec-card" id="form-res">
+            <div class="rec-fila2">
+                <div class="rec-campo"><label>Correo electrónico *</label><input id="f-email" type="email" required autocomplete="username"></div>
+                <div class="rec-campo"><label>Contraseña * (mín. 6)</label><input id="f-pass" type="password" minlength="6" required autocomplete="new-password"></div>
+            </div>
             <div class="rec-fila2">
                 <div class="rec-campo"><label>Nombres y apellidos *</label><input id="f-nombres" required></div>
                 <div class="rec-campo"><label>DNI (8 dígitos) *</label><input id="f-dni" required maxlength="8" inputmode="numeric"></div>
@@ -157,8 +206,12 @@ async function registrar(ev) {
     btn.disabled = true; btn.textContent = "Enviando…";
 
     try {
+        flujoRegistro = true;
+        const user = await registrarConEmail(v("f-email"), v("f-pass"));
+        uid = user.uid;
         await setDoc(doc(db, COL_RES, uid), {
             authUid: uid,
+            email: v("f-email"),
             deviceId,
             nombres: v("f-nombres"),
             dni,
@@ -176,8 +229,15 @@ async function registrar(ev) {
             ubicacion: null,
             fechaMs: Date.now()
         });
-        renderEspera();
+    renderEspera();
+        flujoRegistro = false;
     } catch (e) {
+        flujoRegistro = false;
+        if (e.code === "auth/email-already-in-use") {
+            alert("Ese correo ya tiene una cuenta. Inicia sesión.");
+            renderLogin();
+            return;
+        }
         alert("No se pudo registrar: " + e.message);
         btn.disabled = false; btn.textContent = "Solicitar autorización";
     }
@@ -278,6 +338,7 @@ function pintarCabecera() {
             <select id="resc-disp" class="rec-campo" style="flex:1;padding:10px">
                 ${DISPONIBILIDADES.map(d => `<option ${d === perfil.disponibilidad ? "selected" : ""}>${d}</option>`).join("")}
             </select>
+            <button id="btn-salir" class="rec-btn gris" style="flex:0 0 auto">Salir</button>
         </div>
     `;
     document.getElementById("resc-disp").addEventListener("change", async (e) => {
@@ -286,6 +347,7 @@ function pintarCabecera() {
             perfil.disponibilidad = e.target.value;
         } catch (err) { alert("No se pudo cambiar disponibilidad: " + err.message); }
     });
+    document.getElementById("btn-salir").addEventListener("click", () => salirSesion());
 }
 
 /** Publica su ubicación en su documento (para central y distancias). */
