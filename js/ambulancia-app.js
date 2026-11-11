@@ -320,6 +320,7 @@ function renderPanel() {
     publicarGPS();
     gpsTimer = setInterval(publicarGPS, 2 * 60 * 1000);
     escucharAsignaciones();
+    escucharAlertaFlotanteAmb();   // 🆘 tarjeta flotante en tiempo real
     escucharSOSAmb();
 }
 
@@ -543,4 +544,67 @@ function actualizarMapaAmb(pendientes) {
         puntos.push([unidad.ubicacion.lat, unidad.ubicacion.lng]);
     }
     if (puntos.length) mapaAmb.fitBounds(puntos, { padding: [30, 30], maxZoom: 15 });
+}
+/* ---- 🆘 Tarjeta flotante ALERTA DE PÁNICO (tiempo real, todas las unidades) ---- */
+
+let previosAlertaAmb = new Set();
+
+function distKmAmb(a, b) {
+    const R = 6371, rad = Math.PI / 180;
+    const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+function escucharAlertaFlotanteAmb() {
+    if (window.__alertaFlotanteAmbActiva) return;
+    window.__alertaFlotanteAmbActiva = true;
+    const q = query(collection(db, "panic_alerts"), where("estado", "==", "pendiente"), limit(30));
+    onSnapshot(q, (snap) => {
+        const pendientes = [];
+        snap.forEach(d => pendientes.push({ id: d.id, ...d.data() }));
+        pintarAlertaFlotanteAmb(pendientes);
+    }, (err) => console.warn("ambulancia: error tarjeta flotante", err));
+}
+
+function pintarAlertaFlotanteAmb(pendientes) {
+    let cont = document.getElementById("alerta-flotante");
+    if (!cont) {
+        cont = document.createElement("div");
+        cont.id = "alerta-flotante";
+        document.body.appendChild(cont);
+    }
+    const hayNuevos = pendientes.some(p => !previosAlertaAmb.has(p.id));
+    previosAlertaAmb = new Set(pendientes.map(p => p.id));
+    if (pendientes.length === 0) { cont.innerHTML = ""; return; }
+    if (hayNuevos && navigator.vibrate) navigator.vibrate([150, 80, 150]);
+
+    cont.innerHTML = pendientes.map(s => {
+        const hay = s.ubicacion && typeof s.ubicacion.lat === "number";
+        let dist = "—";
+        if (hay && unidad.ubicacion) dist = distKmAmb(unidad.ubicacion, s.ubicacion).toFixed(1) + " km de la unidad";
+        const ms = s.fechaMs || (s.timestamp && s.timestamp.toMillis ? s.timestamp.toMillis() : null);
+        const min = ms ? Math.max(0, Math.round((Date.now() - ms) / 60000)) : null;
+        return `
+        <div class="alerta-card">
+            <div class="alerta-header">
+                <h4>🆘 ALERTA DE PÁNICO</h4>
+                <span class="alerta-time">${min === null ? "" : (min === 0 ? "ahora" : `hace ${min} min`)}</span>
+            </div>
+            <div class="alerta-data">
+                <b>${esc(s.nombre || "Usuario registrado")}</b> <span class="rec-badge pendiente">ESPERA AYUDA</span><br>
+                <span class="lbl">Empresa:</span> ${esc(s.empresa || "—")} ·
+                <span class="lbl">DNI:</span> ${esc(s.dni || "—")}<br>
+                <span class="lbl">Celular:</span> ${esc(s.celular || "—")} ·
+                <span class="lbl">Distancia:</span> ${dist}
+            </div>
+            <div class="alerta-acciones">
+                ${hay ? `<a class="rec-btn gris" target="_blank" href="https://www.google.com/maps?q=${s.ubicacion.lat},${s.ubicacion.lng}">📍 Mapa</a>` : ""}
+                <button class="rec-btn rojo" data-auxilio="${s.id}">🚑 Salir en auxilio</button>
+            </div>
+        </div>`;
+    }).join("");
+
+    cont.querySelectorAll("[data-auxilio]").forEach(b =>
+        b.addEventListener("click", () => tomarEmergenciaAmb(b.dataset.auxilio)));
 }
