@@ -5,7 +5,9 @@
 // ============================================================
 
 import { mostrarToast } from "./notifications.js";
-import { collection, addDoc, serverTimestamp }
+//import { collection, addDoc, serverTimestamp }
+//    from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+import { doc, setDoc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 import { getAuth, signInAnonymously }
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
@@ -403,11 +405,20 @@ async function enviarSolicitud() {
     }
 
     enviando = true;
-    btn.disabled = true;
-    btn.innerHTML = "⏳ Enviando...";
+btn.disabled = true;
+btn.innerHTML = "⏳ Enviando...";
 
-    try {
-        if (!gpsActual) {
+// 🚀 NUEVO: dispara el ForegroundService nativo (1 hora de rastreo)
+try {
+    if (window.AndroidBridge && window.AndroidBridge.startPanic) {
+        window.AndroidBridge.startPanic(3600);
+    }
+} catch (e) {
+    console.warn("panico: bridge Android no disponible", e);
+}
+
+try {
+    if (!gpsActual) {
             btn.innerHTML = "⏳ Obteniendo ubicación...";
             const cache = leerGPSCache();
             if (cache) {
@@ -444,27 +455,43 @@ async function enviarSolicitud() {
         }
 
         btn.innerHTML = "⏳ Enviando...";
-        let okFirestore = false;
-        try {
-            const db = obtenerFirestore();
-            const ref = collection(db, COLECCION_PANICO);
-            const docRef = await addDoc(ref, {
-                dni:         dni,
-                telefono:    telefono,
-                descripcion: descripcion,
-                lat:         gpsActual.lat,
-                lng:         gpsActual.lng,
-                accuracy:    gpsActual.accuracy || null,
-                fecha:       serverTimestamp(),
-                fechaMs:     Date.now(),
-                atendido:    false,
-                origen:      "index.html"
-            });
-            console.log("panico: doc creado", docRef.id);
-            okFirestore = true;
-        } catch (e) {
-            console.error("panico: error Firestore", e);
+let okFirestore = false;
+try {
+    const db = obtenerFirestore();
+
+    // Obtener UUID: nativo si estamos en la APK, fallback si es web
+    let deviceUuid;
+    if (window.AndroidBridge && window.AndroidBridge.getUUID) {
+        deviceUuid = window.AndroidBridge.getUUID();
+    } else {
+        deviceUuid = localStorage.getItem("sara_uuid");
+        if (!deviceUuid) {
+            deviceUuid = crypto.randomUUID();
+            localStorage.setItem("sara_uuid", deviceUuid);
         }
+    }
+
+    // setDoc con UUID fijo (idempotente: repetir SOS actualiza el mismo doc)
+    const docRef = doc(db, COLECCION_PANICO, deviceUuid);
+    await setDoc(docRef, {
+        uuid:        deviceUuid,          // ⬅️ campo extra para consultas
+        plataforma:  window.AndroidBridge ? "apk" : "web",
+        dni:         dni,
+        telefono:    telefono,
+        descripcion: descripcion,
+        lat:         gpsActual.lat,
+        lng:         gpsActual.lng,
+        accuracy:    gpsActual.accuracy || null,
+        fecha:       serverTimestamp(),
+        fechaMs:     Date.now(),
+        atendido:    false,
+        origen:      "index.html"
+    }, { merge: true });   // ⬅️ merge para no borrar campos que agregue el APK
+    console.log("panico: doc escrito", deviceUuid);
+    okFirestore = true;
+} catch (e) {
+    console.error("panico: error Firestore", e);
+}
 
         try {
             enviarWhatsApp(dni, telefono, descripcion, gpsActual.lat, gpsActual.lng);
