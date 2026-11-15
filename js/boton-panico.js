@@ -123,27 +123,52 @@ export async function dispararPanico() {
     if (!usuario) return { ok: false, error: "Debes registrarte antes de usar el botón SOS." };
     if (usuario.data.estado !== "activo") return { ok: false, error: "Tu cuenta está inactiva. Contacta al administrador." };
 
-    //const ubicacion = await obtenerUbicacion(10_000);
     const ubicacion = await obtenerUbicacion();
     const payload = construirPayload(usuario, ubicacion);
 
-    if (navigator.onLine) {
+    // 1) Sin red real -> encolar directamente (comportamiento correcto)
+    if (!navigator.onLine) {
+        await enviarEncolado(payload);
+        return { ok: true, encolada: true };
+    }
+
+    // 2) Con red -> intentar envío directo
+    try {
+        const alertId = await enviarDirecto(payload);
         try {
-            const alertId = await enviarDirecto(payload);
-            try {
-                await updateDoc(doc(db, COLECCIONES.USUARIOS, usuario.deviceId), {
-                    ultimoPanico: serverTimestamp()
-                });
-            } catch { }
-            return { ok: true, alertId, encolada: false };
-        } catch (e) {
-            console.warn("boton-panico: envío directo falló, encolando:", e);
+            await updateDoc(doc(db, COLECCIONES.USUARIOS, usuario.deviceId), {
+                ultimoPanico: serverTimestamp()
+            });
+        } catch { /* no es crítico */ }
+        return { ok: true, alertId, encolada: false };
+    } catch (e) {
+        console.error("boton-panico: addDoc falló:", e.code, e.message);
+
+        // 2a) Error de red real -> encolar y avisar "sin conexión"
+        const esErrorDeRed =
+            e.code === "unavailable" ||
+            e.code === "deadline-exceeded" ||
+            e.code === "aborted" ||
+            /network|offline|timeout/i.test(e.message || "");
+
+        if (esErrorDeRed) {
             await enviarEncolado(payload);
             return { ok: true, encolada: true };
         }
-    } else {
-        await enviarEncolado(payload);
-        return { ok: true, encolada: true };
+
+        // 2b) Error de permisos -> mensaje claro, NO encolar como si fuera red
+        if (e.code === "permission-denied") {
+            return {
+                ok: false,
+                error: "No tienes permisos para enviar la alerta. Contacta al administrador (reglas de Firestore)."
+            };
+        }
+
+        // 2c) Error de datos / índice / argumento -> mensaje real
+        return {
+            ok: false,
+            error: `Error al enviar la alerta (${e.code || "desconocido"}). ${e.message || ""}`.trim()
+        };
     }
 }
 
