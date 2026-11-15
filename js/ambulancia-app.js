@@ -60,6 +60,7 @@ function init() {
 }
 
 async function manejarSesion(user) {
+    if (flujoRegistro) return; creando la cuenta no interferir
     if (!user) { uid = null; unidad = null; limpiarTodo(); renderLogin(); return; }
     if (user.isAnonymous) { await salirSesion(); return; }   // sesión anónima vieja: fuera
     if (user.uid === uid) return;   // ya cargado
@@ -312,7 +313,6 @@ function renderPanel() {
             unidad.estado = e.target.value;
     } catch (err) { alert("No se pudo cambiar el estado: " + err.message); }
     });
-    document.getElementById("btn-salir").addEventListener("click", () => salirSesion());
     document.getElementById("btn-salir").addEventListener("click", () => salirSesion());
 
     initMapaAmb();
