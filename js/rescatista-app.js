@@ -75,6 +75,7 @@ function init() {
 }
 
 async function manejarSesion(user) {
+    if (flujoRegistro) return; //craendo la cuenta no inteferir
     if (!user) { uid = null; perfil = null; limpiarTodo(); renderLogin(); return; }
     if (user.isAnonymous) { await salirSesion(); return; }   // sesión anónima vieja: fuera
     if (user.uid === uid) return;   // ya cargado
