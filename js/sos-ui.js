@@ -118,14 +118,23 @@ function mostrarModalConfirmacion(encolada) {
     if (!modal) return;
     const msg = document.getElementById("sos-modal-msg");
     const cancelWrap = document.getElementById("sos-cancel-wrap");
-    if (msg) msg.textContent = encolada
+
+    // Solo es "sin conexión" si realmente no hay red o el envío se encoló por red
+    const sinRed = encolada && !navigator.onLine ? true : encolada;
+
+    if (msg) msg.textContent = sinRed
         ? "Sin conexión. La alerta se enviará automáticamente al recuperar señal."
         : "Tu alerta fue enviada, te contactaremos.";
 
-    modal.hidden = false;
-    modal.style.display = "flex";   // ✅ fuerza a mostrarlo
+    // Si hay internet pero el envío se encoló por un error raro, NO mentir:
+    if (encolada && navigator.onLine && msg) {
+        msg.textContent = "⏳ La alerta quedó en cola y se reintentará automáticamente.";
+    }
 
-    if (encolada || !alertaActualId) {
+    modal.hidden = false;
+    modal.style.display = "flex";
+
+    if (sinRed || !alertaActualId) {
         if (cancelWrap) cancelWrap.hidden = true;
         return;
     }
