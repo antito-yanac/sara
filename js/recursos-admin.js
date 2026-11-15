@@ -13,6 +13,7 @@
 // ============================================================
 
 import { obtenerFirestore, obtenerApp } from "./firebase-app.js";
+import { escucharSesion } from "./auth-anonima.js";
 import { mostrarToast } from "./notifications.js";
 import {
     collection, doc, getDoc, addDoc, updateDoc, onSnapshot,
@@ -355,8 +356,21 @@ async function forzarCierre(id) {
 
 /* ---------------- arranque ---------------- */
 
+// El botón (y el overlay) SOLO existen si hay sesión autenticada.
+function gestionarLanzador(user) {
+    const lanza = document.getElementById("rec-lanzador");
+    const ov = document.getElementById("rec-overlay");
+    if (user) {
+        if (!lanza) { inyectar(); return; }
+        lanza.style.display = "block";
+    } else {
+        if (lanza) lanza.style.display = "none";
+        if (ov) ov.classList.remove("rec-visible");
+    }
+}
+
 if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", inyectar);
+    document.addEventListener("DOMContentLoaded", () => escucharSesion(gestionarLanzador));
 } else {
-    inyectar();
+    escucharSesion(gestionarLanzador);
 }
