@@ -51,13 +51,41 @@ export function borrarRegistroLocal() {
  * Lee el documento del usuario desde Firestore.
  * @returns {Promise<{deviceId, data}|null>}
  */
+/**
+ * Lee el documento del usuario desde Firestore.
+ * Auto-repara el authUid si la sesión anónima rotó.
+ * @returns {Promise<{deviceId, data}|null>}
+ */
 export async function leerUsuarioActual() {
     const deviceId = obtenerDeviceId();
     if (!deviceId) return null;
     try {
         const snap = await getDoc(doc(db, COLECCIONES.USUARIOS, deviceId));
         if (!snap.exists()) return null;
-        return { deviceId, data: snap.data() };
+
+        const data = snap.data();
+        const user = auth.currentUser;
+
+        // 🔧 Auto-reparación: si el authUid del doc no coincide con la
+        // sesión actual (sesión anónima rotada), lo re-sincronizamos.
+        // Esto evita el "permission-denied" en panic_alerts y otros.
+        if (user && data.authUid && data.authUid !== user.uid) {
+            try {
+                await updateDoc(doc(db, COLECCIONES.USUARIOS, deviceId), {
+                    authUid: user.uid
+                });
+                data.authUid = user.uid;
+                console.log("registro-usuario: authUid re-sincronizado →", user.uid);
+            } catch (e) {
+                console.warn(
+                    "registro-usuario: no se pudo re-sincronizar authUid:",
+                    e.code || e.message
+                );
+                // No bloqueamos: devolvemos el doc igual, el llamador decidirá.
+            }
+        }
+
+        return { deviceId, data };
     } catch (e) {
         console.warn("registro-usuario: error leyendo usuario:", e);
         return null;
