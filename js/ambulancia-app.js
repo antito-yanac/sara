@@ -17,6 +17,7 @@ import {
     doc, getDoc, getDocs, setDoc, updateDoc, addDoc, collection,
     onSnapshot, query, where, limit, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+import { obtenerDeviceId } from "./device-id.js";
 
 const COL_AMB  = "ambulancias";
 const COL_ASIG = "asignaciones_sos";
