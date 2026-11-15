@@ -66,38 +66,39 @@ async function manejarSesion(user) {
     // 1) Sin usuario -> LOGIN (siempre)
     if (!user) {
         uid = null;
-        perfil = null;
+        unidad = null;                 // ⬅️ ambulancia usa 'unidad', no 'perfil'
         limpiarTodo();
         renderLogin();
         return;
     }
 
-    // 2) Usuario anónimo (residuo de versiones anteriores) -> cerrar y mostrar login
+    // 2) Usuario anónimo (residuo de versiones anteriores) -> cerrar y login
     if (user.isAnonymous) {
         await salirSesion();
-        renderLogin();          // ⬅️ mostrar login YA, sin esperar al listener
+        renderLogin();
         return;
     }
 
     // 3) Mismo usuario ya cargado -> no hacer nada
     if (user.uid === uid) return;
 
-    // 4) Usuario nuevo: limpiar y consultar su perfil
+    // 4) Usuario nuevo: limpiar y consultar la unidad
     limpiarTodo();
     uid = user.uid;
-    deviceId = obtenerDeviceId();
+    // ❌ NO usar obtenerDeviceId() aquí: ambulancia no lo necesita
 
     try {
-        const snap = await getDoc(doc(db, COL_RES, uid));
+        const snap = await getDoc(doc(db, COL_AMB, uid));   // ⬅️ COL_AMB, no COL_RES
         if (snap.exists()) {
-            perfil = { id: snap.id, ...snap.data() };
-            resolverAcceso();
+            unidad = { id: snap.id, ...snap.data() };        // ⬅️ 'unidad'
+            resolverAccesoAmb();                             // ⬅️ función de ambulancia
         } else {
-            // Usuario autenticado pero SIN perfil -> recién aquí registro
-            renderRegistro();
+            // Autenticado pero SIN unidad registrada -> cerrar y pedir login
+            await salirSesion();
+            renderLogin("Tu cuenta no tiene una unidad registrada. Regístrate o usa otra cuenta.");
         }
     } catch (e) {
-        app.innerHTML = `<div class="rec-card">Error de conexión con Firebase: ${esc(e.message)}</div>`;
+        app.innerHTML = `<div class="rec-card">Error de conexión: ${esc(e.message)}</div>`;
     }
 }
 
