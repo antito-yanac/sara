@@ -5,10 +5,10 @@
 // ============================================================
 
 import { mostrarToast } from "./notifications.js";
-//import { collection, addDoc, serverTimestamp }
-//    from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
-import { doc, setDoc, serverTimestamp }
+import { collection, addDoc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+//import { doc, setDoc, serverTimestamp }
+ //   from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 import { getAuth, signInAnonymously }
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
 import { obtenerApp, obtenerFirestore } from "./firebase-app.js";
@@ -454,28 +454,12 @@ try {
             return;
         }
 
-        btn.innerHTML = "⏳ Enviando...";
+btn.innerHTML = "⏳ Enviando...";
 let okFirestore = false;
 try {
     const db = obtenerFirestore();
-
-    // Obtener UUID: nativo si estamos en la APK, fallback si es web
-    let deviceUuid;
-    if (window.AndroidBridge && window.AndroidBridge.getUUID) {
-        deviceUuid = window.AndroidBridge.getUUID();
-    } else {
-        deviceUuid = localStorage.getItem("sara_uuid");
-        if (!deviceUuid) {
-            deviceUuid = crypto.randomUUID();
-            localStorage.setItem("sara_uuid", deviceUuid);
-        }
-    }
-
-    // setDoc con UUID fijo (idempotente: repetir SOS actualiza el mismo doc)
-    const docRef = doc(db, COLECCION_PANICO, deviceUuid);
-    await setDoc(docRef, {
-        uuid:        deviceUuid,          // ⬅️ campo extra para consultas
-        plataforma:  window.AndroidBridge ? "apk" : "web",
+    const ref = collection(db, COLECCION_PANICO);
+    const docRef = await addDoc(ref, {
         dni:         dni,
         telefono:    telefono,
         descripcion: descripcion,
@@ -486,8 +470,8 @@ try {
         fechaMs:     Date.now(),
         atendido:    false,
         origen:      "index.html"
-    }, { merge: true });   // ⬅️ merge para no borrar campos que agregue el APK
-    console.log("panico: doc escrito", deviceUuid);
+    });
+    console.log("panico: doc creado", docRef.id);
     okFirestore = true;
 } catch (e) {
     console.error("panico: error Firestore", e);
