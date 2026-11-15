@@ -60,22 +60,43 @@ function init() {
 }
 
 async function manejarSesion(user) {
-    if (flujoRegistro) return; //creando la cuenta no interferir
-    if (!user) { uid = null; unidad = null; limpiarTodo(); renderLogin(); return; }
-    if (user.isAnonymous) { await salirSesion(); return; }   // sesión anónima vieja: fuera
-    if (user.uid === uid) return;   // ya cargado
+    if (flujoRegistro) return;
+
+    // 1) Sin usuario -> LOGIN (siempre)
+    if (!user) {
+        uid = null;
+        perfil = null;
+        limpiarTodo();
+        renderLogin();
+        return;
+    }
+
+    // 2) Usuario anónimo (residuo de versiones anteriores) -> cerrar y mostrar login
+    if (user.isAnonymous) {
+        await salirSesion();
+        renderLogin();          // ⬅️ mostrar login YA, sin esperar al listener
+        return;
+    }
+
+    // 3) Mismo usuario ya cargado -> no hacer nada
+    if (user.uid === uid) return;
+
+    // 4) Usuario nuevo: limpiar y consultar su perfil
     limpiarTodo();
     uid = user.uid;
+    deviceId = obtenerDeviceId();
+
     try {
-        const snap = await getDoc(doc(db, COL_AMB, uid));   // ID del documento = authUid
+        const snap = await getDoc(doc(db, COL_RES, uid));
         if (snap.exists()) {
-            unidad = { id: snap.id, ...snap.data() };
-            resolverAccesoAmb();
+            perfil = { id: snap.id, ...snap.data() };
+            resolverAcceso();
         } else {
+            // Usuario autenticado pero SIN perfil -> recién aquí registro
             renderRegistro();
         }
     } catch (e) {
-        app.innerHTML = `<div class="rec-card">Error de conexión: ${esc(e.message)}</div>`;
+        app.innerHTML = `<div class="rec-card">Error de conexión con Firebase: ${esc(e.message)}</div>`;
     }
 }
 
