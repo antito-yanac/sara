@@ -460,11 +460,10 @@ export function mostrarMiUbicacion() {
                 markerUbicacion = L.marker([lat, lng], {
                     icon: iconoTu, zIndexOffset: 1000
                 }).addTo(map);
-
+                // +  `Precisión: ±${Math.round(accuracy)} m`
                 markerUbicacion.bindPopup(
-                    `<b>📍 Tu ubicación</b><br>` +
-                    `Precisión: ±${Math.round(accuracy)} m`
-                ).openPopup();
+                    `<b>📍 Tu ubicación</b><br>`
+               ).openPopup();
 
                 let zoomLevel = 16;
                 if (accuracy > 100) zoomLevel = 14;
