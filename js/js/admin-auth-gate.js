@@ -5,7 +5,10 @@
 // - Verifica que el usuario sea admin (email en lista blanca
 //   o documento administradores/{uid} autorizado).
 // - Solo entonces carga admin-panel.js y recursos-admin.js,
-//   y crea el botón #rec-lanzador dinámicamente.
+//   y marca window.__SARA_ADMIN_AUTENTICADO = true para que
+//   recursos-admin.js pueda crear el botón #rec-lanzador.
+// - Al cerrar sesión o si no es admin, elimina del DOM el
+//   botón y el overlay, y oculta la app.
 // ============================================================
 
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut }
@@ -17,14 +20,19 @@ import { obtenerApp } from "./firebase-app.js";
 const auth = getAuth(obtenerApp());
 const db   = getFirestore(obtenerApp());
 
-const ADMIN_EMAILS = ["coderjava.01@gmail.com"]; // lista blanca
+// Lista blanca de emails admin (mantén la misma que usa admin-panel.js)
+const ADMIN_EMAILS = ["coderjava.01@gmail.com"];
 
+// Elementos del DOM
 const loginScreen = document.getElementById("login-screen");
 const appScreen   = document.getElementById("app-screen");
 const errorEl     = document.getElementById("login-error");
 const btnLogin    = document.getElementById("btn-login");
+const btnLogout   = document.getElementById("btn-logout");
 
 let modulosCargados = false;
+
+/* ---------------- utilidades ---------------- */
 
 function mostrarError(msg) {
     if (!errorEl) return;
@@ -34,6 +42,25 @@ function mostrarError(msg) {
 
 function ocultarError() {
     if (errorEl) errorEl.style.display = "none";
+}
+
+function limpiarUIAdmin() {
+    // Eliminar cualquier rastro del panel de recursos
+    document.getElementById("rec-lanzador")?.remove();
+    document.getElementById("rec-overlay")?.remove();
+
+    // Apagar flag de admin
+    window.__SARA_ADMIN_AUTENTICADO = false;
+
+    // Mostrar login, ocultar app
+    if (loginScreen) loginScreen.style.display = "flex";
+    if (appScreen)   appScreen.style.display = "none";
+
+    // Resetear botón de login
+    if (btnLogin) {
+        btnLogin.disabled = false;
+        btnLogin.textContent = "Ingresar";
+    }
 }
 
 async function esAdmin(user) {
@@ -52,91 +79,82 @@ async function esAdmin(user) {
 async function cargarModulosAdmin() {
     if (modulosCargados) return;
     modulosCargados = true;
-    // Carga dinámica: solo ocurre si es admin
+
+    // 1) Panel principal (mapa + alertas + usuarios)
     await import("./admin-panel.js");
-    await import("./recursos-admin.js");
+
+    // 2) Recursos de emergencia (botón + overlay + listeners)
+    const rec = await import("./recursos-admin.js");
+    if (typeof rec.iniciarRecursosAdmin === "function") {
+        rec.iniciarRecursosAdmin();
+    }
 }
 
-function crearBotonLanzador() {
-    // Si ya existe, no duplicar
-    if (document.getElementById("rec-lanzador")) return;
+/* ---------------- login manual ---------------- */
 
-    const btn = document.createElement("button");
-    btn.id = "rec-lanzador";
-    btn.textContent = "🚑 Recursos de Emergencia";
-    // Estilo mínimo; si tienes CSS para #rec-lanzador, se aplica solo
-    btn.style.cssText = `
-        position: fixed;
-        bottom: 16px;
-        left: 16px;
-        z-index: 1100;
-        padding: 10px 14px;
-        border: 0;
-        border-radius: 8px;
-        background: #e74c3c;
-        color: #fff;
-        font-weight: 700;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0,0,0,.4);
-    `;
-    document.body.appendChild(btn);
-}
-
-// ---------- Flujo de login manual ----------
 btnLogin?.addEventListener("click", async () => {
     ocultarError();
     const email = document.getElementById("login-email").value.trim();
     const pass  = document.getElementById("login-password").value;
-    if (!email || !pass) return mostrarError("Completa correo y contraseña.");
+
+    if (!email || !pass) {
+        mostrarError("Completa correo y contraseña.");
+        return;
+    }
+
     btnLogin.disabled = true;
     btnLogin.textContent = "Verificando…";
+
     try {
         await signInWithEmailAndPassword(auth, email, pass);
         // onAuthStateChanged hará el resto
     } catch (e) {
         const map = {
             "auth/invalid-credential": "Correo o contraseña incorrectos.",
-            "auth/user-not-found": "No existe una cuenta con ese correo.",
-            "auth/wrong-password": "Contraseña incorrecta.",
-            "auth/too-many-requests": "Demasiados intentos. Espera un momento."
+            "auth/user-not-found":     "No existe una cuenta con ese correo.",
+            "auth/wrong-password":     "Contraseña incorrecta.",
+            "auth/too-many-requests":  "Demasiados intentos. Espera un momento."
         };
         mostrarError(map[e.code] || "No se pudo ingresar: " + e.message);
-    } finally {
         btnLogin.disabled = false;
         btnLogin.textContent = "Ingresar";
     }
 });
 
-// ---------- Logout ----------
-document.getElementById("btn-logout")?.addEventListener("click", async () => {
+/* ---------------- logout ---------------- */
+
+btnLogout?.addEventListener("click", async () => {
     await signOut(auth);
 });
 
-// ---------- Portero principal ----------
+/* ---------------- portero principal ---------------- */
+
 onAuthStateChanged(auth, async (user) => {
+    // 1) Sin usuario -> login limpio
     if (!user) {
-        // Sin sesión: login visible, app oculta, sin botón, sin módulos
-        loginScreen.style.display = "flex";
-        appScreen.style.display = "none";
-        document.getElementById("rec-lanzador")?.remove();
+        limpiarUIAdmin();
         modulosCargados = false;
         return;
     }
 
+    // 2) Usuario autenticado: verificar rol admin
     const admin = await esAdmin(user);
+
     if (!admin) {
-        // Autenticado pero NO admin: fuera
+        // Autenticado pero NO admin: cerrar sesión y volver al login
         await signOut(auth);
         mostrarError("Esta cuenta no tiene permisos de administrador.");
-        loginScreen.style.display = "flex";
-        appScreen.style.display = "none";
-        document.getElementById("rec-lanzador")?.remove();
+        limpiarUIAdmin();
+        modulosCargados = false;
         return;
     }
 
-    // ✅ Admin confirmado: mostrar app, cargar módulos y crear botón
-    loginScreen.style.display = "none";
-    appScreen.style.display = "flex";
+    // 3) Admin confirmado
+    window.__SARA_ADMIN_AUTENTICADO = true;
+    ocultarError();
+    if (loginScreen) loginScreen.style.display = "none";
+    if (appScreen)   appScreen.style.display = "flex";
+
+    // Cargar módulos y crear botón/overlay de recursos
     await cargarModulosAdmin();
-    crearBotonLanzador();
 });
