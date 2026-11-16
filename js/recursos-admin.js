@@ -53,6 +53,10 @@ function hora(ms) {
 /* ---------------- inyección del overlay ---------------- */
 
 function inyectar() {
+    // Guardia: no crear nada si no hay admin confirmado
+    if (!window.__SARA_ADMIN_AUTENTICADO) return;
+    if (document.getElementById("rec-lanzador")) return; // ya existe
+    
     const lanza = document.createElement("button");
     lanza.id = "rec-lanzador";
     lanza.textContent = "🚑 Recursos de Emergencia";
@@ -372,5 +376,8 @@ function gestionarLanzador(user) {
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => escucharSesion(gestionarLanzador));
 } else {
-    escucharSesion(gestionarLanzador);
+    //escucharSesion(gestionarLanzador);
+    export function iniciarRecursosAdmin() {
+    inyectar();   // la guardia de admin ya está dentro de inyectar()
+}
 }
