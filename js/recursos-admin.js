@@ -1,19 +1,14 @@
 // js/recursos-admin.js
 // ============================================================
 // GESTIÓN DE RECURSOS DE EMERGENCIA (panel administrador.html)
-// v1 — se inyecta como overlay con 3 pestañas:
-//   1) RESCATISTAS: autorizar / rechazar / desactivar personal.
-//   2) AMBULANCIAS: autorizar unidades registradas + alta manual.
-//   3) CENTRAL SOS: emergencias pendientes (panic_alerts),
-//      asignar rescatista + ambulancia y seguir la atención.
-// Seguridad:
-//   - El rescatista/ambulancia se registra y queda 'pendiente';
-//     SOLO el admin lo autoriza (campo estado/estadoDoc).
-//   - Se guarda asignadoPor en cada asignación hecha por central.
+// v2:
+//   - El botón y el overlay SOLO se crean si admin-auth-gate.js
+//     confirma que el usuario es administrador (window.__SARA_ADMIN_AUTENTICADO).
+//   - Se exporta iniciarRecursosAdmin() para que el gate lo invoque.
+//   - No se llama a escucharSesion aquí (lo maneja el gate).
 // ============================================================
 
 import { obtenerFirestore, obtenerApp } from "./firebase-app.js";
-import { escucharSesion } from "./auth-anonima.js";
 import { mostrarToast } from "./notifications.js";
 import {
     collection, doc, getDoc, addDoc, updateDoc, onSnapshot,
@@ -56,7 +51,7 @@ function inyectar() {
     // Guardia: no crear nada si no hay admin confirmado
     if (!window.__SARA_ADMIN_AUTENTICADO) return;
     if (document.getElementById("rec-lanzador")) return; // ya existe
-    
+
     const lanza = document.createElement("button");
     lanza.id = "rec-lanzador";
     lanza.textContent = "🚑 Recursos de Emergencia";
@@ -170,7 +165,6 @@ async function setEstadoRescatista(id, estado) {
         const datos = { estado, fechaMs: Date.now() };
         if (estado === "autorizado") datos.autorizadoHasta = Date.now() + VIGENCIA_MS;
         await updateDoc(doc(db, COL_RES, id), datos);
-        
         mostrarToast("✅ Listo", `Rescatista: ${estado}.`, "exito", false);
     } catch (e) {
         mostrarToast("⚠️ Error", e.message, "alerta", true);
@@ -190,7 +184,7 @@ function pintarAmbulancias() {
             <td><span class="rec-badge ${(a.estado || "").startsWith("Disponible") ? "disponible" : (a.estado || "").startsWith("Fuera") || a.estado === "En mantenimiento" ? "fuera" : "ocupado"}">${esc(a.estado)}</span><br>
                 <span style="color:var(--rec-muted)">GPS ${haceMin(a.gpsTs)}</span></td>
             <td>
-            <span class="rec-badge ${esc(a.estadoDoc)}">${esc(a.estadoDoc)}</span><br>
+                <span class="rec-badge ${esc(a.estadoDoc)}">${esc(a.estadoDoc)}</span><br>
                 ${a.autorizadoHasta ? `<span style="color:var(--rec-muted);font-size:11px">Vence: ${new Date(a.autorizadoHasta).toLocaleDateString("es-PE")}</span><br>` : ""}
                 ${a.estadoDoc === "pendiente" ? `
                     <button class="rec-btn verde" data-amb-ok="${a.id}" style="margin-top:6px">Autorizar</button>
@@ -216,7 +210,6 @@ async function setEstadoAmbulancia(id, estadoDoc) {
         const datos = { estadoDoc, fechaMs: Date.now() };
         if (estadoDoc === "autorizado") datos.autorizadoHasta = Date.now() + VIGENCIA_MS;
         await updateDoc(doc(db, COL_AMB, id), datos);
-        
         mostrarToast("✅ Listo", `Unidad: ${estadoDoc}.`, "exito", false);
     } catch (e) {
         mostrarToast("⚠️ Error", e.message, "alerta", true);
@@ -300,7 +293,6 @@ async function asignar() {
     const a = ambId ? ambulancias.get(ambId) : null;
     const s = sosPendientes.get(sosSeleccionada);
 
-    // Evitar doble asignación de la misma emergencia
     const ya = [...asignaciones.values()].some(x => x.emergenciaId === sosSeleccionada);
     if (ya) return alert("Esta emergencia ya tiene una asignación activa.");
 
@@ -360,24 +352,11 @@ async function forzarCierre(id) {
 
 /* ---------------- arranque ---------------- */
 
-// El botón (y el overlay) SOLO existen si hay sesión autenticada.
-function gestionarLanzador(user) {
-    const lanza = document.getElementById("rec-lanzador");
-    const ov = document.getElementById("rec-overlay");
-    if (user) {
-        if (!lanza) { inyectar(); return; }
-        lanza.style.display = "block";
-    } else {
-        if (lanza) lanza.style.display = "none";
-        if (ov) ov.classList.remove("rec-visible");
-    }
-}
-
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => escucharSesion(gestionarLanzador));
-} else {
-    //escucharSesion(gestionarLanzador);
-    export function iniciarRecursosAdmin() {
+/**
+ * Inicializa el botón y el overlay de Recursos de Emergencia.
+ * SOLO debe llamarse desde admin-auth-gate.js cuando el usuario
+ * haya sido confirmado como administrador.
+ */
+export function iniciarRecursosAdmin() {
     inyectar();   // la guardia de admin ya está dentro de inyectar()
-}
 }
