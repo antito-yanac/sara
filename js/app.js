@@ -183,7 +183,7 @@ if ('serviceWorker' in navigator) {
         } catch (e) {
             console.warn("Error buscando actualización SW:", e);
         }
-    }, 5000); // 5000 ms = 5 segundos
+    }, 5 * 60 * 1000); //  = 5 minutos
 }
 
 //======================================================
