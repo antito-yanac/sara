@@ -188,6 +188,10 @@ export async function vaciarColaOffline() {
     let enviadas = 0;
     for (const item of pendientes) {
         try {
+            // 🔧 Reparar el authUid del payload con el uid actual
+            if (auth.currentUser) {
+                item.payload.authUid = auth.currentUser.uid;
+            }
             await enviarDirecto(item.payload);
             await eliminarPendiente(item.id);
             enviadas++;
