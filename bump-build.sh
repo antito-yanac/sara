@@ -43,7 +43,7 @@ version_path.write_text(
 )
 
 # 2 y 3) HTML: meta + ?v en assets locales
-htmls = ["index.html", "strikeguard.html", "admin.html", "adminkeraunos.html"]
+htmls = ["index.html", "strikeguard.html", "admin.html", "adminkeraunos.html", "administrador.html", "ambulancia.html", "rescatista.html"]
 patron_local = re.compile(
     r'((?:href|src)=")((?:\./)?(?:style\.css|notifications\.css|css/[^"?]+|js/[^"?]+|manifest\.webmanifest))(\?[^"]*)?(")'
 )
