@@ -45,7 +45,7 @@ version_path.write_text(
 # 2 y 3) HTML: meta + ?v en assets locales
 htmls = ["index.html", "strikeguard.html", "admin.html", "adminkeraunos.html"]
 patron_local = re.compile(
-    r'((?:href|src)=")((?:\./)?(?:style\.css|notifications\.css|css/[^"?]+|js/[^"?]+|site\.webmanifest))(\?[^"]*)?(")'
+    r'((?:href|src)=")((?:\./)?(?:style\.css|notifications\.css|css/[^"?]+|js/[^"?]+|manifest\.webmanifest))(\?[^"]*)?(")'
 )
 
 for nombre in htmls:
