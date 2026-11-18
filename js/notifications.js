@@ -155,11 +155,11 @@ function cerrarToast(toast) {
 async function registrarServiceWorker() {
     try {
         if (!("serviceWorker" in navigator)) return null;
-        const registration = await navigator.serviceWorker.register(
-            "./firebase-messaging-sw.js",
-            { scope: "./firebase-cloud-messaging-push-scope/" }
-        );
-        
+        //const registration = await navigator.serviceWorker.register(
+        //    "./firebase-messaging-sw.js",
+        //    { scope: "./firebase-cloud-messaging-push-scope/" }
+        // );
+        const registration = await navigator.serviceWorker.register('./service-worker.js');
         // Forzar la espera a que el worker esté activo
         if (registration.installing) {
             console.log("Service Worker FCM instalándose...");
