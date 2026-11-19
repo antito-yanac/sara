@@ -144,55 +144,6 @@ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script type="module" src="js/panico.js"></script>
 <script type="module" src="js/sos-ui.js"></script>
 
-<style>
-    /* Botón volver */
-    #btn-volver-index {
-        position: fixed;
-        bottom: calc(27px + 5px + env(safe-area-inset-bottom, 0px));
-        left: 10px;
-        z-index: 2000;
-
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 12px;
-
-        background: rgba(255, 255, 255, 0.95);
-        border: 1.5px solid #193344;
-        border-radius: 10px;
-        color: #193344;
-        font-family: 'Segoe UI', system-ui, sans-serif;
-        font-size: 12px;
-        font-weight: 700;
-        text-decoration: none;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-        cursor: pointer;
-        transition: transform 0.15s, filter 0.2s;
-    }
-    #btn-volver-index:hover {
-        transform: translateY(-2px);
-        filter: brightness(1.05);
-    }
-    #btn-volver-index:active {
-        transform: scale(0.97);
-    }
-
-    /* Ocultar buscador y resultados (Keraunos no los usa) */
-    .search-box,
-    #results,
-    #stats,
-    .filter-bar {
-        display: none !important;
-    }
-
-    @media (max-width: 600px) {
-        #btn-volver-index {
-            font-size: 11px;
-            padding: 7px 10px;
-        }
-    }
-</style>
-
 </body>
 
 </html>
