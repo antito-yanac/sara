@@ -1,19 +1,13 @@
 // js/rescatista-app.js
 // ============================================================
 // MÓDULO PERSONAL DE RESCATE (rescatista.html)
-// v1:
-//   - Registro del rescatista (queda PENDIENTE hasta que el
-//     administrador lo autorice en administrador.html).
-//   - Panel operativo: emergencias SOS pendientes (panic_alerts
-//     estado='pendiente'), distancia desde su última ubicación,
-//     botón TOMAR, línea de tiempo (aceptada -> en_camino ->
-//     en_lugar -> finalizada) y publicación de GPS cada 2 min.
-//   - Reglas: documento rescatistas/{authUid}, creado por uno
-//     mismo con estado 'pendiente'. Solo el admin lo autoriza.
+// v2:
+//   - Un solo listener para SOS pendientes alimenta la lista
+//     y la tarjeta flotante (antes había dos listeners idénticos).
+//   - Se elimina escucharAlertaFlotante() y su flag global.
 // ============================================================
 
 import { obtenerAuth, obtenerFirestore } from "./firebase-app.js";
-//import { asegurarSesionAnonima } from "./auth-anonima.js";
 import { registrarConEmail, ingresarConEmail, salirSesion, escucharSesion } from "./auth-anonima.js";
 import { obtenerDeviceId } from "./device-id.js";
 import {
@@ -40,7 +34,7 @@ let deviceId = null;
 let perfil = null;
 let unsubPerfil = null, unsubSOS = null, unsubAsig = null;
 let gpsTimer = null;
-let flujoRegistro = false;   // evita que el listener de sesión interfiera al crear la cuenta
+let flujoRegistro = false;
 
 const app = document.getElementById("resc-app");
 
@@ -89,7 +83,7 @@ async function manejarSesion(user) {
 
     limpiarTodo();
     uid = user.uid;
-    deviceId = obtenerDeviceId();   // solo rescatista lo usa
+    deviceId = obtenerDeviceId();
 
     try {
         const snap = await getDoc(doc(db, COL_RES, uid));
@@ -97,7 +91,7 @@ async function manejarSesion(user) {
             perfil = { id: snap.id, ...snap.data() };
             resolverAcceso();
         } else {
-            await salirSesion();                       // ⬅️ NO renderRegistro()
+            await salirSesion();
             renderLogin("Tu cuenta no tiene perfil de rescatista. Regístrate o usa otra cuenta.");
         }
     } catch (e) {
@@ -105,12 +99,11 @@ async function manejarSesion(user) {
     }
 }
 
-/** Escucha su propio documento: si el admin lo autoriza, entra al panel. */
 function escucharPerfil() {
     if (unsubPerfil) unsubPerfil();
     unsubPerfil = onSnapshot(doc(db, COL_RES, uid), (s) => {
         if (!s.exists()) return;
-    const antes = perfil?.estado;
+        const antes = perfil?.estado;
         perfil = { id: s.id, ...s.data() };
         if (perfil.estado !== antes) {
             limpiarTodo();
@@ -148,7 +141,6 @@ function renderLogin(msg = "") {
         btn.disabled = true; btn.textContent = "Verificando…";
         try {
             await ingresarConEmail(email, pass);
-            // el listener de sesión carga el panel automáticamente
         } catch (e2) {
             const errores = {
                 "auth/invalid-credential": "Correo o contraseña incorrectos.",
@@ -240,7 +232,7 @@ async function registrar(ev) {
             ubicacion: null,
             fechaMs: Date.now()
         });
-    renderEspera();
+        renderEspera();
         flujoRegistro = false;
     } catch (e) {
         flujoRegistro = false;
@@ -328,11 +320,11 @@ function renderPanel() {
 
     pintarCabecera();
     initMapaResc();
-    escucharPerfil();          // mantiene el panel sincronizado
+    escucharPerfil();
     publicarGPS();
     gpsTimer = setInterval(publicarGPS, 2 * 60 * 1000);
     escucharSOS();
-    escucharAlertaFlotante();   // 🆘 tarjeta flotante en tiempo real
+    // 🆕 escucharAlertaFlotante() ELIMINADA: la tarjeta flotante se pinta desde escucharSOS()
     escucharMisAsignaciones();
 }
 
@@ -362,7 +354,6 @@ function pintarCabecera() {
     document.getElementById("btn-salir").addEventListener("click", () => salirSesion());
 }
 
-/** Publica su ubicación en su documento (para central y distancias). */
 function publicarGPS() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -409,16 +400,21 @@ function actualizarMapaResc(pendientes) {
     }
     if (puntos.length) mapaResc.fitBounds(puntos, { padding: [30, 30], maxZoom: 15 });
 }
-/* ---- SOS pendientes ---- */
+/* ---- SOS pendientes (LISTENER ÚNICO: lista + tarjeta flotante) ---- */
 
 function escucharSOS() {
     if (unsubSOS) unsubSOS();
     const q = query(collection(db, COL_SOS), where("estado", "==", "pendiente"), limit(30));
     unsubSOS = onSnapshot(q, (snap) => {
-        const cont = document.getElementById("resc-sos");
-        if (!cont) return;
         const pendientes = [];
         snap.forEach(d => pendientes.push({ id: d.id, ...d.data() }));
+
+        // 🆕 Alimentar la tarjeta flotante desde este mismo listener
+        pintarAlertaFlotante(pendientes);
+
+        const cont = document.getElementById("resc-sos");
+        if (!cont) return;
+
         if (pendientes.length === 0) {
             cont.innerHTML = `<div class="rec-card rec-vacio">No hay emergencias pendientes</div>`;
             actualizarMapaResc([]);
@@ -426,7 +422,7 @@ function escucharSOS() {
         }
         cont.innerHTML = pendientes.map(sosCardHTML).join("");
         actualizarMapaResc(pendientes);
-        
+
         cont.querySelectorAll("[data-tomar]").forEach(b =>
             b.addEventListener("click", () => tomarEmergencia(b.dataset.tomar)));
     }, (err) => console.warn("rescatista: error escuchando SOS", err));
@@ -473,7 +469,6 @@ async function tomarEmergencia(emergenciaId) {
         const sos = sosDoc.data();
 
         if (activa) {
-            // Ya hay ambulancia en camino: te unes a esa misma atención
             await updateDoc(doc(db, COL_ASIG, activa.id), {
                 rescatistaUid: uid,
                 rescatistaDeviceId: deviceId,
@@ -588,7 +583,6 @@ async function avanzarAsignacion(id, nuevoEstado) {
                 finalizadaEn: serverTimestamp()
             });
             await updateDoc(doc(db, COL_RES, uid), { disponibilidad: "Disponible", fechaMs: Date.now() });
-            
             perfil.disponibilidad = "Disponible";
             pintarCabecera();
         }
@@ -596,20 +590,9 @@ async function avanzarAsignacion(id, nuevoEstado) {
         alert("No se pudo actualizar: " + e.message);
     }
 }
-/* ---- 🆘 Tarjeta flotante ALERTA DE PÁNICO (tiempo real, todos los autorizados) ---- */
+/* ---- 🆘 Tarjeta flotante ALERTA DE PÁNICO (pintada desde escucharSOS) ---- */
 
 let previosAlerta = new Set();
-
-function escucharAlertaFlotante() {
-    if (window.__alertaFlotanteActiva) return;
-    window.__alertaFlotanteActiva = true;
-    const q = query(collection(db, COL_SOS), where("estado", "==", "pendiente"), limit(30));
-    onSnapshot(q, (snap) => {
-        const pendientes = [];
-        snap.forEach(d => pendientes.push({ id: d.id, ...d.data() }));
-        pintarAlertaFlotante(pendientes);
-    }, (err) => console.warn("rescatista: error tarjeta flotante", err));
-}
 
 function pintarAlertaFlotante(pendientes) {
     let cont = document.getElementById("alerta-flotante");
