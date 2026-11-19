@@ -836,7 +836,6 @@ body {
         height: 12px;
     }
 }
-/*borrame*/
 @media (pointer: coarse), (hover: none){
    .info{
       display: none !important
