@@ -1,14 +1,10 @@
 // js/ambulancia-app.js
 // ============================================================
 // MÓDULO UNIDAD DE AMBULANCIA (ambulancia.html)
-// v1:
-//   - La tripulación registra su unidad (queda PENDIENTE hasta
-//     que el administrador la autorice en administrador.html).
-//   - Panel: estado operativo, publicación de GPS cada 2 min y
-//     asignaciones activas con línea de tiempo.
-//   - Tipos de ambulancia según MINSA: Tipo I, II y III.
-//   - El vínculo tripulación-unidad queda en el campo authUid
-//     del documento (solo ese dispositivo puede mover el GPS).
+// v2:
+//   - Un solo listener para SOS pendientes alimenta la lista
+//     y la tarjeta flotante (antes había dos listeners idénticos).
+//   - Se elimina escucharAlertaFlotanteAmb() y su flag global.
 // ============================================================
 
 import { obtenerAuth, obtenerFirestore } from "./firebase-app.js";
@@ -34,8 +30,8 @@ const LS_UNIDAD = "sara_amb_unidad";
 const db = obtenerFirestore();
 
 let uid = null;
-let unidad = null;   // { id, ...datos }
-let flujoRegistro = false;   // evita que el listener de sesión interfiera al crear la cuenta
+let unidad = null;
+let flujoRegistro = false;
 let unsubUnidad = null, unsubSOS = null, unsubAsig = null, gpsTimer = null;
 const app = document.getElementById("amb-app");
 
@@ -63,37 +59,31 @@ function init() {
 async function manejarSesion(user) {
     if (flujoRegistro) return;
 
-    // 1) Sin usuario -> LOGIN (siempre)
     if (!user) {
         uid = null;
-        unidad = null;                 // ⬅️ ambulancia usa 'unidad', no 'perfil'
+        unidad = null;
         limpiarTodo();
         renderLogin();
         return;
     }
 
-    // 2) Usuario anónimo (residuo de versiones anteriores) -> cerrar y login
     if (user.isAnonymous) {
         await salirSesion();
         renderLogin();
         return;
     }
 
-    // 3) Mismo usuario ya cargado -> no hacer nada
     if (user.uid === uid) return;
 
-    // 4) Usuario nuevo: limpiar y consultar la unidad
     limpiarTodo();
     uid = user.uid;
-    // ❌ NO usar obtenerDeviceId() aquí: ambulancia no lo necesita
 
     try {
-        const snap = await getDoc(doc(db, COL_AMB, uid));   // ⬅️ COL_AMB, no COL_RES
+        const snap = await getDoc(doc(db, COL_AMB, uid));
         if (snap.exists()) {
-            unidad = { id: snap.id, ...snap.data() };        // ⬅️ 'unidad'
-            resolverAccesoAmb();                             // ⬅️ función de ambulancia
+            unidad = { id: snap.id, ...snap.data() };
+            resolverAccesoAmb();
         } else {
-            // Autenticado pero SIN unidad registrada -> cerrar y pedir login
             await salirSesion();
             renderLogin("Tu cuenta no tiene una unidad registrada. Regístrate o usa otra cuenta.");
         }
@@ -102,12 +92,11 @@ async function manejarSesion(user) {
     }
 }
 
-/** Si el admin autoriza la unidad mientras espera, entra al panel. */
 function escucharUnidad() {
     if (unsubUnidad) unsubUnidad();
     unsubUnidad = onSnapshot(doc(db, COL_AMB, unidad.id), (s) => {
         if (!s.exists()) return;
-    const antes = unidad?.estadoDoc;
+        const antes = unidad?.estadoDoc;
         unidad = { id: s.id, ...s.data() };
         if (unidad.estadoDoc !== antes) {
             limpiarTodo();
@@ -120,7 +109,6 @@ function limpiarTodo() {
     if (unsubUnidad) { unsubUnidad(); unsubUnidad = null; }
     if (unsubSOS) { unsubSOS(); unsubSOS = null; }
     if (unsubAsig) { unsubAsig(); unsubAsig = null; }
-    
     if (gpsTimer) { clearInterval(gpsTimer); gpsTimer = null; }
 }
 /* ---- 1a. LOGIN (email + contraseña) ---- */
@@ -207,8 +195,8 @@ async function registrar(ev) {
         flujoRegistro = true;
         const user = await registrarConEmail(v("a-email"), v("a-pass"));
         uid = user.uid;
-        await setDoc(doc(db, COL_AMB, uid), {   // ID del documento = authUid
-            authUid: uid,                       // vínculo tripulación-unidad
+        await setDoc(doc(db, COL_AMB, uid), {
+            authUid: uid,
             email: v("a-email"),
             codigo: v("a-codigo"),
             placa: v("a-placa"),
@@ -222,7 +210,7 @@ async function registrar(ev) {
             vigenciaDoc: v("a-vigencia") || "",
             equipamiento: v("a-equip") || "",
             estado: "Disponible en base",
-            estadoDoc: "pendiente",             // autorización del admin
+            estadoDoc: "pendiente",
             ubicacion: null,
             gpsTs: null,
             fechaMs: Date.now()
@@ -334,7 +322,7 @@ function renderPanel() {
         try {
             await updateDoc(doc(db, COL_AMB, unidad.id), { estado: e.target.value, fechaMs: Date.now() });
             unidad.estado = e.target.value;
-    } catch (err) { alert("No se pudo cambiar el estado: " + err.message); }
+        } catch (err) { alert("No se pudo cambiar el estado: " + err.message); }
     });
     document.getElementById("btn-salir").addEventListener("click", () => salirSesion());
 
@@ -343,7 +331,7 @@ function renderPanel() {
     publicarGPS();
     gpsTimer = setInterval(publicarGPS, 2 * 60 * 1000);
     escucharAsignaciones();
-    escucharAlertaFlotanteAmb();   // 🆘 tarjeta flotante en tiempo real
+    // 🆕 escucharAlertaFlotanteAmb() ELIMINADA: la tarjeta flotante se pinta desde escucharSOSAmb()
     escucharSOSAmb();
 }
 
@@ -430,7 +418,7 @@ async function avanzar(id, nuevoEstado) {
             campos.resultado = document.getElementById("amb-resultado")?.value || "Atendido en sitio";
             await updateDoc(doc(db, COL_AMB, unidad.id), { estado: "Disponible en base", fechaMs: Date.now() });
         }
-    await updateDoc(doc(db, COL_ASIG, id), campos);
+        await updateDoc(doc(db, COL_ASIG, id), campos);
         if (nuevoEstado === "finalizada") {
             const asig = await getDoc(doc(db, COL_ASIG, id));
             const emgId = asig.exists() ? asig.data().emergenciaId : null;
@@ -444,16 +432,21 @@ async function avanzar(id, nuevoEstado) {
         alert("No se pudo actualizar: " + e.message);
     }
 }
-/* ---- SOS pendientes + mapa (v1.1) ---- */
+/* ---- SOS pendientes + mapa (LISTENER ÚNICO: lista + tarjeta flotante) ---- */
 
 function escucharSOSAmb() {
     if (unsubSOS) unsubSOS();
     const q = query(collection(db, "panic_alerts"), where("estado", "==", "pendiente"), limit(30));
     unsubSOS = onSnapshot(q, (snap) => {
-        const cont = document.getElementById("amb-sos");
-        if (!cont) return;
         const pendientes = [];
         snap.forEach(d => pendientes.push({ id: d.id, ...d.data() }));
+
+        // 🆕 Alimentar la tarjeta flotante desde este mismo listener
+        pintarAlertaFlotanteAmb(pendientes);
+
+        const cont = document.getElementById("amb-sos");
+        if (!cont) return;
+
         if (pendientes.length === 0) {
             cont.innerHTML = `<div class="rec-card rec-vacio">No hay emergencias pendientes</div>`;
             actualizarMapaAmb([]);
@@ -499,7 +492,6 @@ async function tomarEmergenciaAmb(emergenciaId) {
         const sos = sosDoc.data();
 
         if (activa) {
-            // Ya hay rescatista: la unidad se une a esa misma atención
             await updateDoc(doc(db, "asignaciones_sos", activa.id), {
                 ambulanciaId: unidad.id,
                 ambAuthUid: uid,
@@ -568,7 +560,7 @@ function actualizarMapaAmb(pendientes) {
     }
     if (puntos.length) mapaAmb.fitBounds(puntos, { padding: [30, 30], maxZoom: 15 });
 }
-/* ---- 🆘 Tarjeta flotante ALERTA DE PÁNICO (tiempo real, todas las unidades) ---- */
+/* ---- 🆘 Tarjeta flotante ALERTA DE PÁNICO (pintada desde escucharSOSAmb) ---- */
 
 let previosAlertaAmb = new Set();
 
@@ -577,17 +569,6 @@ function distKmAmb(a, b) {
     const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
     const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
     return 2 * R * Math.asin(Math.sqrt(h));
-}
-
-function escucharAlertaFlotanteAmb() {
-    if (window.__alertaFlotanteAmbActiva) return;
-    window.__alertaFlotanteAmbActiva = true;
-    const q = query(collection(db, "panic_alerts"), where("estado", "==", "pendiente"), limit(30));
-    onSnapshot(q, (snap) => {
-        const pendientes = [];
-        snap.forEach(d => pendientes.push({ id: d.id, ...d.data() }));
-        pintarAlertaFlotanteAmb(pendientes);
-    }, (err) => console.warn("ambulancia: error tarjeta flotante", err));
 }
 
 function pintarAlertaFlotanteAmb(pendientes) {
