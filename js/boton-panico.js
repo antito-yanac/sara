@@ -1,7 +1,10 @@
 // js/boton-panico.js
 // ============================================================
 // Lógica del botón SOS.
-// v2: unifica SDK a 12.17.0 y elimina imports duplicados.
+// v3:
+//   - Añade envío de WhatsApp con los datos del SOS nuevo
+//     (nombre, DNI, celular, empresa, ubicación).
+//   - Unifica SDK a 12.17.0 y elimina imports duplicados.
 // ============================================================
 
 import { obtenerAuth, obtenerFirestore } from "./firebase-app.js";
@@ -20,7 +23,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
 const VENTANA_CANCELACION_MS = 30_000;
-//inicio agregado-----------------------------------
+
+// ===== WhatsApp (CallMeBot) =====
+const CALLMEBOT_PHONE  = "+51954125058";
+const CALLMEBOT_APIKEY = "9034887";
+
+// ===== GPS (caché compartido con panico.js) =====
 const GPS_CACHE_KEY        = "keraunos_gps_cache";
 const GPS_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 
@@ -82,7 +90,6 @@ export async function obtenerUbicacion() {
 
     return null;
 }
-//-------------------------fin----------------------------
 
 function construirPayload(usuario, ubicacion) {
     const ahora = Date.now();
@@ -116,6 +123,40 @@ async function enviarEncolado(payload) {
     await encolarAlerta(payload);
 }
 
+// ===== WhatsApp con datos del SOS nuevo =====
+function enviarWhatsAppSOS(payload) {
+    if (!CALLMEBOT_APIKEY || CALLMEBOT_APIKEY === "TU_API_KEY_AQUI") {
+        console.warn("boton-panico: CallMeBot no configurado. Se omite WhatsApp.");
+        return;
+    }
+    const ub = payload.ubicacion || {};
+    const mapsUrl = (ub.lat != null && ub.lng != null)
+        ? `https://www.google.com/maps?q=${ub.lat},${ub.lng}`
+        : "(sin ubicación)";
+    const hora = new Date().toLocaleString("es-PE");
+
+    const texto = [
+        "🚨 SOLICITUD DE AYUDA (SOS) 🚨",
+        "",
+        `👤 Nombre: ${payload.nombre || "(no indicado)"}`,
+        `🪪 DNI: ${payload.dni || "(no indicado)"}`,
+        `📱 Celular: ${payload.celular || "(no indicado)"}`,
+        `🏢 Empresa: ${payload.empresa || "(no indicada)"}`,
+        "",
+        `📍 Ubicación: ${mapsUrl}`,
+        (ub.lat != null ? `🌐 Coordenadas: ${ub.lat.toFixed(6)}, ${ub.lng.toFixed(6)}` : ""),
+        `🕒 Hora: ${hora}`
+    ].filter(Boolean).join("\n");
+
+    const tel = CALLMEBOT_PHONE.replace("+", "");
+    const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(tel)}&text=${encodeURIComponent(texto)}&apikey=${encodeURIComponent(CALLMEBOT_APIKEY)}`;
+
+    const img = new Image();
+    img.src = url;
+    img.onload = () => console.log("boton-panico: WhatsApp enviado (confirmado)");
+    img.onerror = () => console.log("boton-panico: WhatsApp enviado (sin confirmación visual)");
+}
+
 export async function dispararPanico() {
     if (!auth.currentUser) return { ok: false, error: "Sesión no iniciada. Recarga la página." };
 
@@ -126,7 +167,7 @@ export async function dispararPanico() {
     const ubicacion = await obtenerUbicacion();
     const payload = construirPayload(usuario, ubicacion);
 
-    // 1) Sin red real -> encolar directamente (comportamiento correcto)
+    // 1) Sin red real -> encolar directamente
     if (!navigator.onLine) {
         await enviarEncolado(payload);
         return { ok: true, encolada: true };
@@ -135,6 +176,12 @@ export async function dispararPanico() {
     // 2) Con red -> intentar envío directo
     try {
         const alertId = await enviarDirecto(payload);
+
+        // 🔔 WhatsApp con los datos del SOS nuevo (solo si se envió a Firestore)
+        try { enviarWhatsAppSOS(payload); } catch (e) {
+            console.warn("boton-panico: WhatsApp falló", e);
+        }
+
         try {
             await updateDoc(doc(db, COLECCIONES.USUARIOS, usuario.deviceId), {
                 ultimoPanico: serverTimestamp()
@@ -144,7 +191,6 @@ export async function dispararPanico() {
     } catch (e) {
         console.error("boton-panico: addDoc falló:", e.code, e.message);
 
-        // 2a) Error de red real -> encolar y avisar "sin conexión"
         const esErrorDeRed =
             e.code === "unavailable" ||
             e.code === "deadline-exceeded" ||
@@ -156,7 +202,6 @@ export async function dispararPanico() {
             return { ok: true, encolada: true };
         }
 
-        // 2b) Error de permisos -> mensaje claro, NO encolar como si fuera red
         if (e.code === "permission-denied") {
             return {
                 ok: false,
@@ -164,7 +209,6 @@ export async function dispararPanico() {
             };
         }
 
-        // 2c) Error de datos / índice / argumento -> mensaje real
         return {
             ok: false,
             error: `Error al enviar la alerta (${e.code || "desconocido"}). ${e.message || ""}`.trim()
@@ -188,7 +232,6 @@ export async function vaciarColaOffline() {
     let enviadas = 0;
     for (const item of pendientes) {
         try {
-            // 🔧 Reparar el authUid del payload con el uid actual
             if (auth.currentUser) {
                 item.payload.authUid = auth.currentUser.uid;
             }
