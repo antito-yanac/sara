@@ -18,7 +18,7 @@
 //      (rompe también la caché del CDN).
 //   3. Si el build remoto es distinto -> recarga con
 //      ?v=<build>&_r=<timestamp> (URL nueva = cero caché).
-//   4. Revisa cada 45 s y además al volver a la pestaña
+//   4. Revisa cada 3 min y además al volver a la pestaña
 //      (visibilitychange), al recuperar red (online), al salir de la
 //      bfcache (pageshow persisted) y al recuperar el foco (focus).
 //   5. Si el documento vino de la caché (transferSize 0), revalida
@@ -34,7 +34,7 @@
 (function () {
     "use strict";
 
-    var INTERVALO_MS = 45 * 1000;
+    var INTERVALO_MS = 3 * 60 * 1000;
     var CLAVE_LOCAL = "sara_build_actual";
     var CLAVE_SESION = "sara_build_recargado";
 
@@ -99,8 +99,14 @@
     // ---------------------------------------------------------
     //  Comprobación principal
     // ---------------------------------------------------------
+    var ultimaComprobacion = 0;
+
     function comprobar() {
         if (recargando) return;
+        // Antirrebote: visibilitychange/pageshow/online pueden disparar a la vez
+        var ahora = Date.now();
+        if (ahora - ultimaComprobacion < 10000) return;
+        ultimaComprobacion = ahora;
 
         consultarBuildRemoto().then(function (remoto) {
             if (!remoto) return;
@@ -202,7 +208,6 @@
             if (ev.persisted) comprobar();
         });
 
-        window.addEventListener("focus", comprobar);
     }
 
     if (document.readyState === "loading") {

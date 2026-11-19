@@ -194,8 +194,6 @@ export async function actualizarUsuario({ nombre, celular, empresa }) {
     if (!empresaL)                      return { ok: false, error: "Empresa requerida." };
 
     try {
-        // Importamos updateDoc dinámicamente para no cargar si no se usa
-        const { updateDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
         await updateDoc(doc(db, COLECCIONES.USUARIOS, deviceId), {
             nombre: nombreL,
             celular: celularL,
