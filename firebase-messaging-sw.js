@@ -1,6 +1,21 @@
-// firebase-messaging-sw.js (MODO EXTREMO)
+// firebase-messaging-sw.js
+// ============================================================
+//  Notificaciones push (FCM) + caché inteligente.
+//
+//  Estrategia de caché:
+//   - HTML / version.json / estado.json  -> RED primero (siempre frescos),
+//     con copia en caché solo como respaldo si no hay internet.
+//   - JS, CSS, imágenes, sonidos, zonas  -> stale-while-revalidate:
+//     responde al instante desde la caché y la actualiza en segundo plano.
+//
+//  La caché se nombra con BUILD_SW. Al subir el build (./bump-build.sh)
+//  este archivo cambia, el navegador instala el SW nuevo y se borran
+//  las cachés antiguas. BUILD_SW lo actualiza bump-build.sh.
+// ============================================================
 importScripts("https://www.gstatic.com/firebasejs/12.17.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/12.17.0/firebase-messaging-compat.js");
+
+const BUILD_SW = "20261104-081950";
 
 // ============================================================
 //  FIREBASE MESSAGING (Notificaciones Push)
@@ -36,7 +51,7 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener("notificationclick", (event) => {
     event.notification.close();
-    const urlAbrir = event.notification.data.url || "/";
+    const urlAbrir = (event.notification.data && event.notification.data.url) || "/";
 
     event.waitUntil(
         clients.matchAll({ type: "window", includeUncontrolled: true }).then((listaClientes) => {
@@ -51,36 +66,27 @@ self.addEventListener("notificationclick", (event) => {
 });
 
 // ============================================================
-//  CACHÉ MODO EXTREMO: Limpieza total y red prioritaria
+//  CACHÉ
 // ============================================================
-// El nombre de la caché cambia cada vez que se instala este archivo, forzando la limpieza.
-const CACHE_VERSION = "sara-extreme-" + Date.now();
 const CACHE_PREFIJO = "sara-";
+const CACHE_ACTUAL = CACHE_PREFIJO + BUILD_SW;   // nombre FIJO por build
 
-// 1. Forzar activación inmediata sin esperar a que cierren la app
 self.addEventListener("install", () => {
     self.skipWaiting();
 });
 
-// 2. Al activarse, borrar TODAS las cachés antiguas y tomar el control
 self.addEventListener("activate", (event) => {
     event.waitUntil((async () => {
         const nombres = await caches.keys();
         await Promise.all(
-            nombres.map((n) => {
-                // Si no es la versión actual, la borramos sin piedad
-                if (n !== CACHE_VERSION) {
-                    console.log("[SW] Borrando caché antigua:", n);
-                    return caches.delete(n);
-                }
-            })
+            nombres
+                .filter((n) => n.startsWith(CACHE_PREFIJO) && n !== CACHE_ACTUAL)
+                .map((n) => caches.delete(n))
         );
-        // Tomar el control de todas las pestañas abiertas inmediatamente
         await self.clients.claim();
     })());
 });
 
-// 3. Mensaje para forzar recarga desde el cliente
 self.addEventListener("message", (event) => {
     const d = event.data;
     if (d === "SKIP_WAITING" || (d && d.type === "SKIP_WAITING")) {
@@ -93,49 +99,72 @@ function esMismoOrigen(url) {
     catch (e) { return false; }
 }
 
-// 4. Intercepción de peticiones: SIEMPRE RED (Network First Absoluto)
+// Recursos que deben ser siempre frescos (cambian sin cambiar de build)
+function esDinamico(req, url) {
+    if (req.mode === "navigate" || req.destination === "document") return true;
+    return /\/(version|estado)\.json$/.test(url.pathname);
+}
+
+async function guardar(req, res) {
+    if (!res || !res.ok) return;
+    try {
+        const cache = await caches.open(CACHE_ACTUAL);
+        await cache.put(req, res.clone());
+    } catch (e) { /* cuota llena o respuesta no cacheable: se ignora */ }
+}
+
+// RED primero. "no-cache" revalida con el servidor/CDN en cada pedido,
+// sin añadir parámetros a la URL (no ensucia la caché del CDN).
+async function redPrimero(req) {
+    try {
+        const res = await fetch(req, { cache: "no-cache" });
+        guardar(req, res);
+        return res;
+    } catch (e) {
+        const cache = await caches.open(CACHE_ACTUAL);
+        const hit = await cache.match(req, { ignoreSearch: true });
+        if (hit) return hit;
+        throw e;
+    }
+}
+
+// Responde desde caché al instante y refresca en segundo plano.
+async function cacheYActualiza(event, req) {
+    const cache = await caches.open(CACHE_ACTUAL);
+    const hit = await cache.match(req);
+
+    const refresco = fetch(req, { cache: "no-cache" })
+        .then((res) => { guardar(req, res); return res; })
+        .catch(() => null);
+
+    if (hit) {
+        event.waitUntil(refresco);   // mantiene vivo el SW hasta terminar
+        return hit;
+    }
+    const res = await refresco;
+    if (res) return res;
+    return Response.error();
+}
+
 self.addEventListener("fetch", (event) => {
     const req = event.request;
 
-    // Solo GET, mismo origen y sin rangos (para evitar conflictos)
+    // Solo GET, mismo origen y sin rangos (audio/video)
     if (req.method !== "GET") return;
     if (!esMismoOrigen(req.url)) return;
     if (req.headers.get("range")) return;
 
     const url = new URL(req.url);
 
-    // version.json: intocable, siempre red pura y dura
+    // version.json: siempre red pura, jamás se guarda
     if (url.pathname.endsWith("/version.json")) {
         event.respondWith(fetch(req, { cache: "no-store" }));
         return;
     }
 
-    // Para HTML, JS, CSS, JSON e Imágenes:
-    // Intentamos SIEMPRE traer del servidor con un "cache-buster" (rompe-caché)
-    event.respondWith((async () => {
-        try {
-            // Añadimos un parámetro único para burlar el CDN de GitHub Pages (Fastly)
-            const u = new URL(req.url);
-            u.searchParams.set("_ext", Date.now());
-
-            const res = await fetch(u.toString(), {
-                cache: "no-store", // Obliga al navegador a no usar su caché local
-                credentials: "same-origin"
-            });
-
-            // Si el servidor responde bien, guardamos una copia por si se cae el internet
-            if (res && res.ok) {
-                const cache = await caches.open(CACHE_VERSION);
-                cache.put(req, res.clone()).catch(() => {});
-            }
-            return res;
-        } catch (e) {
-            // Si no hay internet (offline), usamos la última copia guardada
-            console.warn("[SW] Fallo de red, buscando en caché offline...", req.url);
-            const cache = await caches.open(CACHE_VERSION);
-            const hit = await cache.match(req, { ignoreSearch: true });
-            if (hit) return hit;
-            throw e;
-        }
-    })());
+    if (esDinamico(req, url)) {
+        event.respondWith(redPrimero(req));
+    } else {
+        event.respondWith(cacheYActualiza(event, req));
+    }
 });
