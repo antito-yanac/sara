@@ -20,6 +20,7 @@
 - [Requisitos Previos](#-requisitos-previos)
 - [Instalación y Configuración](#-instalación-y-configuración)
 - [Flujo de Uso](#-flujo-de-uso)
+- [Versionado y Caché](#-versionado-y-caché)
 - [Despliegue (Deploy)](#-despliegue-deploy)
 - [Contribuir](#-contribuir)
 - [Licencia](#-licencia)
@@ -28,7 +29,7 @@
 
 ## 📝 Descripción
 
-**SARA (Sistema de Alerta y Respuesta Antamina)**, en su módulo **Keraunos**, es una aplicación web progresiva (PWA) diseñada para monitorear condiciones meteorológicas críticas (como tormentas eléctricas) en tiempo real. 
+**SARA (Sistema de Alerta y Respuesta Antamina)**, en su módulo **Keraunos**, es una aplicación web progresiva (PWA) diseñada para monitorear condiciones meteorológicas críticas (como tormentas eléctricas) en tiempo real.
 
 El sistema combina un mapa interactivo con zonas de vigilancia, notificaciones push en tiempo real a través de Firebase Cloud Messaging y un **módulo de pánico (SOS)** que permite a los usuarios reportar emergencias enviando su ubicación GPS precisa, DNI y datos de contacto directamente a la base de datos y canales de respuesta rápida.
 
@@ -37,13 +38,14 @@ El sistema combina un mapa interactivo con zonas de vigilancia, notificaciones p
 ## ✨ Características Principales
 
 - 🗺️ **Mapa Interactivo en Tiempo Real**: Visualización de zonas de vigilancia y alertas meteorológicas usando Leaflet.js.
-- 🆘 **Botón de Pánico (SOS)**: Captura automática de geolocalización (con caché y mecanismos de respaldo), validación de DNI (8 dígitos) y teléfono (9 dígitos), y registro inmediato en Firestore.
-- 🔔 **Notificaciones Push**: Alertas en tiempo real sobre cambios en el estado meteorológico (Niveles: Vigilancia, Alerta).
-- 📱 **Progressive Web App (PWA)**: Instalable en dispositivos móviles, con Service Workers para funcionamiento offline parcial y caché optimizado.
-- 🔐 **Doble Modo de Operación**: 
-  - *Modo Keraunos*: Interfaz principal de vigilancia y recepción de alertas.
-  - *Modo Manual*: Panel de administración para gestión directa de alertas.
-- 🔄 **Sincronización en la Nube**: Integración completa con Firebase (Firestore, Authentication, Hosting y Cloud Messaging).
+- 🆘 **Botón de Pánico (SOS)**: Captura de geolocalización (con caché y mecanismos de respaldo), validación de DNI (8 dígitos) y teléfono (9 dígitos), y registro inmediato en Firestore.
+- 🔔 **Notificaciones Push**: Alertas en tiempo real sobre cambios en el estado meteorológico (niveles amarillo, naranja y rojo).
+- 📱 **Progressive Web App (PWA)**: Instalable en dispositivos móviles, con Service Worker para funcionamiento offline parcial y caché de recursos.
+- 🔐 **Doble Modo de Operación**:
+  - *Modo Keraunos*: Interfaz principal de vigilancia y recepción de alertas (`index.html`).
+  - *Modo Manual (StrikeGuard)*: Vista y panel de administración para gestión directa de alertas.
+- 🚑 **Recursos de emergencia**: Panel de administración de recursos y apps para ambulancias y rescatistas.
+- 🔄 **Sincronización en la Nube**: Integración con Firebase (Firestore, Authentication y Cloud Messaging).
 
 ---
 
@@ -52,10 +54,10 @@ El sistema combina un mapa interactivo con zonas de vigilancia, notificaciones p
 | Categoría | Tecnologías |
 |-----------|-------------|
 | **Frontend** | HTML5, CSS3, Vanilla JavaScript (ES6+ Modules) |
-| **Mapas y Geodata** | Leaflet.js, `@tmcw/togeojson`, JSZip |
-| **Backend / BaaS** | Firebase (Firestore, Auth, Cloud Messaging, Hosting) |
-| **Utilidades** | Fuse.js (búsqueda), Axios, Cheerio |
-| **DevOps / CI/CD** | GitHub Actions, Firebase CLI |
+| **Mapas** | Leaflet.js |
+| **Backend / BaaS** | Firebase (Firestore, Auth, Cloud Messaging) — SDK 12.17.0 |
+| **Monitor (scraper)** | Node.js (Axios, Cheerio) — corre fuera del sitio y publica `estado.json` |
+| **DevOps / CI/CD** | GitHub Actions, GitHub Pages |
 | **Estándares** | Web App Manifest, Service Workers |
 
 ---
@@ -64,37 +66,58 @@ El sistema combina un mapa interactivo con zonas de vigilancia, notificaciones p
 
 ```text
 sara/
-├── .github/workflows/       # Configuración de CI/CD para GitHub Pages
-├── admin/                   # Estilos y lógica del panel de administración
-├── css/                     # Hojas de estilo (alertas, pánico, SOS, notificaciones)
-├── js/                      # Lógica principal modularizada
+├── .github/workflows/       # CI/CD: publicación en GitHub Pages
+├── css/                     # Hojas de estilo (alertas, pánico, SOS, recursos, paneles admin)
+├── js/                      # Lógica modularizada (ES Modules)
 │   ├── app.js               # Punto de entrada y gestión de modos (keraunos/manual)
-│   ├── map.js               # Inicialización y pintado de zonas en Leaflet
-│   ├── panico.js            # Lógica del botón SOS, captura GPS y envío a Firestore
-│   ├── notifications.js     # Configuración de Firebase Cloud Messaging
-│   └── pwa-install.js       # Gestión de la instalación de la PWA
-├── sounds/                  # Archivos de audio para alertas
-├── firebase-config.js       # Configuración del cliente de Firebase
-├── firebase.json            # Configuración de Firestore y Hosting
-├── index.html               # Interfaz principal de vigilancia (Keraunos)
+│   ├── *-config.js          # Configuración por página (modo, zonas, colección Firestore)
+│   ├── map.js               # Mapa Leaflet y pintado de zonas
+│   ├── alertas.js           # Estado y temporizadores de alertas
+│   ├── mensajes.js          # Mensajes/alertas en tiempo real (Firestore)
+│   ├── estado-cliente.js    # Lectura periódica de estado.json (respaldo)
+│   ├── firebase-config.js   # Configuración del cliente de Firebase (solo datos)
+│   ├── firebase-app.js      # Inicialización de Firebase (app, auth, firestore)
+│   ├── auth*.js             # Autenticación (admin con correo / anónima)
+│   ├── panico.js            # Inyecta el botón SOS y precarga el GPS
+│   ├── boton-panico.js      # Lógica del SOS: envío a Firestore y WhatsApp
+│   ├── sos-ui.js            # Interfaz y registro de usuario del SOS
+│   ├── notifications.js     # Firebase Cloud Messaging y sonido de alerta
+│   ├── version-check.js     # Auto-actualización según version.json
+│   ├── pwa-install.js       # Instalación de la PWA
+│   └── admin*.js, recursos-admin.js, ambulancia-app.js, rescatista-app.js
+├── sounds/                  # Audio de notificación
+├── index.html               # Vigilancia principal (Keraunos)
+├── strikeguard.html         # Vista en modo manual (StrikeGuard)
+├── admin.html               # Panel de alertas (StrikeGuard)
+├── adminkeraunos.html       # Editor manual de estado.json
+├── administrador.html       # Administración de recursos de emergencia
+├── ambulancia.html          # App de unidades de ambulancia
+├── rescatista.html          # App de rescatistas
+├── estado.json              # Estado publicado por el monitor / editor
+├── zonas.json, zonas2.json  # Polígonos de zonas (StrikeGuard / Keraunos)
+├── version.json             # Build activo (dispara la auto-actualización)
+├── bump-build.sh            # Sube la versión de compilación
+├── firebase-messaging-sw.js # Service Worker: push + caché
 ├── manifest.webmanifest     # Configuración de la PWA
-└── package.json             # Dependencias del proyecto
+└── config.js                # Configuración del monitor Node (no la usa el sitio)
 ```
 
 ---
 
 ## 📋 Requisitos Previos
 
-Antes de comenzar, asegúrate de tener instalado:
+Antes de comenzar, asegúrate de tener:
 
-- [Node.js](https://nodejs.org/) (v16 o superior)
 - [Git](https://git-scm.com/)
 - Una cuenta de [Firebase](https://console.firebase.google.com/) con un proyecto activo.
-- Conocimientos básicos de configuración de Firestore y Firebase Hosting.
+- Conocimientos básicos de configuración de Firestore y Cloud Messaging.
+- [Node.js](https://nodejs.org/) (v16 o superior) **solo** si vas a ejecutar el monitor/scraper de Keraunos.
 
 ---
 
 ## 💻 Instalación y Configuración
+
+El sitio es estático: no necesita `npm install` para funcionar.
 
 1. **Clonar el repositorio**:
 ```bash
@@ -102,31 +125,26 @@ Antes de comenzar, asegúrate de tener instalado:
    cd sara
 ```
 
-2. **Instalar dependencias**:
-```bash
-   npm install
-```
-
-3. **Configurar Firebase**:
-   - Ve a la consola de Firebase y crea un proyecto.
-   - Habilita **Firestore**, **Authentication** y **Cloud Messaging**.
-   - Copia tus credenciales y actualiza el archivo `firebase-config.js` con tu configuración:
+2. **Configurar Firebase**:
+   - En la consola de Firebase crea un proyecto y habilita **Firestore**, **Authentication** y **Cloud Messaging**.
+   - Copia tus credenciales en `js/firebase-config.js`:
 ```javascript
-     const firebaseConfig = {
+     export const firebaseConfig = {
        apiKey: "TU_API_KEY",
        authDomain: "TU_PROYECTO.firebaseapp.com",
        projectId: "TU_PROYECTO",
-       storageBucket: "TU_PROYECTO.appspot.com",
+       storageBucket: "TU_PROYECTO.firebasestorage.app",
        messagingSenderId: "TU_SENDER_ID",
        appId: "TU_APP_ID"
      };
 ```
+   - Copia **los mismos valores** en `firebase-messaging-sw.js`, que lleva su propia copia de la configuración.
 
-4. **Configurar reglas de Firestore**:
-   Asegúrate de que el archivo `firestore.rules` permita la escritura en la colección de pánico/alertas para usuarios autenticados o según la lógica de tu negocio.
+3. **Reglas de Firestore**:
+   Las reglas no están incluidas en este repositorio. Configúralas en la consola de Firebase (o añade tu `firestore.rules`) para permitir la escritura de SOS/alertas solo a usuarios autenticados y restringir las colecciones de administración.
 
-5. **Ejecutar en desarrollo**:
-   Puedes usar una extensión como "Live Server" en VS Code o un servidor local simple:
+4. **Ejecutar en desarrollo**:
+   Usa una extensión como "Live Server" en VS Code o un servidor local simple:
 ```bash
    npx http-server -p 8080
 ```
@@ -135,34 +153,32 @@ Antes de comenzar, asegúrate de tener instalado:
 
 ## 🎯 Flujo de Uso
 
-1. **Vigilancia**: Al abrir `index.html`, el sistema carga el mapa y pinta las zonas de operación en verde (estado normal). Escucha en segundo plano cualquier alerta nueva desde Firestore.
-2. **Activación de SOS**: 
+1. **Vigilancia**: Al abrir `index.html`, el sistema carga el mapa y pinta las zonas de operación. Escucha en segundo plano las alertas nuevas desde Firestore y, como respaldo, lee `estado.json`.
+2. **Activación de SOS**:
    - El usuario presiona el botón de pánico.
    - El sistema verifica que el usuario esté registrado.
-   - Solicita DNI, teléfono y descripción opcional.
-   - Captura la ubicación GPS (con mecanismo de caché de 5 minutos para rapidez).
-   - Envía los datos a Firestore y, opcionalmente, prepara un enlace de WhatsApp para respuesta inmediata.
-3. **Recepción de Alertas**: El panel de administración puede emitir alertas manuales que aparecen instantáneamente en todos los clientes conectados mediante notificaciones push y cambios visuales en el mapa.
+   - Captura la ubicación GPS (con caché local para rapidez).
+   - Envía los datos a Firestore y prepara un enlace de WhatsApp para respuesta inmediata.
+3. **Recepción de Alertas**: Los paneles de administración emiten alertas manuales que aparecen en los clientes conectados mediante notificaciones push y cambios visuales en el mapa.
+
+---
+
+## 🔄 Versionado y Caché
+
+- `version.json` contiene el **build** activo. Cada página lo consulta periódicamente (`js/version-check.js`) y se recarga sola cuando cambia.
+- `firebase-messaging-sw.js` mantiene la caché: HTML, `version.json` y `estado.json` se piden siempre a la red; JS, CSS e imágenes se sirven desde caché y se refrescan en segundo plano.
+- Para publicar una nueva versión:
+```bash
+   ./bump-build.sh 20261120-1
+   git add -A && git commit -m "build: 20261120-1" && git push
+```
+  El script actualiza `version.json`, los parámetros `?v=` de los recursos locales y `BUILD_SW` del Service Worker.
 
 ---
 
 ## 🚀 Despliegue (Deploy)
 
-El proyecto está configurado para desplegarse automáticamente mediante **GitHub Actions** y **Firebase Hosting**.
-
-1. Instala Firebase CLI globalmente:
-```bash
-   npm install -g firebase-tools
-```
-2. Inicia sesión en Firebase:
-```bash
-   firebase login
-```
-3. Despliega el proyecto:
-```bash
-   firebase deploy
-```
-> *Nota: El workflow de GitHub Actions (`.github/workflows/`) también puede estar configurado para desplegar en GitHub Pages como respaldo.*
+El sitio se publica automáticamente en **GitHub Pages** con **GitHub Actions** (`.github/workflows/deploy.yml`) en cada `push` a `main`, o manualmente desde la pestaña *Actions* (`workflow_dispatch`).
 
 ---
 
@@ -180,7 +196,7 @@ Las contribuciones son fundamentales para mejorar la seguridad y eficiencia del 
 
 ## 📄 Licencia
 
-Este proyecto está bajo la licencia **ISC**. Consulta el archivo `LICENSE` para más detalles.
+Este proyecto está bajo la licencia **ISC**. Consulta el archivo `LICENSE.md` para más detalles.
 
 ---
 
