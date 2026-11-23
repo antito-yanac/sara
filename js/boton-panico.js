@@ -13,7 +13,7 @@ import { COLECCIONES } from "./firebase-config.js";
 const auth = obtenerAuth();
 const db = obtenerFirestore();
 
-import { obtenerDeviceId } from "./device-id.js";
+//import { obtenerDeviceId } from "./device-id.js";
 import { leerUsuarioActual } from "./registro-usuario.js";
 import { encolarAlerta, listarPendientes, eliminarPendiente } from "./cola-offline.js";
 
