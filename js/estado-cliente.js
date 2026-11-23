@@ -189,6 +189,9 @@ async function ciclo() {
                 continue;
             }
 
+            // FIX 10: alerta vencida, no reanimar
+            if (Date.now() - a.timestampInicio >= (a.duracionMin || 15) * 60 * 1000) continue;
+
             distritosActuales.add(a.distrito);
 
             const anterior = historial[clave];
