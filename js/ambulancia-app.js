@@ -7,7 +7,8 @@
 //   - Se elimina escucharAlertaFlotanteAmb() y su flag global.
 // ============================================================
 
-import { obtenerAuth, obtenerFirestore } from "./firebase-app.js";
+//import { obtenerAuth, obtenerFirestore } from "./firebase-app.js";
+import { obtenerFirestore } from "./firebase-app.js";
 import { registrarConEmail, ingresarConEmail, salirSesion, escucharSesion } from "./auth-anonima.js";
 import {
     doc, getDoc, getDocs, setDoc, updateDoc, addDoc, collection,
