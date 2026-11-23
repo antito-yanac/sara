@@ -942,3 +942,13 @@
 .modo-keraunos .al-rayo-svg {
     display: none !important;
 }
+/* Estabilización visual de barra y tarjeta */
+
+#al-barra-superior.al-visible {
+    animation: none;
+}
+
+#al-barra-superior.al-modo-libre .al-barra-icono,
+#al-tarjeta.al-modo-libre .al-tarjeta-icono {
+    animation: none;
+}
