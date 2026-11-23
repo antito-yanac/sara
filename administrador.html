@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#121212">
+    <title>Panel de Administración - SARA</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="css/recursos.css?v=20261123-1">
+
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #121212;
+            --panel: #1e1e1e;
+            --border: #333;
+            --text: #e0e0e0;
+            --text-muted: #aaa;
+            --rojo: #e74c3c;
+            --verde: #2ecc71;
+            --azul: #3498db;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            min-width: 0;
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow: hidden;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", system-ui, sans-serif;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        button {
+            touch-action: manipulation;
+        }
+
+        /* --- LOGIN --- */
+        #login-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: var(--bg);
+        }
+
+        .login-box {
+            width: min(360px, 100%);
+            padding: clamp(20px, 6vw, 30px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--panel);
+            text-align: center;
+        }
+
+        .login-box h2 {
+            margin-top: 0;
+            color: var(--azul);
+        }
+
+        .login-box input {
+            width: 100%;
+            min-height: 44px;
+            margin: 10px 0;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #2a2a2a;
+            color: #fff;
+        }
+
+        .login-box button {
+            width: 100%;
+            min-height: 44px;
+            margin-top: 10px;
+            padding: 10px;
+            border: 0;
+            border-radius: 6px;
+            background: var(--azul);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .login-box button:hover {
+            background: #2980b9;
+        }
+
+        .login-box button:focus-visible,
+        .login-box input:focus-visible,
+        button:focus-visible {
+            outline: 2px solid #8ecfff;
+            outline-offset: 2px;
+        }
+
+        #login-error {
+            display: none;
+            margin-top: 10px;
+            color: var(--rojo);
+            font-size: 13px;
+        }
+
+        /* --- LAYOUT PRINCIPAL --- */
+        #app-screen {
+            /* El módulo de login puede mostrarlo cambiando su display a flex. */
+            display: none;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        /* --- SIDEBAR (Usuarios) --- */
+        #sidebar {
+            display: flex;
+            flex: 0 0 320px;
+            flex-direction: column;
+            width: 320px;
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+            border-right: 1px solid var(--border);
+            background: var(--panel);
+        }
+
+        .sidebar-header {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 15px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel);
+        }
+
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .btn-logout {
+            min-height: 40px;
+            padding: 6px 12px;
+            border: 1px solid var(--rojo);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--rojo);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+
+        /* ===========================================================
+           ACCESO RÁPIDO DE CONTINGENCIA — CENTRO DE CONTROL
+           Solo navegación. No envía alertas ni modifica Firestore.
+           =========================================================== */
+        .central-alertas {
+            flex: 0 0 auto;
+            padding: 12px 12px 13px;
+            border-bottom: 1px solid var(--border);
+            background: #17202b;
+        }
+        .central-alertas-titulo {
+            margin: 0 0 5px;
+            color: #e8f3ff;
+            font-size: 13px;
+            font-weight: 750;
+            letter-spacing: .02em;
+        }
+        .central-alertas-ayuda {
+            margin: 0 0 10px;
+            color: #bdcbd8;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        .central-alertas-enlaces {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .central-alerta-link {
+            display: flex;
+            min-width: 0;
+            min-height: 59px;
+            padding: 10px 8px;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            border: 1px solid transparent;
+            border-radius: 9px;
+            color: #fff;
+            text-decoration: none;
+            text-align: center;
+            transition: background-color .15s ease, border-color .15s ease;
+        }
+        .central-alerta-link strong {
+            font-size: 13px;
+            line-height: 1.2;
+        }
+        .central-alerta-link span {
+            font-size: 10px;
+            line-height: 1.2;
+            font-weight: 600;
+        }
+        .central-alerta-link.strikeguard {
+            background: #493015;
+            border-color: #9d6929;
+        }
+        .central-alerta-link.keraunos {
+            background: #153d56;
+            border-color: #327eaf;
+        }
+        .central-alerta-link.strikeguard:hover { background: #62401b; }
+        .central-alerta-link.keraunos:hover { background: #1b506f; }
+        .central-alerta-link:focus-visible {
+            outline: 3px solid #d6ecff;
+            outline-offset: 2px;
+        }
+        .central-alertas-nota {
+            margin: 8px 0 0;
+            color: #a9bbc9;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+
+        /* Contingencia Keraunos: datos verificables y controles deliberados */
+        .cc-control {
+            flex: 0 0 auto;
+            border-bottom: 1px solid var(--border);
+            background: #18232a;
+            color: #f3f7fc;
+        }
+        .cc-control > summary {
+            min-height: 42px;
+            padding: 11px 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 750;
+        }
+        .cc-control summary:focus-visible,
+        .cc-btn:focus-visible,
+        .cc-modal-acciones button:focus-visible {
+            outline: 2px solid #96d6ff;
+            outline-offset: 2px;
+        }
+        .cc-cuerpo { padding: 0 12px 12px; }
+        .cc-semaforo { display: flex; gap: 5px; margin-bottom: 10px; }
+        .cc-estado {
+            flex: 1; min-width: 0; padding: 6px 2px;
+            text-align: center; font-size: 10px;
+            border-radius: 7px; border: 1px solid #465462;
+            color: #9fafc0; background: #202d39;
+        }
+        .cc-estado.activo[data-estado="automatico"] { color: #aaf4be; border-color: #299d55; background: #18402a; }
+        .cc-estado.activo[data-estado="manual"] { color: #ffe3ad; border-color: #dc9632; background: #513619; }
+        .cc-estado.activo[data-estado="desconocido"] { color: #ffe0dc; border-color: #cf5752; background: #542725; }
+        .cc-resumen { font-size: 11px; line-height: 1.45; margin-bottom: 9px; color: #f3f7fc; }
+        .cc-dato { font-size: 10px; line-height: 1.45; color: #c1d0dd; margin: 5px 0; overflow-wrap: anywhere; }
+        .cc-acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 10px; }
+        .cc-btn { min-height: 38px; padding: 6px; border-radius: 8px; font-weight: 700; font-size: 11px; cursor: pointer; }
+        .cc-btn:disabled { opacity: .4; cursor: not-allowed; }
+        .cc-btn-manual { color: #241301; border: 1px solid #e0a345; background: #ffc46c; }
+        .cc-btn-auto { color: #ebf7ff; border: 1px solid #4a8dd3; background: #1d558b; }
+        .cc-nota { font-size: 10px; line-height: 1.35; color: #afc1d0; margin: 8px 0 0; }
+        .cc-modal {
+            border: 1px solid #53708a; background: #1e2936; color: #eef5fe;
+            border-radius: 12px; padding: 20px; width: min(420px, calc(100vw - 32px));
+            max-height: calc(100vh - 32px);
+        }
+        .cc-modal::backdrop { background: rgba(0,0,0,.78); }
+        .cc-modal h3 { margin-top: 0; font-size: 17px; }
+        .cc-modal p { color: #ccd8e5; font-size: 13px; line-height: 1.55; }
+        .cc-modal-acciones { display: flex; gap: 8px; margin-top: 16px; }
+        .cc-modal-acciones button { flex: 1; min-height: 44px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+        #cc-cancelar { color: #fff; background: #3b4756; border: 1px solid #637181; }
+        #cc-confirmar { color: #221504; background: #ffc46c; border: 1px solid #e7ab50; }
+        #cc-confirmar:disabled { opacity: .6; cursor: progress; }
+        @media (max-width: 650px) {
+            .cc-control > summary { padding: 9px 10px; }
+            .cc-cuerpo { padding: 0 10px 9px; }
+            .cc-control[open] {
+                flex: 1 1 auto;
+                min-height: 110px;
+                overflow-y: auto;
+                overscroll-behavior: contain;
+            }
+            #sidebar.cc-expandido #usuarios-lista { display: none; }
+        }
+
+        #usuarios-lista {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: auto;
+            overscroll-behavior: contain;
+        }
+
+        .user-card {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .user-card.inactivo {
+            opacity: 0.6;
+        }
+
+        .user-card strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .user-card span {
+            display: block;
+            margin-bottom: 2px;
+            color: var(--text-muted);
+        }
+
+        .user-card .btn-toggle {
+            width: 100%;
+            min-height: 40px;
+            margin-top: 8px;
+            padding: 7px 10px;
+            border: 0;
+            border-radius: 5px;
+            background: var(--border);
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .user-card .btn-toggle:hover {
+            background: #444;
+        }
+
+        /* --- MAPA Y ALERTAS --- */
+        #main-content {
+            position: relative;
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            z-index: 1;
+        }
+
+        #alertas-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: min(350px, calc(100% - 30px));
+            max-height: calc(100dvh - 30px);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            pointer-events: none;
+        }
+
+        .alerta-card {
+            padding: 12px;
+            border-left: 4px solid var(--rojo);
+            border-radius: 8px;
+            background: var(--panel);
+            box-shadow: 0 4px 12px rgb(0 0 0 / 50%);
+            pointer-events: auto;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .alerta-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .alerta-header h4 {
+            margin: 0;
+            color: var(--rojo);
+            font-size: 14px;
+        }
+
+        .alerta-time {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .alerta-data {
+            margin-bottom: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        .alerta-data b {
+            color: #fff;
+        }
+
+        .alerta-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .alerta-actions button {
+            flex: 1 1 0;
+            min-height: 40px;
+            padding: 7px;
+            border: 0;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-atender {
+            background: var(--verde);
+            color: #000;
+        }
+                .alerta-card.alerta-atendida {
+            border: 1px solid var(--verde);
+        }
+        .alerta-card.alerta-atendida .alerta-header h4 {
+            color: var(--verde);
+        }
+        .btn-finalizar {
+            background: var(--azul);
+            color: #fff;
+        }
+        .btn-atender:disabled {
+            opacity: 0.55;
+            cursor: default;
+        }
+        .btn-ubicar {
+            background: var(--azul);
+            color: #fff;
+        }
+
+        .empty-state {
+            padding: 20px;
+            border-radius: 8px;
+            background: var(--panel);
+            color: var(--text-muted);
+            text-align: center;
+            pointer-events: auto;
+        }
+
+        /* Tablets: reservar espacio para el mapa sin comprimir los controles. */
+        @media (max-width: 900px) {
+            #sidebar {
+                flex-basis: clamp(230px, 30vw, 280px);
+                width: clamp(230px, 30vw, 280px);
+            }
+
+            #alertas-container {
+                width: min(320px, calc(100% - 24px));
+                top: 12px;
+                right: 12px;
+                max-height: calc(100dvh - 24px);
+            }
+        }
+
+        /* Móviles en vertical: usuarios arriba y mapa ocupando el espacio restante. */
+        @media (max-width: 640px) {
+            #app-screen {
+                flex-direction: column;
+            }
+
+            #sidebar {
+                flex: 0 0 clamp(230px, 34dvh, 285px);
+                width: 100%;
+                height: clamp(230px, 34dvh, 285px);
+                border-right: 0;
+                border-bottom: 1px solid var(--border);
+            }
+            #sidebar.cc-expandido {
+                flex-basis: clamp(320px, 53dvh, 460px);
+                height: clamp(320px, 53dvh, 460px);
+            }
+
+            .sidebar-header {
+                padding: 10px 12px;
+            }
+
+            .central-alertas { padding: 8px 10px; }
+            .central-alertas-ayuda { margin-bottom: 7px; }
+            .central-alerta-link { min-height: 52px; padding: 7px 5px; }
+            .central-alertas-nota { display: none; }
+
+            #main-content {
+                flex: 1 1 0;
+            }
+
+            #alertas-container {
+                top: 8px;
+                right: 8px;
+                left: 8px;
+                width: auto;
+                max-height: min(38dvh, 250px);
+                gap: 8px;
+            }
+
+            .alerta-card {
+                padding: 10px;
+            }
+
+            .alerta-data {
+                font-size: 12px;
+            }
+        }
+
+        /* En móvil horizontal, el diseño lateral aprovecha mejor la poca altura. */
+        @media (max-width: 760px) and (orientation: landscape) and (max-height: 520px) {
+            #app-screen {
+                flex-direction: row;
+            }
+
+            #sidebar {
+                flex: 0 0 clamp(180px, 30vw, 235px);
+                width: clamp(180px, 30vw, 235px);
+                height: 100%;
+                border-right: 1px solid var(--border);
+                border-bottom: 0;
+            }
+
+
+            .central-alertas-ayuda,
+            .central-alertas-nota { display: none; }
+            .central-alertas { padding: 7px; }
+            .central-alertas-enlaces { gap: 5px; }
+            .central-alerta-link { min-height: 44px; padding: 4px 3px; }
+            .central-alerta-link strong { font-size: 11px; }
+            .central-alerta-link span { font-size: 9px; }
+
+            #alertas-container {
+                top: 8px;
+                right: 8px;
+                left: auto;
+                width: min(290px, 45%);
+                max-height: calc(100dvh - 16px);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- PANTALLA DE LOGIN -->
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>🔐 Admin Panel</h2>
+            <p style="font-size: 13px; color: #aaa;">Una cuenta para la central, StrikeGuard y Keraunos.</p>
+            <input type="email" id="login-email" placeholder="Correo electrónico" autocomplete="username">
+            <input type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password">
+            <button id="btn-login">Ingresar</button>
+            <div id="login-error"></div>
+        </div>
+    </div>
+
+    <!-- PANTALLA PRINCIPAL (oculta hasta loguearse) -->
+    <div id="app-screen">
+        <!-- SIDEBAR IZQUIERDO (Usuarios) -->
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <h3>👥 Usuarios</h3>
+                <button class="btn-logout" id="btn-logout">Salir</button>
+            </div>
+
+            <!-- Accesos manuales del operador. Abren paneles desde esta central,
+                 sin cambiar los mecanismos de emisión ni el scraper. -->
+            <section class="central-alertas" aria-labelledby="central-alertas-titulo">
+                <h2 class="central-alertas-titulo" id="central-alertas-titulo">🚨 Alertas manuales · Contingencia</h2>
+                <p class="central-alertas-ayuda">Si el sistema automático falla, accede al panel correspondiente.</p>
+                <nav class="central-alertas-enlaces" aria-label="Acceso rápido a sistemas de alertas manuales">
+                    <a class="central-alerta-link strikeguard" href="./admin.html" target="_blank" rel="noopener" data-panel-central="strikeguard"
+                       aria-label="Abrir panel manual de StrikeGuard en nueva pestaña">
+                        <strong>🛡️ StrikeGuard</strong><span>Emitir alerta ↗</span>
+                    </a>
+                    <a class="central-alerta-link keraunos" href="./adminkeraunos.html" target="_blank" rel="noopener" data-panel-central="keraunos"
+                       aria-label="Abrir panel manual de Keraunos en nueva pestaña">
+                        <strong>⚡ Keraunos</strong><span>Emitir alerta ↗</span>
+                    </a>
+                </nav>
+                <p class="central-alertas-nota">Accede desde esta central. Las alertas se preparan y confirman dentro de cada panel, con sus reglas de operación actuales.</p>
+            </section>
+
+            <!-- Registro operativo interno del operador, sin efecto sobre alertas o scraper.
+                 No sustituye el modo operativo original de StrikeGuard. -->
+            <details class="cc-control" id="cc-control" open>
+                <summary>
+                    <span>⚙️ Registro operativo Keraunos</span>
+                    <span id="cc-titulo-modo" aria-live="polite">⏳ Consultando…</span>
+                </summary>
+                <div class="cc-cuerpo">
+                    <div class="cc-semaforo" role="group" aria-label="Estado operativo actual">
+                        <span class="cc-estado" data-estado="automatico">Automático</span>
+                        <span class="cc-estado" data-estado="manual">Manual</span>
+                        <span class="cc-estado activo" data-estado="desconocido">Desconocido</span>
+                    </div>
+                    <div id="cc-resumen" class="cc-resumen" role="status" aria-live="polite">Consultando Firestore…</div>
+                    <p id="cc-firestore" class="cc-dato">Control: sin verificar</p>
+                    <p id="cc-actualizado" class="cc-dato">Última actualización: sin verificar</p>
+                    <p id="cc-fuente" class="cc-dato">Scraper: comprobación pendiente</p>
+                    <div class="cc-acciones">
+                        <button class="cc-btn cc-btn-manual" type="button" id="cc-activar-manual" disabled>🖐️ Registrar manual</button>
+                        <button class="cc-btn cc-btn-auto" type="button" id="cc-activar-auto" disabled>🤖 Registrar automático</button>
+                    </div>
+                    <p class="cc-nota">Registro exclusivo del operador. No detiene el scraper, no publica alertas ni altera la presentación pública. «Desconocido» no equivale a «sin alertas».</p>
+                </div>
+            </details>
+            <div id="usuarios-lista">
+                <!-- Aquí se inyectan los usuarios -->
+            </div>
+        </aside>
+
+        <!-- MAPA Y ALERTAS -->
+        <main id="main-content">
+            <div id="map"></div>
+            <div id="alertas-container">
+                <!-- Aquí se inyectan las alertas -->
+                <div class="empty-state" id="empty-alertas">No hay alertas pendientes</div>
+            </div>
+        </main>
+    </div>
+
+    <dialog id="cc-modal" class="cc-modal" aria-labelledby="cc-modal-titulo" aria-describedby="cc-modal-mensaje">
+        <h3 id="cc-modal-titulo">Confirmar cambio de modo</h3>
+        <p id="cc-modal-mensaje"></p>
+        <div class="cc-modal-acciones">
+            <button type="button" id="cc-cancelar">Cancelar</button>
+            <button type="button" id="cc-confirmar">Confirmar</button>
+        </div>
+    </dialog>
+    <!-- <script type="module" src="./js/recursos-admin.js?v=20261123-1"></script> -->
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+
+    <!-- Navegación interna de operador: pase de un solo uso para los paneles emisores.
+         Es solo una barrera visual; las reglas Firestore son la autorización real. -->
+    <script>
+    document.querySelectorAll("a[data-panel-central]").forEach(enlace => {
+        const direccionOriginal = enlace.getAttribute("href");
+        enlace.addEventListener("click", e => {
+            if (!window.__SARA_ADMIN_AUTENTICADO) {
+                e.preventDefault();
+                return;
+            }
+            try {
+                const panel = enlace.dataset.panelCentral;
+                const codigo = crypto.randomUUID();
+                localStorage.setItem("sara:paso-central:" + codigo,
+                    JSON.stringify({ panel, creado: Date.now() }));
+                const url = new URL(direccionOriginal, location.href);
+                url.hash = "cc=" + codigo;
+                enlace.href = url.href;
+                // Restaurar la dirección visible tras iniciar la navegación.
+                setTimeout(() => { enlace.href = direccionOriginal; }, 200);
+            } catch (error) {
+                e.preventDefault();
+                console.error("No se pudo abrir el panel desde la central:", error);
+                alert("No se pudo autorizar esta navegación. Verifica el almacenamiento del navegador.");
+            }
+        });
+    });
+    </script>
+
+    <!-- Solo el controlador de auth se carga al inicio -->
+    <script type="module" src="./js/admin-auth-gate.js?v=20261123-1"></script>
+</body>
+</html>

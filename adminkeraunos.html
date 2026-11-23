@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<script src="./js/entrada-admin.js?v=20261123-1" data-panel="keraunos"></script>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔔 Editor estado.json — Keraunos</title>
+<link rel="stylesheet" href="css/admin.css?v=20261123-1">
+<link rel="stylesheet" href="css/panico.css?v=20261123-1">
+<link rel="stylesheet" href="css/adminkeraunos.css?v=20261123-1">
+<style>
+/* ============================================================
+   Estilos copiados 1:1 desde admin.html
+   ============================================================ */
+#panel-container.admin-panel-wide { max-width: 720px; width: 95vw; }
+
+/* ---------- Login (reutilizado de admin.html) ---------- */
+#login-container { display: flex; }
+#panel-container { display: none; } 
+
+/* ---------- Nueva alerta por sector ---------- */
+.pa-na-titulo {
+    font-size: 13px; font-weight: 700; color: #ffd75e;
+    letter-spacing: 1.5px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+}
+.pa-na-lista { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+
+.pa-na-card {
+    padding: 12px 14px; border-radius: 12px;
+    background: rgba(255,255,255,0.035); border: 2px solid rgba(255,255,255,0.09);
+    transition: border-color 0.2s, background 0.2s; position: relative;
+}
+.pa-na-card.pa-activa-amarilla { border-color: #f1c40f; background: rgba(241,196,15,0.07); }
+.pa-na-card.pa-activa-naranja  { border-color: #e67e22; background: rgba(230,126,34,0.08); }
+.pa-na-card.pa-activa-roja     { border-color: #e74c3c; background: rgba(231,76,60,0.09); }
+
+.pa-na-row1 { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.pa-na-check {
+    width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.3);
+    background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: #fff; flex-shrink: 0; transition: all 0.15s;
+}
+.pa-na-check:hover { border-color: #fff; }
+.pa-na-check.pa-on { background: #fff; color: #1a1a1a; border-color: #fff; }
+
+.pa-na-nombre {
+    flex: 1; font-size: 14px; font-weight: 700; color: #fff;
+    min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Botón resetear zona individual */
+
+.pa-btn-reset-zona:hover { background: #e74c3c; color: #fff; }
+
+/* ✅ NUEVO: Botón liberar zona (envía alerta-resuelta a Firestore) */
+.pa-btn-liberar-zona {
+    background: rgba(231,76,60,0.2);
+    border: 1px solid #e74c3c;
+    color: #ffb3a7;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.15s;
+    font-family: inherit;
+}
+.pa-btn-liberar-zona:hover {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.pa-na-row2 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pa-pill-group { display: flex; gap: 6px; flex: 1; min-width: 0; }
+.pa-pill {
+    flex: 1; min-width: 70px; padding: 9px 6px; border-radius: 8px;
+    background: rgba(0,0,0,0.35); border: 2px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.65); font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s; text-align: center; font-family: inherit;
+}
+.pa-pill:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+.pa-pill.pa-sel-amarilla { background: #f1c40f; color: #2b2b00; border-color: #f1c40f; }
+.pa-pill.pa-sel-naranja { background: #e67e22; color: #fff; border-color: #e67e22; }
+.pa-pill.pa-sel-roja { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+
+.pa-duracion-wrap {
+    display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.35);
+    border: 2px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 0 10px; height: 38px;
+}
+.pa-duracion-wrap.pa-disabled { opacity: 0.35; pointer-events: none; }
+.pa-duracion-wrap input {
+    width: 46px; background: transparent; border: none; color: #fff;
+    font-size: 15px; font-weight: 700; text-align: center; font-family: inherit; padding: 0;
+}
+.pa-duracion-wrap input:focus { outline: none; }
+.pa-duracion-wrap span { font-size: 11px; opacity: 0.6; }
+
+/* ---------- Resumen ---------- */
+.pa-resumen {
+    margin: 10px 0 18px; padding: 10px 14px; border-radius: 10px;
+    background: rgba(255,255,255,0.04); border-left: 3px solid #ffd75e;
+    font-size: 13px; color: rgba(255,255,255,0.9); line-height: 1.55; display: none;
+}
+.pa-resumen.pa-visible { display: block; }
+.pa-resumen strong { color: #fff; }
+
+/* ---------- Botones Principales ---------- */
+.pa-btn-publicar {
+    width: 100%; padding: 18px; border: none; border-radius: 14px;
+    background: linear-gradient(135deg, #24292f, #0d1117); color: #fff;
+    font-size: 17px; font-weight: 800; letter-spacing: 1px; cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4); transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
+    margin-bottom: 20px;
+}
+.pa-btn-publicar:hover:not(:disabled) { filter: brightness(1.2); transform: translateY(-2px); }
+.pa-btn-publicar:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.5); box-shadow: none; }
+.pa-btn-publicar.pa-publicando { background: linear-gradient(135deg, #e67e22, #b9530f); }
+
+.pa-btn-reset-global {
+    width: 100%; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.85);
+    font-size: 14px; font-weight: 700; letter-spacing: 1px; cursor: pointer;
+    transition: all 0.15s; margin-bottom: 20px; font-family: inherit;
+}
+.pa-btn-reset-global:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: #fff; }
+
+/* ---------- GitHub Input Section ---------- */
+.pa-gh-section {
+    margin: 18px 0 10px; padding: 16px; border-radius: 12px;
+    background: rgba(0,0,0,0.25); border: 1.5px solid rgba(255,255,255,0.08);
+}
+.pa-gh-titulo { font-size: 13px; font-weight: 700; color: #7dc8ff; letter-spacing: 1px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.pa-gh-input-wrap { position: relative; display: flex; align-items: center; }
+.pa-gh-input-wrap input { padding-right: 44px !important; }
+.pa-gh-toggle-ojo { position: absolute; right: 8px; background: transparent; border: none; color: rgba(255,255,255,0.6); font-size: 16px; cursor: pointer; padding: 4px 6px; line-height: 1; font-family: inherit; }
+.pa-gh-toggle-ojo:hover { color: #fff; }
+
+.pa-gh-status { margin-top: 10px; font-size: 12px; text-align: center; min-height: 18px; color: rgba(255,255,255,0.7); transition: color 0.3s; line-height: 1.4; }
+.pa-gh-status.pa-ok   { color: #2ecc71; font-weight: 700; }
+.pa-gh-status.pa-err  { color: #ff6b5b; font-weight: 700; }
+.pa-gh-status.pa-info { color: #7dc8ff; }
+
+/* ---------- Header Actions ---------- */
+.pa-header-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.pa-btn-header-secondary {
+    padding: 9px 14px; border-radius: 10px; background: rgba(255,255,255,0.08);
+    border: 1.5px solid rgba(255,255,255,0.2); color: #fff; font-size: 13px;
+    font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s, transform 0.15s;
+}
+.pa-btn-header-secondary:hover { background: rgba(255,255,255,0.18); transform: translateY(-1px); }
+
+@media (max-width: 560px) {
+    #panel-container.admin-panel-wide { max-width: 100%; }
+    .pa-na-row2 { flex-direction: column; align-items: stretch; }
+    .pa-pill-group { width: 100%; }
+    .pa-pill { min-width: 0; padding: 9px 4px; font-size: 11px; }
+    .pa-duracion-wrap { justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================
+     LOGIN (Mismo diseño que admin.html)
+     ============================================ -->
+<div class="admin-container" id="login-container" role="status" aria-live="polite">
+    🔐 Verificando sesión del Centro de Control…
+    <a href="./administrador.html">Ir al Centro de Control</a>
+</div>
+
+<!-- ============================================
+     PANEL PRINCIPAL (Oculto hasta login)
+     ============================================ -->
+<div class="admin-container admin-panel-wide" id="panel-container" style="display:none; flex-direction: column;">
+
+    <div class="admin-header">
+        <div class="pa-modo-badge">⚙️ EMISOR MANUAL KERAUNOS</div>
+
+        <div class="pa-header-actions">
+            <a class="pa-btn-header-secondary" href="./administrador.html"
+               style="display:inline-flex; align-items:center; text-decoration:none;">
+                ← Centro de Control
+            </a>
+            <button type="button" class="pa-btn-header-secondary" id="btn-logout-keraunos">
+                🚪 Cerrar sesión
+            </button>
+        </div>
+    </div>
+
+    <!-- Estado de carga -->
+    <div class="pa-fb-status" id="pa-estado-carga">
+        <span class="pa-dot" id="pa-dot"></span>
+        <span id="pa-carga-texto">Cargando estado.json…</span>
+    </div>
+
+    <!-- ============================================================
+         Sección: Zonas
+         ============================================================ -->
+    <section>
+        <div class="pa-na-titulo">⚡ CONFIGURAR ZONAS</div>
+        <div class="pa-na-lista" id="pa-zonas-lista"></div>
+    </section>
+
+    <!-- Resumen -->
+    <div class="pa-resumen" id="pa-resumen"></div>
+
+    <!-- Botón Reset Global -->
+    <button type="button" class="pa-btn-reset-global" id="pa-btn-reset-global">
+        🔄 RESETEAR TODO A VERDE
+    </button>
+
+    <!-- ============================================================
+         BOTÓN DE ENVÍO INSTANTÁNEO A FIRESTORE
+         ============================================================ -->
+    <button type="button" class="pa-btn-publicar" id="pa-btn-enviar-firestore" style="background: linear-gradient(135deg, #e67e22, #b9530f);">
+        🚀 ENVIAR ALERTA (Firestore)
+    </button>
+    <p style="text-align:center; font-size:11px; color:rgba(255,255,255,0.5); margin-top:-15px; margin-bottom:20px;">
+        (Notifica al instante a todos los usuarios públicos. No espera a GitHub Pages).
+    </p>
+
+    <!-- ============================================================
+         SECCIÓN GITHUB (Token Visible) - Opcional
+         ============================================================ -->
+
+    <!-- Confirmaciones y errores de publicación mediante toasts. -->
+</div>
+
+<!-- Modal de confirmación -->
+<div class="modal-overlay" id="modal-confirm">
+    <div class="modal-box" id="modal-box">
+        <div class="modal-icon" id="modal-icon">❓</div>
+        <h3 id="modal-titulo">¿Confirmar?</h3>
+        <div id="modal-mensaje" class="pa-modal-msg-lista"></div>
+        <div class="modal-buttons">
+            <button type="button" class="btn btn-cancelar" id="modal-btn-cancelar">✖ Cancelar</button>
+            <button type="button" class="btn btn-enviar" id="modal-btn-aceptar">✅ Aceptar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Contenedor para Toasts -->
+<div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+
+<!-- ============================================================
+     JAVASCRIPT CON AUTENTICACIÓN, TRUNCADO Y FIX DE ORIGEN
+     ============================================================ -->
+<script src="./js/version-check.js?v=20261123-1"></script>
+<script src="./js/adminkeraunos-config.js?v=20261123-1"></script>
+<script type="module">
+// Importar Firebase y Autenticación
+import { enviarMensajePush } from "./js/mensajes.js";
+import { inicializarFirebase } from "./js/notifications.js";
+import { cerrarSesion, observarSesion, esAdministrador } from "./js/auth.js";
+import { invalidateSize } from "./js/map.js";
+// ------------------------------------------------------------
+//  Referencias DOM (Login)
+// ------------------------------------------------------------
+const loginContainer = document.getElementById("login-container");
+const panelContainer = document.getElementById("panel-container");
+const btnLogout = document.getElementById("btn-logout-keraunos");
+
+// ------------------------------------------------------------
+//  Panel protegido por el mismo usuario del Centro de Control
+// ------------------------------------------------------------
+let panelYaInicializado = false;
+if (window.__SARA_ENTRADA_CENTRAL__ !== true) {
+    window.location.replace("./administrador.html");
+} else observarSesion((user) => {
+    if (!esAdministrador(user)) {
+        panelContainer.style.display = "none";
+        window.location.replace("./administrador.html?destino=keraunos");
+        return;
+    }
+    loginContainer.style.display = "none";
+    panelContainer.style.display = "flex";
+    panelContainer.style.flexDirection = "column";
+    if (!panelYaInicializado) {
+        panelYaInicializado = true;
+        inicializarPanel();
+    }
+});
+btnLogout.addEventListener("click", async () => {
+    try {
+        await cerrarSesion();
+        window.location.replace("./administrador.html");
+    } catch (e) { console.error("Error cerrando sesión:", e); }
+});
+
+// ------------------------------------------------------------
+//  Constantes y Configuración Fija
+// ------------------------------------------------------------
+const GH_OWNER = "antito-yanac";
+const GH_REPO  = "sara";
+const GH_PATH  = "estado.json";
+const GH_BRANCH = "main";
+
+const ESTADO_URL    = "./estado.json";
+const TZ_OFFSET_MIN = -300;
+const DURACION_DEF  = 15;
+
+const NIVELES = {
+    ROJA:     { numero: 3, color: "#FA5858", clase: "roja",     emoji: "🔴", label: "Roja" },
+    NARANJA:  { numero: 2, color: "#FF8C00", clase: "naranja",  emoji: "🟠", label: "Naranja" },
+    AMARILLA: { numero: 1, color: "#FFD400", clase: "amarilla", emoji: "🟡", label: "Amarilla" },
+    VERDE:    { numero: 0, color: "#2ECC71", clase: "verde",    emoji: "🟢", label: "Verde" }
+};
+
+const NIVELES_ACTIVABLES = ["AMARILLA", "NARANJA", "ROJA"];
+
+const ZONAS = [
+    { id: "campamento", nombreCorto: "Campamento Yanacancha", zona: "Zona 1 - Campamentos", nombre: "Campamento Yanacancha - (Nuevo Campamento, Descarga Norte Presa Relaves, Polishing Pond, Garita Laguna Huallacocha, Garita plataforma km 114, Tailing Dam Norte - Punto Y, Garita Portón Principal, Grifo Yanacancha)", lat: -9.5822364, lng: -77.0223100 },
+    { id: "oficinas", nombreCorto: "Oficinas Mina", zona: "Zona 2 - Oficinas Mina", nombre: "Oficinas Mina - (Grifo 4448, Punto E, Ingreso Laguna Seca, Nasa, Oficinas Mina, Concentradora, Plataforma Pre PM, Presa Relaves, Plataforma de Armado)", lat: -9.5718388, lng: -77.0447182 },
+    { id: "tucush", nombreCorto: "Tucush", zona: "Zona 3 - Tucush", nombre: "Tucush - (CTC Tucush, Truck Shop, Rosita de Oro, Taller eléctrico Mina, Polvorines 1 y 2, Botadero Tucush, Espaldón de Presa)", lat: -9.5263487, lng: -77.0485794 },
+    { id: "tajo", nombreCorto: "Tajo", zona: "Zona 4 - Tajo", nombre: "Tajo - (Fase 7-8-9-10, Rampa Sur, Quebrada Antamina, Chancadora primaria)", lat: -9.5416465, lng: -77.0707659 }
+];
+
+const borrador = {};
+function initBorrador() {
+    ZONAS.forEach(z => {
+        borrador[z.id] = {};
+        NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n] = { activo: false, min: DURACION_DEF });
+    });
+}
+initBorrador();
+
+// ------------------------------------------------------------
+//  Utilidades
+// ------------------------------------------------------------
+const pad = (n) => String(n).padStart(2, "0");
+function fechaPeru(date = new Date()) {
+    const ms = date.getTime() + TZ_OFFSET_MIN * 60000;
+    const d = new Date(ms);
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+}
+function sumarMinutos(fechaStr, minutos) {
+    const [f, h] = fechaStr.split(" ");
+    const [Y, M, D] = f.split("-").map(Number);
+    const [H, Mi, S] = h.split(":").map(Number);
+    const utcMs = Date.UTC(Y, M - 1, D, H, Mi, S) - TZ_OFFSET_MIN * 60000;
+    return fechaPeru(new Date(utcMs + minutos * 60000));
+}
+function parseFechaPeru(str) {
+    if (!str) return NaN;
+    const [f, h] = str.split(" ");
+    const [Y, M, D] = f.split("-").map(Number);
+    const [H, Mi, S] = h.split(":").map(Number);
+    return Date.UTC(Y, M - 1, D, H, Mi, S) - TZ_OFFSET_MIN * 60000;
+}
+function nivelActivoDeZona(zonaId) {
+    for (const n of NIVELES_ACTIVABLES) if (borrador[zonaId][n].activo) return n;
+    return "VERDE";
+}
+function duracionDeZona(zonaId) {
+    for (const n of NIVELES_ACTIVABLES) if (borrador[zonaId][n].activo) return borrador[zonaId][n].min;
+    return 0;
+}
+function escapeHtml(txt) {
+    return String(txt || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+// ------------------------------------------------------------
+//  Generar JSON (para GitHub y Firestore)
+// ------------------------------------------------------------
+function construirEstado() {
+    const ahora = fechaPeru();
+    const sectores = ZONAS.map(z => {
+        const nivel = nivelActivoDeZona(z.id);
+        const info = NIVELES[nivel];
+        let inicio = ahora, fin = null;
+        if (nivel !== "VERDE") fin = sumarMinutos(inicio, duracionDeZona(z.id));
+        return { nombre: z.nombre, nivel, nivelNumero: info.numero, color: info.color, inicio, fin };
+    });
+
+    let estadoGlobal = "VERDE", max = 0;
+    for (const s of sectores) if (s.nivelNumero > max) { max = s.nivelNumero; estadoGlobal = s.nivel; }
+
+    const alertas = [];
+    for (const s of sectores) {
+        if (s.nivel === "VERDE") continue;
+        const z = ZONAS.find(x => x.nombre === s.nombre);
+        const info = NIVELES[s.nivel];
+        const timestampInicio = parseFechaPeru(s.inicio);
+        const duracionMin = Math.max(1, Math.round((parseFechaPeru(s.fin) - timestampInicio) / 60000));
+        
+        // TRUNCADO SEGURO
+        const rawTitulo = `⚡ ALERTA ${s.nivel} — ${z.zona}`;
+        const rawMensaje = `Actividad eléctrica detectada en ${z.zona}. Nivel ${s.nivel}. Inicio: ${s.inicio}. Fin previsto: ${s.fin}.`;
+        
+        const tituloSeguro = rawTitulo.substring(0, 100);
+        const mensajeSeguro = rawMensaje.substring(0, 490);
+
+        alertas.push({
+            sectorOriginal: s.nombre, nivelScraper: s.nivel, nivel: s.nivel.toLowerCase(),
+            distrito: z.zona, lat: z.lat, lng: z.lng, duracionMin, timestampInicio,
+            inicio: s.inicio, fin: s.fin, color: s.color, emoji: info.emoji,
+            titulo: tituloSeguro,
+            mensaje: mensajeSeguro
+        });
+    }
+
+    const resumen = {
+        roja: sectores.filter(s => s.nivel === "ROJA").length,
+        naranja: sectores.filter(s => s.nivel === "NARANJA").length,
+        amarilla: sectores.filter(s => s.nivel === "AMARILLA").length,
+        verde: sectores.filter(s => s.nivel === "VERDE").length
+    };
+
+    return { actualizado: new Date().toISOString(), estadoGlobal, estadoGlobalNumero: NIVELES[estadoGlobal].numero, totalSectores: sectores.length, resumen, sectores, alertas };
+}
+
+// ------------------------------------------------------------
+//  Render Zonas
+// ------------------------------------------------------------
+function renderZonas() {
+    const cont = document.getElementById("pa-zonas-lista");
+    if (!cont) return;
+    cont.innerHTML = "";
+
+    ZONAS.forEach((z, index) => {
+        const nivelActivo = nivelActivoDeZona(z.id);
+        const infoActivo = NIVELES[nivelActivo];
+        const card = document.createElement("div");
+        card.className = "pa-na-card";
+        if (nivelActivo !== "VERDE") card.classList.add("pa-activa-" + infoActivo.clase);
+
+        const currentMin = duracionDeZona(z.id) || DURACION_DEF;
+        const shortKey = String(index + 1);
+
+        card.innerHTML = `
+            <div class="pa-na-row1">
+                <button type="button" class="pa-na-check ${nivelActivo !== "VERDE" ? "pa-on" : ""}" data-id="${z.id}">
+                    ${nivelActivo !== "VERDE" ? "✓" : ""}
+                </button>
+                <div class="pa-na-nombre">Zona ${shortKey} - ${escapeHtml(z.nombreCorto)}</div>
+                <button type="button" class="pa-btn-liberar-zona" data-id="${z.id}" title="Liberar y notificar">🛑 Liberar</button>
+            </div>
+            <div class="pa-na-row2">
+                <div class="pa-pill-group">
+                    ${NIVELES_ACTIVABLES.map(n => {
+                        const info = NIVELES[n];
+                        const cfg = borrador[z.id][n];
+                        return `<button type="button" class="pa-pill ${cfg.activo ? "pa-sel-" + info.clase : ""}" data-zona="${z.id}" data-nivel="${n}">
+                                    ${info.emoji} ${info.label}
+                                </button>`;
+                    }).join("")}
+                </div>
+                <div class="pa-duracion-wrap ${nivelActivo === "VERDE" ? "pa-disabled" : ""}">
+                    <input type="number" min="1" max="1440" value="${currentMin}" data-zona="${z.id}" data-rol="min">
+                    <span>min</span>
+                </div>
+            </div>
+        `;
+
+        card.querySelector(".pa-na-check").addEventListener("click", () => {
+            if (nivelActivoDeZona(z.id) !== "VERDE") NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = false);
+            else borrador[z.id].AMARILLA.activo = true;
+            renderZonas(); actualizarResumen();
+        });
+       
+       // ✅ NUEVO: listener del botón Liberar
+       card.querySelector(".pa-btn-liberar-zona").addEventListener("click", () => {
+       onClickLiberarZonaKeraunos(z.id, z.nombreCorto, shortKey);
+       });
+
+        card.querySelectorAll(".pa-pill").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const nivel = btn.dataset.nivel;
+                const isSame = borrador[z.id][nivel].activo;
+                NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = (n === nivel && !isSame));
+                renderZonas(); actualizarResumen();
+            });
+        });
+
+        card.querySelector('input[data-rol="min"]').addEventListener("input", (e) => {
+            let v = parseInt(e.target.value, 10);
+            if (isNaN(v) || v < 1) v = 1; if (v > 1440) v = 1440;
+            NIVELES_ACTIVABLES.forEach(n => { if (borrador[z.id][n].activo) borrador[z.id][n].min = v; });
+            actualizarResumen();
+        });
+
+        cont.appendChild(card);
+    });
+}
+
+// ------------------------------------------------------------
+//  Resumen
+// ------------------------------------------------------------
+function actualizarResumen() {
+    const activas = [];
+    ZONAS.forEach(z => {
+        const nivel = nivelActivoDeZona(z.id);
+        if (nivel !== "VERDE") activas.push({ zona: z.nombreCorto, nivel, min: duracionDeZona(z.id) });
+    });
+
+    const el = document.getElementById("pa-resumen");
+    if (!el) return;
+    if (!activas.length) { el.classList.remove("pa-visible"); el.innerHTML = ""; return; }
+
+    el.classList.add("pa-visible");
+    const cnt = { roja: 0, naranja: 0, amarilla: 0, verde: 0 };
+    ZONAS.forEach(z => cnt[NIVELES[nivelActivoDeZona(z.id)].clase]++);
+    
+    let globalNivel = "VERDE", globalNum = 0;
+    ZONAS.forEach(z => {
+        const n = nivelActivoDeZona(z.id);
+        if (NIVELES[n].numero > globalNum) { globalNum = NIVELES[n].numero; globalNivel = n; }
+    });
+    const g = NIVELES[globalNivel];
+
+    el.innerHTML = `
+        <strong>📊 Resumen (${activas.length} zona${activas.length > 1 ? "s" : ""} activa${activas.length > 1 ? "s" : ""})</strong>
+        <div style="margin-top:6px;">${activas.map(a => `<div>${NIVELES[a.nivel].emoji} <strong>${escapeHtml(a.zona)}</strong> · ${NIVELES[a.nivel].label} · ${a.min} min</div>`).join("")}</div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);">
+            Global: ${g.emoji} <strong>${g.label}</strong> · 🔴 ${cnt.roja} · 🟠 ${cnt.naranja} · 🟡 ${cnt.amarilla} · 🟢 ${cnt.verde}
+        </div>
+    `;
+}
+
+// ------------------------------------------------------------
+//  Toast (Notificación flotante)
+// ------------------------------------------------------------
+function mostrarToastLocal(titulo, mensaje, tipo = "exito") {
+    const container = document.getElementById("toast-container");
+    if (!container) return;
+
+    const toast = document.createElement("div");
+    toast.style.cssText = `
+        background: ${tipo === "exito" ? "#2ecc71" : tipo === "error" ? "#e74c3c" : "#3498db"};
+        color: white;
+        padding: 14px 20px;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transform: translateX(120%);
+        transition: transform 0.3s ease;
+        pointer-events: auto;
+    `;
+    const icono = document.createElement("span");
+    icono.style.fontSize = "20px";
+    icono.textContent = tipo === "exito" ? "✅" : tipo === "error" ? "❌" : "ℹ️";
+    const cuerpo = document.createElement("div");
+    const t = document.createElement("div"); t.style.fontWeight = "700"; t.textContent = titulo;
+    const m = document.createElement("div");
+    m.style.cssText = "font-size:12px;font-weight:400;opacity:0.9";
+    m.textContent = mensaje;
+    cuerpo.append(t, m); toast.append(icono, cuerpo);
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.style.transform = "translateX(0)";
+    });
+
+    setTimeout(() => {
+        toast.style.transform = "translateX(120%)";
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+// ------------------------------------------------------------
+//  Acciones Globales
+// ------------------------------------------------------------
+function resetearTodoGlobal() {
+    confirmar("Resetear Todo", `¿Desactivar TODOS los niveles y dejar las 4 zonas en VERDE?`, () => {
+        ZONAS.forEach(z => NIVELES_ACTIVABLES.forEach(n => borrador[z.id][n].activo = false));
+        renderZonas(); actualizarResumen();
+        mostrarToastLocal("Borrador restablecido", "Zonas del editor en verde; aún no se ha publicado ninguna alerta.", "info");
+    });
+}
+
+function escribirStatus(msg, tipo = "ok") {
+    const el = document.getElementById("status-bar");
+    if(!el) return;
+    el.textContent = msg; el.className = "status-bar status-" + tipo;
+    clearTimeout(escribirStatus._t);
+    escribirStatus._t = setTimeout(() => { el.textContent = ""; el.className = "status-bar"; }, 6000);
+}
+
+function confirmar(titulo, mensajeHtml, onAceptar) {
+    const modal = document.getElementById("modal-confirm");
+    document.getElementById("modal-titulo").textContent = titulo;
+    document.getElementById("modal-mensaje").innerHTML = mensajeHtml;
+    document.getElementById("modal-icon").textContent = "❓";
+    modal.classList.add("modal-visible");
+    const btnA = document.getElementById("modal-btn-aceptar");
+    const btnC = document.getElementById("modal-btn-cancelar");
+    const nuevoA = btnA.cloneNode(true); const nuevoC = btnC.cloneNode(true);
+    btnA.replaceWith(nuevoA); btnC.replaceWith(nuevoC);
+    const cerrar = () => modal.classList.remove("modal-visible");
+    nuevoC.addEventListener("click", cerrar);
+    nuevoA.addEventListener("click", () => { cerrar(); try { onAceptar(); } catch (e) { escribirStatus("❌ Error: " + e.message, "err"); } });
+}
+
+// ------------------------------------------------------------
+//  Carga inicial
+// ------------------------------------------------------------
+async function cargarEstado() {
+    const dot = document.getElementById("pa-dot");
+    const txt = document.getElementById("pa-carga-texto");
+    try {
+        const res = await fetch(`${ESTADO_URL}?t=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        ZONAS.forEach(z => {
+            const sec = (data.sectores || []).find(s => s.nombre === z.nombre);
+            if (sec && sec.nivel !== "VERDE" && NIVELES_ACTIVABLES.includes(sec.nivel)) {
+                borrador[z.id][sec.nivel].activo = true;
+                if (sec.inicio && sec.fin) borrador[z.id][sec.nivel].min = Math.max(1, Math.round((parseFechaPeru(sec.fin) - parseFechaPeru(sec.inicio)) / 60000));
+            }
+        });
+        dot.className = "pa-dot pa-ok"; txt.textContent = `estado.json cargado`;
+    } catch (e) {
+        dot.className = "pa-dot pa-err"; txt.textContent = "estado.json no encontrado — inicia desde VERDE";
+    }
+    renderZonas(); actualizarResumen();
+   setTimeout(invalidateSize, 300);
+}
+
+// ------------------------------------------------------------
+//  Envío a Firestore (INSTANTÁNEO, AUTENTICADO Y CON TOAST)
+// ------------------------------------------------------------
+async function enviarAlertaFirestore() {
+    const btn = document.getElementById("pa-btn-enviar-firestore");
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Enviando...";
+
+    try {
+        // Intentar inicializar Firebase sin bloquear
+        try {
+            await inicializarFirebase();
+        } catch (e) {
+            console.warn("FCM no disponible (no crítico):", e.message);
+        }
+
+        // LEER DIRECTAMENTE DEL DOM
+        const ZONAS_DEF = [
+            { id: "campamento", nombreCorto: "Campamento Yanacancha", zona: "Zona 1 - Campamentos", lat: -9.5822364, lng: -77.0223100 },
+            { id: "oficinas", nombreCorto: "Oficinas Mina", zona: "Zona 2 - Oficinas Mina", lat: -9.5718388, lng: -77.0447182 },
+            { id: "tucush", nombreCorto: "Tucush", zona: "Zona 3 - Tucush", lat: -9.5263487, lng: -77.0485794 },
+            { id: "tajo", nombreCorto: "Tajo", zona: "Zona 4 - Tajo", lat: -9.5416465, lng: -77.0707659 }
+        ];
+
+        const zonasActivas = [];
+        document.querySelectorAll(".pa-pill[class*='pa-sel-']").forEach(btnPill => {
+            const zonaId = btnPill.dataset.zona;
+            const nivel = btnPill.dataset.nivel;
+            const zona = ZONAS_DEF.find(z => z.id === zonaId);
+            if (zona) {
+                const inputMin = document.querySelector(`input[data-rol="min"][data-zona="${zonaId}"]`);
+                const min = inputMin ? parseInt(inputMin.value, 10) : 15;
+                zonasActivas.push({
+                    distrito: zona.zona,
+                    nivel: nivel,
+                    duracionMin: min,
+                    lat: zona.lat,
+                    lng: zona.lng,
+                    sectorOriginal: zona.nombreCorto
+                });
+            }
+        });
+
+        if (zonasActivas.length === 0) {
+            mostrarToastLocal("⚠️ Sin alertas", "No hay zonas activas para enviar.", "error");
+            escribirStatus("⚠️ No hay zonas activas para enviar.", "warn");
+            btn.disabled = false;
+            btn.innerHTML = "🚀 ENVIAR ALERTA (Firestore)";
+            return;
+        }
+
+        let enviadas = 0;
+        for (const a of zonasActivas) {
+            const nivelInfo = NIVELES[a.nivel] || NIVELES.ROJA;
+            const titulo = `⚡ ALERTA ${a.nivel} — ${a.distrito}`.substring(0, 100);
+            const mensaje = `Actividad eléctrica detectada en ${a.distrito}. Nivel ${a.nivel}. Inicio: ${new Date().toLocaleString("es-PE")}.`.substring(0, 490);
+
+            await enviarMensajePush(
+                titulo,
+                mensaje,
+                {
+                    tipo: "alerta",
+                    nivel: a.nivel.toLowerCase(),
+                    distrito: a.distrito,
+                    lat: a.lat,
+                    lng: a.lng,
+                    duracionMin: a.duracionMin,
+                    timestampInicio: Date.now(),
+                    sectorOriginal: a.sectorOriginal,
+                    origen: "manual" // <-- CAMBIO CRÍTICO: Ahora se envía como "manual"
+                }
+            );
+            enviadas++;
+        }
+
+        mostrarToastLocal("✅ Enviado a Firestore", `${enviadas} alerta(s) notificada(s) al instante.`, "exito");
+        escribirStatus(`✅ ${enviadas} alerta(s) enviada(s) a Firestore.`, "ok");
+
+    } catch (e) {
+        console.error("Error enviando a Firestore:", e);
+        mostrarToastLocal("❌ Error", "No se pudo enviar a Firestore. Revisa la consola.", "error");
+        escribirStatus("❌ Error al enviar: " + (e.message || e), "err");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = "🚀 ENVIAR ALERTA (Firestore)";
+    }
+}
+
+// ------------------------------------------------------------
+//  GitHub (Publicar)
+// ------------------------------------------------------------
+function ghStatus(msg, tipo = "info") {
+    const el = document.getElementById("pa-gh-status");
+    if (el) { el.textContent = msg; el.className = "pa-gh-status pa-" + tipo; }
+}
+function utf8ToBase64(str) {
+    const bytes = new TextEncoder().encode(str);
+    let bin = ""; for (const b of bytes) bin += String.fromCharCode(b);
+    return btoa(bin);
+}
+async function obtenerSHAactual(token) {
+    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(GH_PATH)}`;
+    const res = await fetch(url, { headers: { "Authorization": `Bearer ${token}`, "Accept": "application/vnd.github+json" } });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`GET ${res.status}`);
+    const data = await res.json();
+    return data.sha || null;
+}
+
+let publicando = false;
+async function subirAGitHub() {
+    if (publicando) return;
+
+    const tokenInput = document.getElementById("gh-token");
+    const token = tokenInput ? tokenInput.value.trim() : "";
+
+    if (!token || !token.startsWith("gh")) {
+        return ghStatus("⚠️ PAT inválido o vacío. Pega tu token en el campo.", "err");
+    }
+
+    publicando = true;
+    const btn = document.getElementById("pa-btn-publicar");
+    btn.disabled = true; btn.classList.add("pa-publicando"); btn.innerHTML = "⏳ Publicando…";
+
+    try {
+        const json = JSON.stringify(construirEstado(), null, 2);
+        const contenidoB64 = utf8ToBase64(json);
+        ghStatus("🔍 Verificando archivo remoto…", "info");
+        
+        const sha = await obtenerSHAactual(token);
+        const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(GH_PATH)}`;
+        const body = { message: `🔔 estado.json actualizado — ${new Date().toLocaleString("es-PE")}`, content: contenidoB64, branch: GH_BRANCH };
+        if (sha) body.sha = sha;
+
+        ghStatus("🚀 Publicando en GitHub…", "info");
+        const res = await fetch(url, {
+            method: "PUT",
+            headers: { "Authorization": `Bearer ${token}`, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+            if (res.status === 401) throw new Error("Token inválido o expirado (401).");
+            if (res.status === 403) throw new Error("Sin permisos. Verifica el scope 'repo' (403).");
+            if (res.status === 404) throw new Error("Repo/Path no encontrado (404).");
+            throw new Error(`PUT ${res.status}`);
+        }
+
+        ghStatus("✅ Publicado en GitHub.", "ok");
+        escribirStatus("✅ Publicado. GitHub Pages se actualizará pronto.", "ok");
+        mostrarToastLocal("✅ Publicado en GitHub", "El archivo estado.json se actualizó.", "exito");
+    } catch (e) {
+        ghStatus("❌ " + e.message, "err");
+        escribirStatus("❌ " + e.message, "err");
+        mostrarToastLocal("❌ Error en GitHub", e.message, "error");
+    } finally {
+        btn.disabled = false; btn.classList.remove("pa-publicando"); btn.innerHTML = "🚀 PUBLICAR EN GITHUB";
+        publicando = false;
+    }
+}
+
+// ------------------------------------------------------------
+//  Inicialización del Panel (se llama tras el login)
+// ------------------------------------------------------------
+// ✅ NUEVA FUNCIÓN: liberar zona → Firestore → index.html la pinta verde
+async function onClickLiberarZonaKeraunos(zonaId, nombreCorto, shortKey) {
+    const ZONAS_DEF = [
+        { id: "campamento", nombreCorto: "Campamento Yanacancha", zona: "Zona 1 - Campamentos" },
+        { id: "oficinas",   nombreCorto: "Oficinas Mina",         zona: "Zona 2 - Oficinas Mina" },
+        { id: "tucush",     nombreCorto: "Tucush",                zona: "Zona 3 - Tucush" },
+        { id: "tajo",       nombreCorto: "Tajo",                  zona: "Zona 4 - Tajo" }
+    ];
+
+    const zdef = ZONAS_DEF.find(z => z.id === zonaId);
+    if (!zdef) return;
+
+    confirmar(
+        "🛑 Liberar zona",
+        `<div>Vas a liberar en <strong>index.html</strong>:</div>` +
+        `<div style="margin:10px 0;font-size:15px;"><strong>${escapeHtml(nombreCorto)}</strong> (${escapeHtml(zdef.zona)})</div>` +
+        `<div style="margin-top:12px;opacity:0.75;">Se enviará un <code>alerta-resuelta</code> a Firestore.</div>`,
+        async () => {
+            try {
+                await enviarMensajePush(
+                    `✅ Zona liberada — ${zdef.zona}`,
+                    `La zona ${zdef.zona} ha sido liberada manualmente.`,
+                    {
+                        tipo: "alerta-resuelta",
+                        distrito: zdef.zona,
+                        origen: "manual"
+                    }
+                );
+
+                NIVELES_ACTIVABLES.forEach(n => borrador[zonaId][n].activo = false);
+                renderZonas();
+                actualizarResumen();
+
+                mostrarToastLocal("🛑 Zona liberada", `${zdef.zona} → verde en index.html.`, "exito");
+                escribirStatus(`✅ ${zdef.zona} liberada.`, "ok");
+            } catch (e) {
+                console.error("Error liberando zona:", e);
+                mostrarToastLocal("❌ Error", "No se pudo liberar la zona.", "error");
+                escribirStatus(`❌ Error liberando: ${e.message || e}`, "err");
+            }
+        }
+    );
+}
+function inicializarPanel() {
+    document.getElementById("pa-btn-reset-global").addEventListener("click", resetearTodoGlobal);
+    document.getElementById("pa-btn-enviar-firestore").addEventListener("click", enviarAlertaFirestore);
+    
+    // Regreso a la central mediante enlace HTML: funciona sin depender del módulo JS.
+   setTimeout(invalidateSize, 300);
+    cargarEstado();
+}
+</script>
+</body>
+</html>

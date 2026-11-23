@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<meta http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<title>Antamina · SARA</title>
+
+<link rel="stylesheet" href="style.css?v=20261123-1">
+
+<!-- CORREGIDO: rel="stylesheet" -->
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<link rel="stylesheet" href="notifications.css?v=20261123-1">
+<link rel="stylesheet" href="css/alerts.css?v=20261123-1">
+<link rel="stylesheet" href="css/panico.css?v=20261123-1">
+<link rel="stylesheet" href="css/sos.css?v=20261123-1">
+
+<link rel="icon" type="image/png" href="./favicon-96x96.png" sizes="96x96">
+<link rel="shortcut icon" href="./favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+<link rel="manifest" href="./manifest.webmanifest?v=20261123-1">
+      
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- MAPA A PANTALLA COMPLETA -->
+    <main id="map-container">
+        <div id="map"></div>
+
+    </main>
+
+
+    <!-- CABECERA -->
+    <section class="top-ui">
+
+        <div class="left-ui">
+
+            <div class="brand">
+
+                <div class="brand-icon">
+                    ⚡
+                </div>
+
+                <div>
+                    <div class="brand-name">
+                        ANTAMINA
+                    </div>
+
+                    <div class="brand-subtitle">
+                        Keraunos
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- TARJETA INFERIOR -->
+    <section
+        class="info"
+        id="info-panel">
+
+        <div class="vigilance-kicker">
+            VIGILANCIA
+        </div>
+
+        <div
+            class="vigilance-meta"
+            id="info-content">
+
+            <div class="vigilance-line">
+
+                <span>🟢</span>
+
+                <span>
+                    <strong>Estado:</strong>
+                    Sin alertas meteorológicas
+                </span>
+
+            </div>
+
+            <div class="vigilance-line">
+
+                <span>📍</span>
+
+                <span>
+                    <strong>Sistema:</strong>
+                    En vigilancia
+                </span>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <footer class="footer">
+        Antamina · Información meteorológica · 2026
+    </footer>
+
+</div>
+
+
+<!-- =========================================================
+     LIBRERÍAS EXTERNAS
+     ========================================================= -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- =========================================================
+     MÓDULOS PRINCIPALES
+     ========================================================= -->
+      <!-- Guardián de redirección -->
+<script type="module">
+    import { verificarRuta } from "./js/router-config.js";
+    verificarRuta("index");
+</script>
+<script src="./js/keraunos-config.js?v=20261123-1"></script>
+
+<!-- 1. App principal (Mapa y lógica) -->
+<script src="./js/version-check.js?v=20261123-1"></script>
+<script type="module" src="js/app.js?v=20261123-1"></script>
+<script type="module">
+    import { initPWAInstall } from "./js/pwa-install.js";
+    initPWAInstall();
+</script>
+<!-- 2. Botón de Pánico (SOS) - RECUPERADO -->
+<script type="module" src="js/panico.js?v=20261123-1"></script>
+<script type="module" src="js/sos-ui.js?v=20261123-1"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,371 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // FUNCIONES DE VALIDACIÓN (HELPERS)
+    // ============================================================
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuth()
+        && request.auth.token.email == 'coderjava.01@gmail.com';
+    }
+
+    function isOwnerDoc(deviceId) {
+      return isAuth()
+        && exists(/databases/$(database)/documents/usuarios/$(deviceId))
+        && get(/databases/$(database)/documents/usuarios/$(deviceId)).data.authUid
+           == request.auth.uid;
+    }
+
+    function validDNI(dni) {
+      return dni is string
+        && dni.matches('^[0-9]{8}$');
+    }
+
+    function validCelular(cel) {
+      return cel is string
+        && cel.matches('^[0-9]{9}$');
+    }
+
+    // Rescatista con registro autorizado por el admin
+    function isRescatistaAutorizado() {
+      return isAuth()
+        && exists(/databases/$(database)/documents/rescatistas/$(request.auth.uid))
+        && get(/databases/$(database)/documents/rescatistas/$(request.auth.uid)).data.estado == 'autorizado'
+        && get(/databases/$(database)/documents/rescatistas/$(request.auth.uid)).data.get('autorizadoHasta', 0) > request.time.toMillis()
+        && request.auth.token.firebase.sign_in_provider == 'password';
+    }
+
+    // Ambulancia autorizada (el documento usa authUid como ID, igual que rescatistas)
+    function isAmbulanciaAutorizada() {
+      return isAuth()
+        && exists(/databases/$(database)/documents/ambulancias/$(request.auth.uid))
+        && get(/databases/$(database)/documents/ambulancias/$(request.auth.uid)).data.estadoDoc == 'autorizado'
+        && get(/databases/$(database)/documents/ambulancias/$(request.auth.uid)).data.get('autorizadoHasta', 0) > request.time.toMillis()
+        && request.auth.token.firebase.sign_in_provider == 'password';
+    }
+
+    // ============================================================
+    // USUARIOS (SARA)
+    //allow read: if isAdmin() || isOwnerDoc(deviceId);
+    // ============================================================
+
+    match /usuarios/{deviceId} {
+
+      allow read: if isAdmin() || (isAuth() && (
+        !exists(/databases/$(database)/documents/usuarios/$(deviceId))
+        || request.auth.uid == resource.data.authUid
+      ));
+
+      // Regla original conservada para no alterar el comportamiento en esta entrega.
+      allow read: if isAuth()
+        && resource.data.deviceId == deviceId;
+
+      allow create: if isAuth()
+        && request.resource.data.authUid == request.auth.uid
+        && request.resource.data.deviceId == deviceId
+        && validDNI(request.resource.data.dni)
+        && validCelular(request.resource.data.celular)
+        && request.resource.data.estado == 'activo'
+        && request.resource.data.aceptoTerminos == true;
+
+      allow update: if isOwnerDoc(deviceId)
+        && request.resource.data.dni == resource.data.dni
+        && request.resource.data.authUid == resource.data.authUid
+        && request.resource.data.deviceId == resource.data.deviceId
+        && request.resource.data.estado == resource.data.estado;
+
+      // Vía de re-sincronización de authUid (sesión anónima rotada):
+      // regla original conservada; requiere auditoría independiente.
+      allow update: if isAuth()
+        && request.resource.data.deviceId == deviceId
+        && request.resource.data.diff(resource.data)
+             .affectedKeys().hasOnly(['authUid'])
+        && request.resource.data.dni == resource.data.dni
+        && request.resource.data.estado == resource.data.estado
+        && request.resource.data.aceptoTerminos == resource.data.aceptoTerminos;
+
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['estado']);
+    }
+
+    // ============================================================
+    // DNI ÚNICO (SARA)
+    // ============================================================
+
+    match /dni_registrados/{dni} {
+      allow read: if isAuth();
+
+      allow create: if isAuth()
+        && validDNI(dni)
+        && !exists(/databases/$(database)/documents/dni_registrados/$(dni))
+        && request.resource.data.authUid == request.auth.uid;
+    }
+
+    // ============================================================
+    // RECURSOS DE EMERGENCIA
+    // ============================================================
+
+    match /rescatistas/{rid} {
+      allow read: if isAdmin() || (isAuth() && rid == request.auth.uid);
+
+      allow create: if isAuth() && rid == request.auth.uid
+        && request.resource.data.estado == 'pendiente'
+        && request.resource.data.authUid == request.auth.uid
+        && validDNI(request.resource.data.dni)
+        && validCelular(request.resource.data.celular);
+
+      allow update: if isAdmin() || (isAuth() && rid == request.auth.uid
+        && (
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['disponibilidad', 'ubicacion', 'fechaMs', 'base', 'turno', 'celular'])
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'fechaMs'])
+            && request.resource.data.estado == 'pendiente')
+        ));
+
+      allow delete: if false;
+    }
+
+    match /ambulancias/{aid} {
+      allow read: if isAuth();
+
+      allow create: if isAuth()
+        && request.resource.data.estadoDoc == 'pendiente'
+        && request.resource.data.authUid == request.auth.uid;
+
+      allow update: if isAdmin() || (isAuth() && resource.data.authUid == request.auth.uid
+        && (
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['estado', 'ubicacion', 'gpsTs', 'fechaMs'])
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estadoDoc', 'fechaMs'])
+            && request.resource.data.estadoDoc == 'pendiente')
+        ));
+
+      allow delete: if false;
+    }
+
+    match /asignaciones_sos/{asigId} {
+      allow get: if isAdmin() || isRescatistaAutorizado() || isAmbulanciaAutorizada()
+        || (isAuth() && resource.data.ambAuthUid == request.auth.uid);
+
+      allow list: if isAuth()
+        && (isAdmin()
+        || (isRescatistaAutorizado() && request.query.limit > 0)
+        || isAmbulanciaAutorizada());
+
+      allow create: if isAdmin() || isRescatistaAutorizado() || isAmbulanciaAutorizada();
+      allow delete: if false;
+
+      allow update: if isAdmin()
+        || isRescatistaAutorizado()
+        || isAmbulanciaAutorizada();
+    }
+
+    // ============================================================
+    // PANIC ALERTS (APP SARA NUEVA)
+    // ============================================================
+
+    match /panic_alerts/{alertId} {
+      allow get: if isAuth()
+        && (
+          isAdmin()
+          || request.auth.uid == resource.data.authUid
+          || isRescatistaAutorizado()
+          || isAmbulanciaAutorizada()
+        );
+
+      allow list: if isAuth()
+        && (isAdmin() || isRescatistaAutorizado() || isAmbulanciaAutorizada());
+
+      allow create: if isAuth()
+        && request.resource.data.authUid == request.auth.uid
+        && request.resource.data.estado == 'pendiente'
+        && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.deviceId))
+        && get(/databases/$(database)/documents/usuarios/$(request.resource.data.deviceId)).data.estado == 'activo';
+
+      allow update: if isAuth()
+        && request.auth.uid == resource.data.authUid
+        && request.resource.data.estado == 'cancelada'
+        && request.time < resource.data.cancelableHasta;
+
+      allow update: if isAdmin()
+        && request.resource.data.estado in ['atendida', 'finalizada'];
+
+      allow update: if (isRescatistaAutorizado() || isAmbulanciaAutorizada())
+        && request.resource.data.estado in ['atendida', 'finalizada']
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['estado', 'atendidaPor', 'atendidaEn', 'finalizadaPor', 'finalizadaEn']);
+    }
+
+    // ============================================================
+    // PÁNICO (APP ANTAMINA / BOTÓN SOS)
+    // ============================================================
+
+    match /panico_solicitudes/{docId} {
+      allow read: if isAuth()
+        && (
+          request.auth.uid == resource.data.authUid
+          || isAdmin()
+          || request.auth.uid == resource.data.uid
+        );
+
+      allow create: if isAuth()
+        && request.resource.data.dni is string
+        && request.resource.data.dni.size() == 8
+        && request.resource.data.telefono is string
+        && request.resource.data.telefono.size() == 9
+        && request.resource.data.lat is number
+        && request.resource.data.lng is number;
+
+      allow update: if isAuth()
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly(['atendido', 'atendidoEn', 'finalizado', 'finalizadaEn']);
+
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // EMERGENCIAS (SARA)
+    // ============================================================
+
+    match /emergencias/{emergenciaId} {
+      allow create: if isAuth()
+        && request.resource.data.authUid == request.auth.uid
+        && request.resource.data.estado == 'pendiente'
+        && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.deviceId))
+        && get(/databases/$(database)/documents/usuarios/$(request.resource.data.deviceId)).data.estado == 'activo';
+
+      allow read: if isOwnerDoc(resource.data.deviceId)
+        || isAdmin();
+
+      allow update: if isOwnerDoc(resource.data.deviceId)
+        && request.resource.data.estado == 'cancelada'
+        && request.time < resource.data.cancelableHasta;
+
+      allow update: if isAdmin()
+        && request.resource.data.estado in ['atendida', 'finalizada'];
+    }
+
+    // ============================================================
+    // UNIDADES
+    // ============================================================
+
+    match /unidades/{unidadId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /unidades_sos/{doc} {
+      allow read, write: if isAuth();
+    }
+
+    // ============================================================
+    // HISTORIAL
+    // ============================================================
+
+    match /historial/{historialId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ============================================================
+    // MENSAJES STRIKEGUARD
+    // Solo el operador autenticado puede emitir mensajes oficiales.
+    // ============================================================
+
+    match /mensajes_strikeguard/{mensaje} {
+      allow read: if true;
+
+      allow create: if isAdmin()
+        && request.resource.data.titulo is string
+        && request.resource.data.cuerpo is string
+        && request.resource.data.titulo.size() > 0
+        && request.resource.data.titulo.size() <= 100
+        && request.resource.data.cuerpo.size() <= 500;
+
+      allow update, delete: if false;
+    }
+
+    // ============================================================
+    // COMPATIBILIDAD CON EL SCRAPER EXTERNO (NO INCLUIDO EN ESTE REPOSITORIO)
+    // La publicación de estado.json mediante GitHub NO utiliza estas reglas.
+    // Si el scraper escribe en Firestore mediante Firebase Admin SDK o una
+    // biblioteca de servidor autenticada con IAM, no está sujeto a estas
+    // reglas de cliente: puede seguir publicando sin abrir permisos web.
+    // Si utiliza un SDK WEB con Firebase Auth, estas reglas SI se aplican;
+    // hay que comprobar esa implementación antes de desplegarlas.
+    // Nunca usar isAuth() como permiso general para mensajes oficiales.
+    // ============================================================
+    // MENSAJES KERAUNOS
+    // Solo el operador autenticado puede emitir mensajes oficiales.
+    // ============================================================
+
+    match /mensajes_keraunos/{mensaje} {
+      allow read: if true;
+
+      allow create: if isAdmin()
+        && request.resource.data.titulo is string
+        && request.resource.data.cuerpo is string
+        && request.resource.data.titulo.size() > 0
+        && request.resource.data.titulo.size() <= 100
+        && request.resource.data.cuerpo.size() <= 500;
+
+      allow update, delete: if false;
+    }
+
+    // ============================================================
+    // MENSAJES PUSH LEGACY
+    // Solo el operador autenticado puede emitir mensajes oficiales.
+    // ============================================================
+
+    match /mensajes_push/{mensaje} {
+      allow read: if true;
+
+      allow create: if isAdmin()
+        && request.resource.data.titulo is string
+        && request.resource.data.cuerpo is string
+        && request.resource.data.titulo.size() > 0
+        && request.resource.data.titulo.size() <= 100
+        && request.resource.data.cuerpo.size() <= 500;
+
+      allow update, delete: if false;
+    }
+
+    // ============================================================
+    // MENSAJES GLOBALES (regla original: ya exigía admin)
+    // ============================================================
+
+    match /mensajes_globales/{mensajeId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.token.email == 'coderjava.01@gmail.com';
+    }
+
+    // ============================================================
+    // ALERTAS SOS
+    // ============================================================
+
+    match /alertas_sos/{doc} {
+      allow read, write: if isAuth();
+    }
+
+    // ============================================================
+    // SISTEMA (MODO MANUAL/AUTOMÁTICO Y ENRUTADOR)
+    // Lectura pública: estado_modo, config_pagina y demás documentos,
+    // excepto keraunos_control, que es registro interno del operador.
+    // Escrituras: exclusivamente el administrador.
+    // ============================================================
+
+    match /sistema/{documento} {
+      allow read: if documento != 'keraunos_control' || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+  }
+}
