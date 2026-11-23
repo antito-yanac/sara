@@ -8,7 +8,7 @@
 //import { auth } from "./firebase-config.js";
 //import { auth } from "./firebase-app.js";
 import { obtenerAuth, obtenerFirestore } from "./firebase-app.js";
-import { COLECCIONES } from "./firebase-config.js";
+//import { COLECCIONES } from "./firebase-config.js";
 
 // Inicializamos las referencias AQUÍ:
 const auth = obtenerAuth();
