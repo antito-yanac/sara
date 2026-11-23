@@ -13,8 +13,11 @@ const VERDE_BASE = "#22c55e";
 const ZONAS_OCULTAS_MANUAL = ["Zona 4 - Tajo"];
 const APP_CONFIG = window.__APP_CONFIG__ || { origenFiltro: "manual", modo: "manual" };
 const isKeraunos = APP_CONFIG.modo === "keraunos" || APP_CONFIG.origenFiltro === "scraper";
+// Solo paneles emisores; no generar elementos de alerta pública al importar este módulo.
+const ES_PANEL_EMISOR = typeof document !== "undefined" &&
+    document.documentElement.hasAttribute("data-sara-panel-emisor");
 
-if (isKeraunos && typeof document !== "undefined") {
+if (isKeraunos && !ES_PANEL_EMISOR && typeof document !== "undefined") {
     if (document.body) {
         document.body.classList.add("modo-keraunos");
     } else {
@@ -82,19 +85,23 @@ function inyectarBotonSonido() {
 }
 
 export function marcarArranqueListo(fuente) {
+    if (ES_PANEL_EMISOR) return;
     if (!arranque.esperando) return;
     arranque.listos.add(fuente);
     if (arranque.listos.has("firestore") && arranque.listos.has("estado-cliente")) liberarArranque();
 }
 
 function liberarArranque() {
+    if (ES_PANEL_EMISOR) return;
     if (!arranque.esperando) return;
     arranque.esperando = false;
     if (arranque.timeoutId) { clearTimeout(arranque.timeoutId); arranque.timeoutId = null; }
     if (estado.zonasActivas.size === 0 && !libreYaCerradoPorUsuario) mostrarAlertaLibre(true);
 }
 
-arranque.timeoutId = setTimeout(() => { if (arranque.esperando) liberarArranque(); }, arranque.TIMEOUT_MS);
+if (!ES_PANEL_EMISOR) {
+    arranque.timeoutId = setTimeout(() => { if (arranque.esperando) liberarArranque(); }, arranque.TIMEOUT_MS);
+}
 
 export function calcularNivelEfectivo(nivelOriginal, timestampInicio, duracionMin, origen = null) {
     const elapsedMin = (Date.now() - timestampInicio) / 60000;
@@ -121,6 +128,7 @@ export function calcularNivelEfectivo(nivelOriginal, timestampInicio, duracionMi
 }
 
 function asegurarEstructuraDOM() {
+    if (ES_PANEL_EMISOR) return;
     if (document.getElementById("al-overlay")) return;
 
     const html = `
@@ -229,6 +237,7 @@ export async function pintarZonasBaseSiProcede() {
 }
 
 export async function mostrarAlertaCompleta(datos = {}) {
+    if (ES_PANEL_EMISOR) return;
     try {
         const origen = datos.origen || null;
         const filtro = APP_CONFIG.origenFiltro;
@@ -571,6 +580,7 @@ function actualizarTimestampBarra(timestampInicio) {
 }
 
 export function mostrarBarraTarjetaLibre() {
+    if (ES_PANEL_EMISOR) return;
     try {
         asegurarEstructuraDOM();
         const nivel = NIVELES_ALERTA.vigilancia;
@@ -603,6 +613,7 @@ export function mostrarBarraTarjetaLibre() {
 }
 
 export function mostrarAlertaLibre(forzar = false) {
+    if (ES_PANEL_EMISOR) return;
     try {
         if (!forzar && arranque.esperando) return;
         if (!forzar && libreYaCerradoPorUsuario) { asegurarEstructuraDOM(); mostrarBarraTarjetaLibre(); return; }

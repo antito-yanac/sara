@@ -8,7 +8,7 @@
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="css/recursos.css?v=20261123-1">
+    <link rel="stylesheet" href="css/recursos.css?v=20261123-2">
 
     <style>
         :root {
@@ -661,6 +661,7 @@
                         <button class="cc-btn cc-btn-manual" type="button" id="cc-activar-manual" disabled>🖐️ Registrar manual</button>
                         <button class="cc-btn cc-btn-auto" type="button" id="cc-activar-auto" disabled>🤖 Registrar automático</button>
                     </div>
+                    <p id="cc-aviso" role="status" aria-live="polite" style="font-size:12px;color:#b7ffd2;line-height:1.5;margin:8px 0;"></p>
                     <p class="cc-nota">Registro exclusivo del operador. No detiene el scraper, no publica alertas ni altera la presentación pública. «Desconocido» no equivale a «sin alertas».</p>
                 </div>
             </details>
@@ -687,7 +688,7 @@
             <button type="button" id="cc-confirmar">Confirmar</button>
         </div>
     </dialog>
-    <!-- <script type="module" src="./js/recursos-admin.js?v=20261123-1"></script> -->
+    <!-- <script type="module" src="./js/recursos-admin.js?v=20261123-2"></script> -->
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -722,6 +723,6 @@
     </script>
 
     <!-- Solo el controlador de auth se carga al inicio -->
-    <script type="module" src="./js/admin-auth-gate.js?v=20261123-1"></script>
+    <script type="module" src="./js/admin-auth-gate.js?v=20261123-2"></script>
 </body>
 </html>

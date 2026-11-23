@@ -4,7 +4,7 @@
 import { obtenerFirestore, obtenerAuth } from "./firebase-app.js";
 import { esAdministrador } from "./auth.js";
 import {
-    doc, onSnapshot, getDocFromServer, runTransaction, serverTimestamp
+    doc, onSnapshot, setDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
 const PLAZO_DATOS_MS = 15 * 60 * 1000;  // Umbral visual configurable; no prueba salud del scraper.
@@ -34,6 +34,7 @@ export function iniciarContingenciaAdmin() {
     const btnConfirma = $("cc-confirmar");
     const btnCancela = $("cc-cancelar");
     const detalles = $("cc-resumen");
+    const aviso = $("cc-aviso");
     const estado = {
         vivo: true, servidor: false, documento: false,
         modo: null, actualizadoMs: NaN, comprobacionMs: NaN,
@@ -127,6 +128,7 @@ export function iniciarContingenciaAdmin() {
         if (!esAdministrador(usuario)) { estado.servidor = false; pintar(); return; }
         if (!["automatico", "manual"].includes(nuevoModo)) return;
         estado.proximoModo = nuevoModo;
+        if (aviso) aviso.textContent = "";
         $("cc-modal-titulo").textContent = nuevoModo === "manual"
             ? "¿Registrar intervención manual de Keraunos?"
             : "¿Registrar retorno al modo automático?";
@@ -146,38 +148,37 @@ export function iniciarContingenciaAdmin() {
         try {
             const usuario = obtenerAuth().currentUser;
             if (!esAdministrador(usuario)) throw new Error("Sesión administrativa no válida.");
-            // Transacción en servidor: no confirmar escrituras que solo quedan offline.
-            await runTransaction(db, async tx => {
-                const vigente = await tx.get(ref);
-                const previo = vigente.exists() ? vigente.data().modo : null;
-                if (previo === nuevoModo) return;
-                tx.set(ref, {
-                    modo: nuevoModo,
-                    actualizado: serverTimestamp(),
-                    actualizadoPor: usuario.uid,
-                    origenCambio: "registro-operador"
-                }, { merge: true });
-            });
-            const verificacion = await getDocFromServer(ref);
-            if (!verificacion.exists() || verificacion.data().modo !== nuevoModo) {
-                throw new Error("El servidor no confirmó el estado solicitado.");
-            }
+            // El Promise de setDoc solo termina cuando el backend confirma la escritura.
+            // No hacer una segunda lectura obligatoria: podía producir un falso error
+            // pese a una escritura confirmada, en especial con cambios concurrentes.
+            await setDoc(ref, {
+                modo: nuevoModo,
+                actualizado: serverTimestamp(),
+                actualizadoPor: usuario.uid,
+                origenCambio: "registro-operador"
+            }, { merge: true });
+            if (!estado.vivo) return;
             estado.servidor = true;
             estado.documento = true;
             estado.modo = nuevoModo;
-            estado.actualizadoMs = fechaMs(verificacion.data().actualizado);
+            // La marca exacta del servidor llegará mediante onSnapshot.
             estado.comprobacionMs = Date.now();
+            estado.proximoModo = null;
             modal.close();
-            detalles.textContent = "Cambio confirmado por servidor.";
+            if (aviso) {
+                aviso.textContent = `✅ Registro ${nuevoModo === "manual" ? "MANUAL" : "AUTOMÁTICO"} guardado y confirmado por Firestore.`;
+                aviso.dataset.tipo = "exito";
+            }
         } catch (e) {
             console.error("Cambio de modo:", e);
-            $("cc-modal-mensaje").textContent = "No se pudo verificar el cambio: " + e.message + ". El estado no se dará por confirmado. Reintenta cuando haya conexión.";
-            estado.servidor = false;
+            const detalle = e.code ? `${e.code}: ${e.message}` : e.message;
+            $("cc-modal-mensaje").textContent = "No se pudo guardar el registro: " + detalle + ". Comprueba la conexión y los permisos de Firestore, luego reintenta.";
+            // Un error de escritura NO demuestra que la lectura de Firestore falló.
+            // Mantener el modal abierto y permitir reintentar con el mismo modo.
         } finally {
             estado.procesando = false;
             btnConfirma.disabled = false;
             btnConfirma.textContent = "Confirmar";
-            estado.proximoModo = null;
             pintar();
         }
     }

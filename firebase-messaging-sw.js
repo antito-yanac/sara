@@ -15,7 +15,7 @@
 importScripts("https://www.gstatic.com/firebasejs/12.17.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/12.17.0/firebase-messaging-compat.js");
 
-const BUILD_SW = "20261123-1";
+const BUILD_SW = "20261123-2";
 
 // ============================================================
 //  FIREBASE MESSAGING (Notificaciones Push)
