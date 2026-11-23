@@ -137,3 +137,7 @@
 /* } */
 
 /* FIN: BLOQUE TEMPORAL DE OCULTAMIENTO */
+
+#sos-wrap .sos-btn {
+    animation: none;
+}
