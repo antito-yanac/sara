@@ -11,7 +11,7 @@
 import { obtenerFirestore, obtenerApp } from "./firebase-app.js";
 import { mostrarToast } from "./notifications.js";
 import {
-    collection, doc, getDoc, addDoc, updateDoc, onSnapshot,
+    collection, doc, addDoc, updateDoc, onSnapshot,
     query, where, limit, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
