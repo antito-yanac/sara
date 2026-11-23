@@ -583,6 +583,7 @@ export function mostrarBarraTarjetaLibre() {
     if (ES_PANEL_EMISOR) return;
     try {
         asegurarEstructuraDOM();
+        if (estado.intervalTimestamp) { clearInterval(estado.intervalTimestamp); estado.intervalTimestamp = null; }
         const nivel = NIVELES_ALERTA.vigilancia;
         const vars = [["--al-color", nivel.color], ["--al-color-dark", nivel.colorDark], ["--al-glow", nivel.glow]];
         const aplicarVars = (el) => { if (!el) return; vars.forEach(([k, v]) => el.style.setProperty(k, v)); };
@@ -616,6 +617,11 @@ export function mostrarAlertaLibre(forzar = false) {
     if (ES_PANEL_EMISOR) return;
     try {
         if (!forzar && arranque.esperando) return;
+        const barraYa = document.getElementById("al-barra-superior");
+        const overlayYa = document.getElementById("al-overlay");
+        if (estado.zonasActivas.size === 0 && barraYa?.classList.contains("al-modo-libre") &&
+        overlayYa?.classList.contains("al-libre")) return;
+        
         if (!forzar && libreYaCerradoPorUsuario) { asegurarEstructuraDOM(); mostrarBarraTarjetaLibre(); return; }
         if (forzar) libreYaCerradoPorUsuario = false;
         if (estado.zonasActivas.size > 0) return;
