@@ -7,7 +7,8 @@
 import { crearMapa } from "./map.js";
 import { inicializarFirebase } from "./notifications.js";
 import { escucharMensajesPush } from "./mensajes.js";
-import { mostrarAlertaCompleta, cerrarAlertaTotal, mostrarAlertaLibre } from "./alertas.js";
+//import { mostrarAlertaCompleta, cerrarAlertaTotal, mostrarAlertaLibre } from "./alertas.js";
+import { mostrarAlertaCompleta, mostrarAlertaLibre } from "./alertas.js";
 import { iniciarEstadoCliente } from "./estado-cliente.js";
 
 const CONFIG = window.__APP_CONFIG__ || {
