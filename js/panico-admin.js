@@ -7,7 +7,8 @@
 import { getFirestore, collection, onSnapshot,
          doc as docRef, updateDoc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
-import { obtenerFirestore, obtenerApp } from "./firebase-app.js";
+//import { obtenerFirestore, obtenerApp } from "./firebase-app.js";
+import { obtenerApp } from "./firebase-app.js";
 import { mostrarToast } from "./notifications.js";
 
 const COLECCION_LEGADO = "panico_solicitudes"; // botón viejo (js/panico.js)
@@ -242,3 +243,4 @@ if (document.readyState === "loading") {
 } else {
     init();
 }
+
