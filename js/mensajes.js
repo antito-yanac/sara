@@ -167,11 +167,10 @@ export function escucharMensajesPush() {
             if (primeraCarga) {
                 primeraCarga = false;
                 procesarPrimeraCarga(snapshot);
-                // FIX: "listo" solo con respuesta del SERVIDOR, no de caché local
-                if (!snapshot.metadata.fromCache) {
-                    firestoreServidorOk = true;
-                    marcarArranqueListo("firestore");
-                }
+                // El arranque NO espera al servidor: caché o servidor sirven.
+                // El snapshot del servidor llega después y corrige diferencias.
+                if (!snapshot.metadata.fromCache) firestoreServidorOk = true;
+                marcarArranqueListo("firestore");
                 return;
             }
 
@@ -341,3 +340,4 @@ function mostrarAlertaActiva(data, duracionMin, timestampInicio) {
         origen:          data.origen || null
     });
 }
+
