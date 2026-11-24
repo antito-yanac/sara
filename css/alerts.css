@@ -952,3 +952,10 @@
 #al-tarjeta.al-modo-libre .al-tarjeta-icono {
     animation: none;
 }
+/* Modo CONSULTA — neutral mientras se confirma con el servidor */
+#al-barra-superior.al-modo-consulta {
+    background: linear-gradient(160deg, rgba(20,20,25,0.96), #92400e);
+    border: 1px solid #f59e0b;
+}
+#al-barra-superior.al-modo-consulta .al-barra-nivel { color: #fde68a; }
+#al-barra-superior.al-modo-consulta .al-barra-cerrar { display: none !important; }
