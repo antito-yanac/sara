@@ -686,7 +686,9 @@ export function mostrarBarraTarjetaLibre() {
 
         aplicarVars(barra); aplicarVars(tarjeta);
 
+        barra?.classList.remove("al-modo-consulta");
         barra?.classList.add("al-modo-libre");
+        tarjeta?.classList.remove("al-modo-consulta");
         tarjeta?.classList.add("al-modo-libre");
 
         document.getElementById("al-barra-icono").textContent = "✅";
