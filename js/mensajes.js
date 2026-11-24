@@ -28,7 +28,7 @@ const LIMITE_DOCS = 50;
 let db = null;
 let yaEscuchando = false;
 let primeraCarga = true;
-
+let firestoreServidorOk = false;
 const docsProcesados = new Set();
 
 export const estadoModo = {
@@ -167,8 +167,18 @@ export function escucharMensajesPush() {
             if (primeraCarga) {
                 primeraCarga = false;
                 procesarPrimeraCarga(snapshot);
-                marcarArranqueListo("firestore");
+                // FIX: "listo" solo con respuesta del SERVIDOR, no de caché local
+                if (!snapshot.metadata.fromCache) {
+                    firestoreServidorOk = true;
+                    marcarArranqueListo("firestore");
+                }
                 return;
+            }
+
+            // Confirmación del servidor tras un snapshot desde caché
+            if (!snapshot.metadata.fromCache && !firestoreServidorOk) {
+                firestoreServidorOk = true;
+                marcarArranqueListo("firestore");
             }
 
             snapshot.docChanges().forEach((cambio) => {
