@@ -89,7 +89,8 @@ export function marcarArranqueListo(fuente) {
     if (ES_PANEL_EMISOR) return;
     if (!arranque.esperando) return;
     arranque.listos.add(fuente);
-    if (arranque.listos.has("firestore") && arranque.listos.has("estado-cliente")) liberarArranque();
+    // estado.json retirado: Firestore es la única fuente de arranque
+    if (arranque.listos.has("firestore")) liberarArranque();
 }
 
 function liberarArranque() {
@@ -501,7 +502,7 @@ function cerrarBanner() {
 function mostrarSplashInicio() {
     try {
         const cfg = window.__APP_CONFIG__ || {};
-        if (cfg.usarEstadoJSON !== true) return;      // solo páginas con estado-cliente (index)
+        if (cfg.usarFirestore !== true) return;       // solo páginas conectadas a Firestore (index)
         if (!arranque.esperando) return;              // ya confirmado: no mostrar
         if (estado.zonasActivas.size > 0) return;     // ya hay alerta pintada
         const overlayEl = document.getElementById("al-overlay");
