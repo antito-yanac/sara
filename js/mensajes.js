@@ -163,13 +163,21 @@ export function escucharMensajesPush() {
         const ref = collection(database, coleccionNombre);
         const q = query(ref, orderBy("fecha", "desc"), limit(LIMITE_DOCS));
 
-        onSnapshot(q, (snapshot) => {
+            onSnapshot(q, (snapshot) => {
             if (primeraCarga) {
+                // Solo el SERVIDOR define el arranque. La caché local de una
+                // sesión anterior puede estar expirada: pintaba verde aunque
+                // hubiera alerta activa, y el snapshot del servidor no la
+                // corregía (los docs ya en caché no llegan como "added").
+                if (snapshot.metadata.fromCache) return;
                 primeraCarga = false;
+                firestoreServidorOk = true;
                 procesarPrimeraCarga(snapshot);
-                // El arranque NO espera al servidor: caché o servidor sirven.
-                // El snapshot del servidor llega después y corrige diferencias.
-                if (!snapshot.metadata.fromCache) firestoreServidorOk = true;
+                // Si el timeout ya disparó, cierra el splash con el estado
+                // real: pintar la alerta ya lo hace procesarPrimeraCarga;
+                // si no hay alertas, muestra libre. Si aún está esperando,
+                // este llamado no hace nada (liberarArranque se encarga).
+                mostrarAlertaLibre();
                 marcarArranqueListo("firestore");
                 return;
             }
@@ -340,4 +348,5 @@ function mostrarAlertaActiva(data, duracionMin, timestampInicio) {
         origen:          data.origen || null
     });
 }
+
 
