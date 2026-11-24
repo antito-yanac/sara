@@ -12,7 +12,8 @@ window.__APP_CONFIG__ = {
     zonasFile: "./zonas2.json",
     origenFiltro: "scraper",      // Acepta scraper + manuales (ver mensajes.js)
     usarFirestore: true,          // ✅ Escucha Firestore en tiempo real
-    usarEstadoJSON: true,         // ✅ Mantiene estado.json como respaldo
+    usarEstadoJSON: false,         // ✅ Mantiene estado.json como respaldo
     coleccion: "mensajes_keraunos" // ✅ Colección exclusiva para Keraunos
 };
 console.log("[config] index.html en modo KERAUNOS, colección: mensajes_keraunos");
+
