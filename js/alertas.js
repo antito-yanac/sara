@@ -98,12 +98,14 @@ function liberarArranque() {
     if (!arranque.esperando) return;
     arranque.esperando = false;
     if (arranque.timeoutId) { clearTimeout(arranque.timeoutId); arranque.timeoutId = null; }
-    if (estado.zonasActivas.size === 0 && !libreYaCerradoPorUsuario) {
-        mostrarAlertaLibre(true);
-        if (arranque.porTimeout) {
-            try { mostrarToast("Estado sin confirmar", "No se pudo consultar el servidor. Actualiza la página.", "alerta", false); } catch (e) { }
-        }
+    if (arranque.porTimeout) {
+        // Sin confirmación del servidor NO se pinta verde: podría haber
+        // alerta activa. El splash queda y solo avisa; cuando el servidor
+        // responda, pintará la alerta o el libre con estado real.
+        try { mostrarToast("Estado sin confirmar", "No se pudo consultar el servidor. Actualiza la página.", "alerta", false); } catch (e) { }
+        return;
     }
+    if (estado.zonasActivas.size === 0 && !libreYaCerradoPorUsuario) mostrarAlertaLibre(true);
 }
 
 const RECOMENDACIONES_SPLASH = [
