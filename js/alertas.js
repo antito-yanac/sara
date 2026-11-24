@@ -529,6 +529,7 @@ function actualizarBarraYTarjetaAgregadas() {
 
     barra.classList.remove("al-modo-libre");
     tarjeta.classList.remove("al-modo-libre");
+    barra?.classList.remove("al-modo-consulta");
 
     if (barra) barra.style.background = `linear-gradient(160deg, rgba(20, 20, 25, 0.96), ${nivelMax.colorDark})`;
     if (tarjeta) { tarjeta.style.background = `linear-gradient(160deg, rgba(20, 20, 25, 0.96), ${nivelMax.colorDark})`; tarjeta.style.borderLeft = `4px solid ${nivelMax.color}`; }
@@ -629,6 +630,7 @@ export function mostrarBarraTarjetaConsulta() {
         asegurarEstructuraDOM();
         const barra = document.getElementById("al-barra-superior");
         barra?.classList.remove("al-modo-libre");
+        barra?.classList.remove("al-modo-consulta");
         barra?.classList.add("al-modo-consulta");
         document.getElementById("al-barra-icono").textContent = "⏳";
         document.getElementById("al-barra-nivel").textContent = "ACTUALIZANDO";
