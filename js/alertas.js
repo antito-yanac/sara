@@ -105,6 +105,13 @@ function liberarArranque() {
     }
 }
 
+const RECOMENDACIONES_SPLASH = [
+    "🛡️ Evalúe su entorno antes de continuar sus actividades.",
+    "🏠 Identifique el refugio cerrado más cercano.",
+    "🌳 Evite árboles solitarios, postes y estructuras metálicas.",
+    "📱 Mantenga su equipo cargado y pendiente de las alertas."
+];
+
 if (!ES_PANEL_EMISOR) {
     mostrarBarraTarjetaConsulta();
     mostrarSplashInicio();
@@ -490,12 +497,6 @@ function cerrarBanner() {
 // Se reemplaza solo: por la alerta real, por el modo libre al
 // confirmar ambas fuentes, o por el timeout de arranque.
 // ============================================================
-const RECOMENDACIONES_SPLASH = [
-    "🛡️ Evalúe su entorno antes de continuar sus actividades.",
-    "🏠 Identifique el refugio cerrado más cercano.",
-    "🌳 Evite árboles solitarios, postes y estructuras metálicas.",
-    "📱 Mantenga su equipo cargado y pendiente de las alertas."
-];
 
 function mostrarSplashInicio() {
     try {
