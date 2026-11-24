@@ -521,11 +521,11 @@ function mostrarSplashInicio() {
             panelEl.classList.add("al-splash");
         }
 
-        document.getElementById("al-icono-big").textContent = "🛡️";
+        document.getElementById("al-icono-big").textContent = "⛈️";
         document.getElementById("al-nivel-badge").textContent = "SISTEMA DE VIGILANCIA";
         document.getElementById("al-nivel-badge").style.background = nivel.color;
         document.getElementById("al-titulo-texto").textContent = "SARA";
-        document.getElementById("al-mensaje-texto").textContent = "Evalúe su entorno mientras se consulta el estado del servidor.";
+        document.getElementById("al-mensaje-texto").textContent = "¡TU SEGURIDAD ES NUESTRA PRIORIDAD! La naturaleza avisa, SARA te protege.";
         document.getElementById("al-recomendacion-texto").innerHTML =
             "<strong>Recomendaciones ante tormentas eléctricas:</strong>" +
             "<ul class=\"al-splash-lista\">" +
