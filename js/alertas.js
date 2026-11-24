@@ -7,7 +7,8 @@
 //     inmediatamente para que no se reviva la alerta.
 // ============================================================
 
-import { reproducirSonidoAlerta, detenerSonidoAlerta } from "./notifications.js";
+//import { reproducirSonidoAlerta, detenerSonidoAlerta } from "./notifications.js";
+import { reproducirSonidoAlerta, detenerSonidoAlerta, mostrarToast } from "./notifications.js";
 
 const VERDE_BASE = "#22c55e";
 const ZONAS_OCULTAS_MANUAL = ["Zona 4 - Tajo"];
@@ -58,8 +59,8 @@ let libreYaCerradoPorUsuario = false;
 const DURACION_TIMER_MINUTOS = 15;
 const MINUTOS_DEGRADACION = 1;
 
-const arranque = { esperando: true, listos: new Set(), timeoutId: null, TIMEOUT_MS: 1500 };
-
+//const arranque = { esperando: true, listos: new Set(), timeoutId: null, TIMEOUT_MS: 1500 };
+const arranque = { esperando: true, listos: new Set(), timeoutId: null, TIMEOUT_MS: 8000, porTimeout: false };
 function inyectarBotonSonido() {
     if (document.getElementById("btn-unlock-sonido")) return;
     const btn = document.createElement("button");
@@ -96,11 +97,21 @@ function liberarArranque() {
     if (!arranque.esperando) return;
     arranque.esperando = false;
     if (arranque.timeoutId) { clearTimeout(arranque.timeoutId); arranque.timeoutId = null; }
-    if (estado.zonasActivas.size === 0 && !libreYaCerradoPorUsuario) mostrarAlertaLibre(true);
+    if (estado.zonasActivas.size === 0 && !libreYaCerradoPorUsuario) {
+        mostrarAlertaLibre(true);
+        if (arranque.porTimeout) {
+            try { mostrarToast("Estado sin confirmar", "No se pudo consultar el servidor. Actualiza la página.", "alerta", false); } catch (e) { }
+        }
+    }
 }
 
 if (!ES_PANEL_EMISOR) {
-    arranque.timeoutId = setTimeout(() => { if (arranque.esperando) liberarArranque(); }, arranque.TIMEOUT_MS);
+    mostrarBarraTarjetaConsulta();
+    arranque.timeoutId = setTimeout(() => {
+        if (!arranque.esperando) return;
+        arranque.porTimeout = true;
+        liberarArranque();
+    }, arranque.TIMEOUT_MS);
 }
 
 export function calcularNivelEfectivo(nivelOriginal, timestampInicio, duracionMin, origen = null) {
@@ -611,6 +622,20 @@ export function mostrarBarraTarjetaLibre() {
         document.getElementById("al-tarjeta-cuerpo").innerHTML = "<strong>🟢 Estado:</strong> Sin alertas meteorológicas<br><strong>📍 Sistema:</strong> En vigilancia";
         tarjeta?.classList.add("al-visible");
     } catch (e) { console.error("alertas.js: error al mostrar barra/tarjeta libre", e); }
+}
+//------------------------------------
+export function mostrarBarraTarjetaConsulta() {
+    try {
+        asegurarEstructuraDOM();
+        const barra = document.getElementById("al-barra-superior");
+        barra?.classList.remove("al-modo-libre");
+        barra?.classList.add("al-modo-consulta");
+        document.getElementById("al-barra-icono").textContent = "⏳";
+        document.getElementById("al-barra-nivel").textContent = "ACTUALIZANDO";
+        document.getElementById("al-barra-desc").textContent = "Consultando el estado del servidor…";
+        document.getElementById("al-barra-tiempo").textContent = "";
+        barra?.classList.add("al-visible");
+    } catch (e) { }
 }
 
 export function mostrarAlertaLibre(forzar = false) {
