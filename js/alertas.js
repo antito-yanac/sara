@@ -107,6 +107,7 @@ function liberarArranque() {
 
 if (!ES_PANEL_EMISOR) {
     mostrarBarraTarjetaConsulta();
+    mostrarSplashInicio();
     arranque.timeoutId = setTimeout(() => {
         if (!arranque.esperando) return;
         arranque.porTimeout = true;
@@ -437,6 +438,7 @@ function pintarBannerDeZona(zona, opts = {}) {
     const panelEl = document.getElementById("al-panel");
     const modalEl = document.getElementById("al-modal-seguridad");
 
+    restaurarPanelSplash();
     overlayEl.classList.remove("al-libre");
     if (panelEl) { panelEl.style.background = `linear-gradient(160deg, ${nivel.color}, ${nivel.colorDark})`; panelEl.style.borderColor = nivel.color; }
 
@@ -481,10 +483,86 @@ function cerrarBanner() {
     o?.classList.remove("al-visible");
     o?.classList.remove("al-libre");
 }
+//-------------------------------------------
+// ============================================================
+// SPLASH DE ARRANQUE: al-panel a pantalla completa mientras se
+// consulta el servidor. No declara estado (ni libre ni alerta).
+// Se reemplaza solo: por la alerta real, por el modo libre al
+// confirmar ambas fuentes, o por el timeout de arranque.
+// ============================================================
+const RECOMENDACIONES_SPLASH = [
+    "🛡️ Evalúe su entorno antes de continuar sus actividades.",
+    "🏠 Identifique el refugio cerrado más cercano.",
+    "🌳 Evite árboles solitarios, postes y estructuras metálicas.",
+    "📱 Mantenga su equipo cargado y pendiente de las alertas."
+];
 
+function mostrarSplashInicio() {
+    try {
+        const cfg = window.__APP_CONFIG__ || {};
+        if (cfg.usarEstadoJSON !== true) return;      // solo páginas con estado-cliente (index)
+        if (!arranque.esperando) return;              // ya confirmado: no mostrar
+        if (estado.zonasActivas.size > 0) return;     // ya hay alerta pintada
+        const overlayEl = document.getElementById("al-overlay");
+        if (overlayEl && (overlayEl.classList.contains("al-libre") || overlayEl.classList.contains("al-visible"))) return;
+
+        asegurarEstructuraDOM();
+        const nivel = { color: "#3b82f6", colorDark: "#1e3a8a", glow: "rgba(59,130,246,0.5)" };
+        const panelEl = document.getElementById("al-panel");
+        const vars = [["--al-color", nivel.color], ["--al-color-dark", nivel.colorDark], ["--al-glow", nivel.glow]];
+        const aplicarVars = (el) => { if (!el) return; vars.forEach(([k, v]) => el.style.setProperty(k, v)); };
+        aplicarVars(overlayEl); aplicarVars(panelEl);
+
+        if (panelEl) {
+            panelEl.style.background = "linear-gradient(160deg, #1e3a8a, #0f172a)";
+            panelEl.style.borderColor = nivel.color;
+            panelEl.classList.add("al-splash");
+        }
+
+        document.getElementById("al-icono-big").textContent = "🛡️";
+        document.getElementById("al-nivel-badge").textContent = "SISTEMA DE VIGILANCIA";
+        document.getElementById("al-nivel-badge").style.background = nivel.color;
+        document.getElementById("al-titulo-texto").textContent = "SARA";
+        document.getElementById("al-mensaje-texto").textContent = "Evalúe su entorno mientras se consulta el estado del servidor.";
+        document.getElementById("al-recomendacion-texto").innerHTML =
+            "<strong>Recomendaciones ante tormentas eléctricas:</strong>" +
+            "<ul class=\"al-splash-lista\">" +
+            RECOMENDACIONES_SPLASH.map(t => `<li>${t}</li>`).join("") +
+            "</ul>";
+
+        const wrap = document.getElementById("al-contador-wrap");
+        if (wrap) wrap.style.display = "none";
+        const botones = panelEl?.querySelector(".al-botones");
+        if (botones) botones.style.display = "none";
+        const cola = document.getElementById("al-cola-indicador");
+        if (cola) cola.style.display = "none";
+
+        const pie = document.createElement("div");
+        pie.className = "al-splash-estado";
+        pie.id = "al-splash-estado";
+        pie.innerHTML = "<span class=\"al-splash-punto\"></span>Actualizando información…";
+        panelEl?.appendChild(pie);
+
+        overlayEl.classList.remove("al-libre");
+        overlayEl.classList.add("al-visible");
+    } catch (e) { console.warn("alertas.js: splash de arranque omitido:", e); }
+}
+
+// Limpia el splash cuando alerta o libre van a pintar encima
+function restaurarPanelSplash() {
+    const panelEl = document.getElementById("al-panel");
+    if (!panelEl) return;
+    panelEl.classList.remove("al-splash");
+    const botones = panelEl.querySelector(".al-botones");
+    if (botones) botones.style.display = "";
+    const badge = document.getElementById("al-nivel-badge");
+    if (badge) badge.style.background = "";
+    document.getElementById("al-splash-estado")?.remove();
+}
 function abrirOverlayLibre() {
     try {
         asegurarEstructuraDOM();
+        restaurarPanelSplash();
         const nivel = NIVELES_ALERTA.vigilancia;
         const overlayEl = document.getElementById("al-overlay");
         const panelEl = document.getElementById("al-panel");
