@@ -12,6 +12,7 @@ import {
     onSnapshot, serverTimestamp, doc
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 import { obtenerFirestore } from "./firebase-app.js";
+import { firebaseConfig } from "./firebase-config.js";
 import { mostrarToast, reproducirSonido } from "./notifications.js";
 import { mostrarAlertaCompleta, mostrarAlertaLibre, quitarAlerta, marcarArranqueListo } from "./alertas.js";
 
@@ -140,7 +141,65 @@ function escucharModo() {
         console.warn("[mensajes] no se pudo escuchar modo:", e);
     }
 }
+//------------------------------------------
+// ============================================================
+// CONFIRMACIÓN RÁPIDA DE ARRANQUE (REST directa)
+// El SDK abre un canal streaming (WebChannel) cuyo handshake en
+// redes móviles/corporativas puede tardar mucho. Este GET simple
+// llega en 1-2 s, evalúa el MISMO estado y pinta la alerta real
+// o el libre sin esperar el canal. El listener del SDK queda
+// como fuente de tiempo real.
+// ============================================================
+const ARRANQUE_REST = { resuelto: null, sdkSincronizado: false };
 
+function convertirCampoREST(valor) {
+    if (valor == null) return null;
+    if ("stringValue" in valor) return valor.stringValue;
+    if ("integerValue" in valor) return parseInt(valor.integerValue, 10);
+    if ("doubleValue" in valor) return Number(valor.doubleValue);
+    if ("booleanValue" in valor) return valor.booleanValue;
+    if ("timestampValue" in valor) return { toMillis: () => Date.parse(valor.timestampValue) };
+    if ("mapValue" in valor) {
+        const out = {};
+        for (const [k, v] of Object.entries(valor.mapValue.fields || {})) out[k] = convertirCampoREST(v);
+        return out;
+    }
+    if ("arrayValue" in valor) return (valor.arrayValue.values || []).map(convertirCampoREST);
+    return null;
+}
+
+async function confirmarArranqueREST() {
+    try {
+        const coleccion = encodeURIComponent(obtenerNombreColeccion());
+        const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}` +
+            `/databases/(default)/documents/${coleccion}?pageSize=${LIMITE_DOCS}` +
+            `&orderBy=fecha%20desc&key=${firebaseConfig.apiKey}`;
+        const resp = await fetch(url, { cache: "no-store" });
+        if (!resp.ok) return;
+        const json = await resp.json();
+        if (ARRANQUE_REST.resuelto || !primeraCarga) return;   // el SDK llegó primero
+
+        const docs = (json.documents || []).map(d => ({
+            id: d.name.split("/").pop(),
+            data: () => {
+                const out = {};
+                for (const [k, v] of Object.entries(d.fields || {})) out[k] = convertirCampoREST(v);
+                return out;
+            }
+        }));
+        const snapshotRest = { docs: docs, metadata: { fromCache: false } };
+
+        ARRANQUE_REST.resuelto = "rest";
+        primeraCarga = false;
+        firestoreServidorOk = true;
+        console.log("[mensajes] arranque confirmado por REST directa");
+        procesarPrimeraCarga(snapshotRest);
+        mostrarAlertaLibre();
+        marcarArranqueListo("firestore");
+    } catch (e) {
+        console.warn("[mensajes] REST de arranque falló (continúa el SDK):", e);
+    }
+}
 export function escucharMensajesPush() {
     if (yaEscuchando) return;
     yaEscuchando = true;
@@ -157,6 +216,8 @@ export function escucharMensajesPush() {
     console.log(`[mensajes] Escuchando colección: ${coleccionNombre}`);
 
     escucharModo();
+    // Confirmación rápida por REST en paralelo al listener del SDK
+    confirmarArranqueREST();
 
     try {
         const database = obtenerDB();
@@ -172,6 +233,7 @@ export function escucharMensajesPush() {
                 if (snapshot.metadata.fromCache) return;
                 primeraCarga = false;
                 firestoreServidorOk = true;
+                ARRANQUE_REST.resuelto = "sdk";
                 procesarPrimeraCarga(snapshot);
                 // Si el timeout ya disparó, cierra el splash con el estado
                 // real: pintar la alerta ya lo hace procesarPrimeraCarga;
@@ -188,8 +250,20 @@ export function escucharMensajesPush() {
                 marcarArranqueListo("firestore");
             }
 
+            // Si el arranque lo resolvió la REST directa, el PRIMER snapshot
+            // del SDK llega con todo como "added": solo se absorben los IDs
+            // para no reprocesar (el estado ya lo pintó la REST).
+            if (ARRANQUE_REST.resuelto === "rest" && !ARRANQUE_REST.sdkSincronizado) {
+                if (!snapshot.metadata.fromCache) ARRANQUE_REST.sdkSincronizado = true;
+                snapshot.docChanges().forEach((cambio) => {
+                    if (cambio.type === "added") docsProcesados.add(cambio.doc.id);
+                });
+                return;
+            }
+
             snapshot.docChanges().forEach((cambio) => {
                 if (cambio.type !== "added") return;
+                
                 const docId = cambio.doc.id;
                 if (docsProcesados.has(docId)) return;
                 docsProcesados.add(docId);
