@@ -1000,3 +1000,7 @@
     background: #ef4444 !important;
     animation: none !important;
 }
+/* salto de linea al splash */
+#al-mensaje-texto {
+    white-space: pre-line;
+}
