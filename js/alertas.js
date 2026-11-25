@@ -103,7 +103,12 @@ function liberarArranque() {
         // alerta activa. El splash queda pero deja de decir "Actualizando":
         // muestra el estado real (sin conexión) hasta que lleguen datos.
         const pie = document.getElementById("al-splash-estado");
-        if (pie) pie.innerHTML = "<span class=\"al-splash-punto al-splash-punto-error\"></span>Sin conexión con el servidor — actualiza la página";
+        const rechazado = window.__SARA_REST_STATUS__ === 429;
+        const textoPie = rechazado
+            ? "Servidor no disponible — no es tu conexión. Intenta en unos minutos"
+            : "Sin conexión con el servidor — actualiza la página";
+        if (pie) pie.innerHTML = "<span class=\"al-splash-punto al-splash-punto-error\"></span>" + textoPie;
+            
         const barraNivel = document.getElementById("al-barra-nivel");
         const barraDesc = document.getElementById("al-barra-desc");
         if (barraNivel) barraNivel.textContent = "SIN CONEXIÓN";
