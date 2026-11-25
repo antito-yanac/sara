@@ -541,7 +541,7 @@ function escucharAlertasActivas() {
         //const ref = collection(db, "mensajes_push");
         const coleccionNombre = (window.__APP_CONFIG__ || {}).coleccion || "mensajes_strikeguard";
         const ref = collection(db, coleccionNombre);
-        const q = query(ref, orderBy("fecha", "desc"), limit(50));
+        const q = query(ref, orderBy("fecha", "desc"), limit(15));
 
         onSnapshot(q, (snap) => {
             const docs = snap.docs.map(d => ({ id: d.id, data: d.data() }));
