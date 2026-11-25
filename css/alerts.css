@@ -995,3 +995,8 @@
     0%, 100% { opacity: 0.25; transform: scale(0.8); }
     50% { opacity: 1; transform: scale(1.15); }
 }
+/* Punto del splash en estado de error (sin conexión): rojo estático */
+.al-splash-punto-error {
+    background: #ef4444 !important;
+    animation: none !important;
+}
