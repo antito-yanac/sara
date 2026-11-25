@@ -175,7 +175,14 @@ async function confirmarArranqueREST() {
             `/databases/(default)/documents/${coleccion}?pageSize=${LIMITE_DOCS}` +
             `&orderBy=fecha%20desc&key=${firebaseConfig.apiKey}`;
         const resp = await fetch(url, { cache: "no-store" });
-        if (!resp.ok) return;
+        if (!resp.ok) {
+            // El servidor RESPONDIÓ y rechazó (p.ej. cuota 429): guardar
+            // el status para que el splash muestre la causa real.
+            window.__SARA_REST_STATUS__ = resp.status;
+            console.warn("[mensajes] REST de arranque respondió HTTP", resp.status);
+            return;
+        }
+        
         const json = await resp.json();
         if (ARRANQUE_REST.resuelto || !primeraCarga) return;   // el SDK llegó primero
 
