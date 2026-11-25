@@ -4,7 +4,10 @@
 // v2: usa la colección privada `panico_solicitudes`.
 // ============================================================
 
-import { getFirestore, collection, onSnapshot,
+//import { getFirestore, collection, onSnapshot,
+//         doc as docRef, updateDoc, serverTimestamp }
+//    from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, limit, onSnapshot,
          doc as docRef, updateDoc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 //import { obtenerFirestore, obtenerApp } from "./firebase-app.js";
@@ -203,10 +206,12 @@ function renderizar() {
 function iniciarListener(coleccion, normalizar) {
     try {
         const db = getFirestore(obtenerApp());
-        const ref = collection(db, coleccion);
+        const ref = query(collection(db, coleccion), orderBy("fechaMs", "desc"), limit(50));
 
-        // Sin orderBy: evita índices compuestos y no excluye docs sin el campo fechaMs.
+        // Los más recientes primero; sin el límite se re-leía TODO el historial
+        // del panico en cada reconexión.
         onSnapshot(ref, (snapshot) => {
+                 
             snapshot.docChanges().forEach((cambio) => {
                 const clave = `${coleccion}:${cambio.doc.id}`;
                 if (cambio.type === "removed") {
