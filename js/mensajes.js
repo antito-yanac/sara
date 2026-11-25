@@ -24,7 +24,7 @@ function obtenerNombreColeccion() {
 const COLECCION_SISTEMA = "sistema";
 const DOC_MODO = "estado_modo";
 const DURACION_ALERTA_MS = 15 * 60 * 1000;
-const LIMITE_DOCS = 50;
+const LIMITE_DOCS = 15;
 
 let db = null;
 let yaEscuchando = false;
