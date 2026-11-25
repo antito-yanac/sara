@@ -9,20 +9,19 @@
 // quieras desde ahí, sin tocar el código.
 
 import {
-    getAuth,
     signInWithEmailAndPassword,
     onAuthStateChanged,
     signOut
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
 
-import { obtenerApp } from "./firebase-app.js";
+// La instancia de Auth sale SIEMPRE de firebase-app.js (única fuente,
+// con setPersistence ya aplicado: la sesión admin sobrevive al cerrar
+// el navegador).
+import { obtenerAuth as obtenerAuthFirebase } from "./firebase-app.js";
 import { ADMIN_EMAIL } from "./firebase-config.js";
 
-let auth = null;
-
 function obtenerAuth() {
-    if (!auth) auth = getAuth(obtenerApp());
-    return auth;
+    return obtenerAuthFirebase();
 }
 
 /**
