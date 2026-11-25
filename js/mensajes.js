@@ -150,7 +150,7 @@ function escucharModo() {
 // o el libre sin esperar el canal. El listener del SDK queda
 // como fuente de tiempo real.
 // ============================================================
-const ARRANQUE_REST = { resuelto: null, sdkSincronizado: false };
+const ARRANQUE_REST = { resuelto: null, sdkSincronizado: false, lanzada: false };
 
 function convertirCampoREST(valor) {
     if (valor == null) return null;
@@ -169,6 +169,8 @@ function convertirCampoREST(valor) {
 }
 
 async function confirmarArranqueREST() {
+    if (ARRANQUE_REST.lanzada) return;
+    ARRANQUE_REST.lanzada = true;
     try {
         const coleccion = encodeURIComponent(obtenerNombreColeccion());
         const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}` +
@@ -223,8 +225,13 @@ export function escucharMensajesPush() {
     console.log(`[mensajes] Escuchando colección: ${coleccionNombre}`);
 
     escucharModo();
-    // Confirmación rápida por REST en paralelo al listener del SDK
-    confirmarArranqueREST();
+    // Confirmación rápida por REST: se lanza SOLO si el SDK no confirmó
+    // en 1.5 s. En red estable el SDK llega primero y se ahorran las
+    // lecturas de la REST; en red lenta sigue salvando el splash.
+    setTimeout(() => {
+        if (ARRANQUE_REST.resuelto || !primeraCarga) return;
+        confirmarArranqueREST();
+    }, 1500);
 
     try {
         const database = obtenerDB();
