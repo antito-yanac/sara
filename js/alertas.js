@@ -538,7 +538,7 @@ function mostrarSplashInicio() {
         document.getElementById("al-nivel-badge").textContent = "SISTEMA DE VIGILANCIA";
         document.getElementById("al-nivel-badge").style.background = nivel.color;
         document.getElementById("al-titulo-texto").textContent = "SARA";
-        document.getElementById("al-mensaje-texto").textContent = "¡TU SEGURIDAD ES NUESTRA PRIORIDAD! La naturaleza avisa, SARA te protege.";
+        document.getElementById("al-mensaje-texto").textContent = "¡TU SEGURIDAD ES NUESTRA PRIORIDAD! \nLa naturaleza avisa, SARA te protege.";
         document.getElementById("al-recomendacion-texto").innerHTML =
             "<strong>Recomendaciones ante tormentas eléctricas:</strong>" +
             "<ul class=\"al-splash-lista\">" +
