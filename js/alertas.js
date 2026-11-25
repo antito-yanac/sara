@@ -98,10 +98,16 @@ function liberarArranque() {
     if (!arranque.esperando) return;
     arranque.esperando = false;
     if (arranque.timeoutId) { clearTimeout(arranque.timeoutId); arranque.timeoutId = null; }
-    if (arranque.porTimeout) {
+        if (arranque.porTimeout) {
         // Sin confirmación del servidor NO se pinta verde: podría haber
-        // alerta activa. El splash queda y solo avisa; cuando el servidor
-        // responda, pintará la alerta o el libre con estado real.
+        // alerta activa. El splash queda pero deja de decir "Actualizando":
+        // muestra el estado real (sin conexión) hasta que lleguen datos.
+        const pie = document.getElementById("al-splash-estado");
+        if (pie) pie.innerHTML = "<span class=\"al-splash-punto al-splash-punto-error\"></span>Sin conexión con el servidor — actualiza la página";
+        const barraNivel = document.getElementById("al-barra-nivel");
+        const barraDesc = document.getElementById("al-barra-desc");
+        if (barraNivel) barraNivel.textContent = "SIN CONEXIÓN";
+        if (barraDesc) barraDesc.textContent = "No se pudo consultar el estado del servidor";
         try { mostrarToast("Estado sin confirmar", "No se pudo consultar el servidor. Actualiza la página.", "alerta", false); } catch (e) { }
         return;
     }
