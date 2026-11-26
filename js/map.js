@@ -11,7 +11,8 @@ let map;
 let geoLayer;
 let markerSeleccionado = null;
 
-const MAPTILER_KEY = "j4zAW83dNrfEbSRUvYN0";
+//const MAPTILER_KEY = "j4zAW83dNrfEbSRUvYN0";
+const MAPTILER_KEY = "JwjmdZSWwXDFjaxB4MQ4";
 const MAP_STYLE    = "hybrid-v4";
 
 let markerUbicacion  = null;
